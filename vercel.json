@@ -4,7 +4,7 @@
     "api": {
       "root": ".",
       "runtime": "container",
-      "entrypoint": "apps/api/Dockerfile"
+      "entrypoint": "api.Dockerfile"
     },
     "web": {
       "root": "apps/web",

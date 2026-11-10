@@ -1,4 +1,5 @@
-# ANANDA API (NestJS). Build from the repository root: docker build -f apps/api/Dockerfile .
+# ANANDA API (NestJS). Lives at the repository root so the root is the build context (Vercel uses the
+# Dockerfile's folder as the context). Build: docker build -f api.Dockerfile .
 FROM node:24-alpine AS build
 RUN corepack enable && corepack prepare pnpm@11.8.0 --activate
 WORKDIR /app

@@ -58,7 +58,7 @@ The seed also prints a real authenticator secret.
 ## Deploy to Vercel
 
 `vercel.json` defines one Vercel project with two services: `web` (Next.js, everything except `/api`)
-and `api` (NestJS, `/api/*`). The API runs as a container service built from `apps/api/Dockerfile`, the
+and `api` (NestJS, `/api/*`). The API runs as a container service built from `api.Dockerfile`, the
 same image as the Docker Compose stack. The browser calls `/api` on the same domain, so the session cookie stays
 first-party and the services need no bindings. What changes on Vercel:
 
