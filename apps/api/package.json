@@ -1,0 +1,49 @@
+{
+  "name": "@ananda/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch --preserveWatchOutput",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --experimental-strip-types test/*.test.mts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "nest build && node dist/db/seed.js",
+    "db:reset": "tsx src/db/reset.ts && tsx src/db/migrate.ts && pnpm db:seed"
+  },
+  "dependencies": {
+    "@ananda/shared": "workspace:*",
+    "@anthropic-ai/sdk": "^1.6.0",
+    "@nestjs/common": "^11.1.8",
+    "@nestjs/core": "^11.1.8",
+    "@nestjs/platform-express": "^11.1.8",
+    "@nestjs/schedule": "^6.0.1",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.2",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.10",
+    "otplib": "^12.0.1",
+    "pg": "^8.16.3",
+    "qrcode": "^1.5.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.10",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.5",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.10.0",
+    "@types/nodemailer": "^7.0.3",
+    "@types/pg": "^8.15.6",
+    "@types/qrcode": "^1.5.6",
+    "drizzle-kit": "^0.31.6",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

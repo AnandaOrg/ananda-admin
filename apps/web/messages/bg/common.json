@@ -1,0 +1,200 @@
+{
+  "brandLine": "Операции и финанси",
+  "welcome": "Здравей, {name}",
+  "asOf": "Към {date}",
+  "mainNav": "Основно",
+  "menu": "Меню",
+  "breadcrumb": "Навигация",
+  "profile": "Профил и устройства",
+  "signOut": "Изход",
+  "inbox": "Входящи",
+  "inboxEmpty": "Няма нищо ново. Тук се показват новините за твоите поръчки и заявки.",
+  "markAllRead": "Маркирай всички като прочетени",
+  "language": "Език",
+  "loading": "Зареждане…",
+  "error": "Нещо се обърка. Опитай пак.",
+  "retry": "Опитай пак",
+  "close": "Затвори",
+  "undo": "Отмени",
+  "save": "Запази",
+  "saveDraft": "Запази чернова",
+  "cancel": "Откажи",
+  "discard": "Отхвърли",
+  "send": "Изпрати",
+  "approve": "Одобри",
+  "decline": "Откажи",
+  "review": "Прегледай",
+  "edit": "Редактирай",
+  "delete": "Изтрий",
+  "confirm": "Потвърди",
+  "continue": "Продължи",
+  "back": "Назад",
+  "showAll": "Покажи всички",
+  "view": "Виж",
+  "download": "Изтегли",
+  "exportCsv": "Експорт в CSV",
+  "search": "Търси",
+  "filters": "Филтри",
+  "all": "Всички",
+  "none": "Няма",
+  "yes": "Да",
+  "no": "Не",
+  "other": "Друго",
+  "optional": "По избор",
+  "note": "Бележка",
+  "noteOptional": "Бележка (по избор)",
+  "messageOptional": "Съобщение (по избор)",
+  "reason": "Причина",
+  "today": "Днес",
+  "newSale": "Нова продажба",
+  "call": "Обади се",
+  "email": "Имейл",
+  "directions": "Упътване",
+  "everyone": "Всички",
+  "anyAgent": "Всеки агент",
+  "agent": "Агент",
+  "customer": "Клиент",
+  "status": "Статус",
+  "created": "Създадена",
+  "total": "Общо",
+  "totalInclVat": "Общо с ДДС",
+  "totalExclVat": "Общо без ДДС",
+  "vat": "ДДС 20%",
+  "cartons": "Кашони",
+  "units": "Бройки",
+  "unitPrice": "Ед. цена",
+  "amount": "Сума",
+  "date": "Дата",
+  "flavour": "Вкус",
+  "cartonsOf": "Кашони {flavour}",
+  "unitsCount": "{n} бройки",
+  "upTo": "до {n}",
+  "cartonsUnits": "{c} кашона · {u} бройки",
+  "daysLate": "{n, plural, one {# ден закъснение} other {# дни закъснение}}",
+  "polish": "Подобри с AI",
+  "polishing": "Подобряване…",
+  "tone": "Тон",
+  "tones": {
+    "friendly": "Дружелюбен",
+    "neutral": "Неутрален",
+    "firm": "Строг"
+  },
+  "twoStep": {
+    "label": "Код за двустепенен вход",
+    "help": "Въведи 6-цифрения код от приложението за удостоверяване."
+  },
+  "preview": {
+    "title": "Преглед като {role}",
+    "sub": "Виждаш приложението точно както тази роля. Промените са изключени.",
+    "stop": "Спри прегледа"
+  },
+  "tabs": {
+    "home": "Начало",
+    "orders": "Поръчки",
+    "customers": "Клиенти",
+    "collections": "Пари",
+    "more": "Още",
+    "toShip": "За изпращане",
+    "delivered": "Доставени",
+    "count": "Преброяване"
+  },
+  "nav": {
+    "home": "Начало",
+    "sales": "Продажби и поръчки",
+    "customers": "Клиенти",
+    "collections": "Събиране",
+    "purchasing": "Покупки",
+    "inventory": "Наличности",
+    "warehouse": "Склад и пратки",
+    "agents": "Агенти и комисионни",
+    "earnings": "Моите приходи",
+    "events": "Събития и фестивали",
+    "deal_profit": "Печалба от сделки",
+    "pnl": "Месечен P&L",
+    "expenses": "Разходи",
+    "users": "Потребители и роли",
+    "audit": "Одит",
+    "settings": "Настройки и правила"
+  },
+  "navGroup": {
+    "sales": "Продажби",
+    "stock": "Склад",
+    "people": "Хора",
+    "money": "Пари",
+    "admin": "Админ"
+  },
+  "orderStatus": {
+    "draft": "Чернова",
+    "payment_to_confirm": "Плащане за потвърждение",
+    "waiting_for_stock": "Чака наличност",
+    "ready_to_send": "Платена · за изпращане",
+    "at_warehouse": "В склада",
+    "delivered": "Доставена",
+    "delivered_part": "Частично доставена",
+    "invoiced": "Фактурирана",
+    "cancelled": "Отказана"
+  },
+  "customerStatus": {
+    "draft": "Чернова",
+    "needs_approval": "За одобрение",
+    "active": "Активен",
+    "late": "Просрочен",
+    "free_to_claim": "Свободен",
+    "declined": "Отказан",
+    "archived": "Архивиран"
+  },
+  "docType": {
+    "proforma": "Проформа",
+    "invoice": "Фактура",
+    "credit_note": "Кредитно известие",
+    "purchase_order": "Поръчка за покупка",
+    "delivery_note": "Подписана товарителница",
+    "upload": "Файл"
+  },
+  "reasons": {
+    "decline": {
+      "already_customer": "Вече е клиент",
+      "wrong_details": "Грешни данни",
+      "not_a_fit": "Не е подходящ",
+      "other": "Друго"
+    },
+    "adjustment": {
+      "breakage": "Счупване",
+      "samples": "Мостри",
+      "count_difference": "Разлика при броене",
+      "other": "Друго"
+    },
+    "credit": {
+      "returned": "Върнато",
+      "damaged": "Повредено",
+      "price_error": "Грешна цена",
+      "other": "Друго"
+    },
+    "change_agent": {
+      "agent_left": "Агентът напусна",
+      "customer_request": "Заявка на клиента",
+      "performance": "Резултати",
+      "other": "Друго"
+    },
+    "part_delivery": {
+      "customer_refused": "Клиентът отказа част",
+      "damaged": "Повредено",
+      "short_on_truck": "Недостиг в камиона",
+      "other": "Друго"
+    },
+    "cancel": {
+      "customer_cancelled": "Клиентът отказа",
+      "duplicate": "Дубликат",
+      "other": "Друго"
+    }
+  },
+  "more": {
+    "title": "Още"
+  },
+  "notFound": "Не е намерено",
+  "emailDraft": {
+    "to": "До",
+    "subject": "Тема",
+    "message": "Съобщение"
+  }
+}

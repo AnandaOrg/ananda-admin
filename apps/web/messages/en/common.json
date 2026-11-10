@@ -1,0 +1,200 @@
+{
+  "brandLine": "Operations & finance",
+  "welcome": "Welcome back, {name}",
+  "asOf": "As of {date}",
+  "mainNav": "Main",
+  "menu": "Menu",
+  "breadcrumb": "Breadcrumb",
+  "profile": "Profile and devices",
+  "signOut": "Sign out",
+  "inbox": "Inbox",
+  "inboxEmpty": "Nothing new. Updates about your orders and requests show up here.",
+  "markAllRead": "Mark all as read",
+  "language": "Language",
+  "loading": "Loading…",
+  "error": "Something went wrong. Try again.",
+  "retry": "Try again",
+  "close": "Close",
+  "undo": "Undo",
+  "save": "Save",
+  "saveDraft": "Save draft",
+  "cancel": "Cancel",
+  "discard": "Discard",
+  "send": "Send",
+  "approve": "Approve",
+  "decline": "Decline",
+  "review": "Review",
+  "edit": "Edit",
+  "delete": "Delete",
+  "confirm": "Confirm",
+  "continue": "Continue",
+  "back": "Back",
+  "showAll": "Show all",
+  "view": "View",
+  "download": "Download",
+  "exportCsv": "Export CSV",
+  "search": "Search",
+  "filters": "Filters",
+  "all": "All",
+  "none": "None",
+  "yes": "Yes",
+  "no": "No",
+  "other": "Other",
+  "optional": "Optional",
+  "note": "Note",
+  "noteOptional": "Note (optional)",
+  "messageOptional": "Message (optional)",
+  "reason": "Reason",
+  "today": "Today",
+  "newSale": "New sale",
+  "call": "Call",
+  "email": "E-mail",
+  "directions": "Directions",
+  "everyone": "Everyone",
+  "anyAgent": "Any agent",
+  "agent": "Agent",
+  "customer": "Customer",
+  "status": "Status",
+  "created": "Created",
+  "total": "Total",
+  "totalInclVat": "Total incl. VAT",
+  "totalExclVat": "Total excl. VAT",
+  "vat": "VAT 20%",
+  "cartons": "Cartons",
+  "units": "Units",
+  "unitPrice": "Unit price",
+  "amount": "Amount",
+  "date": "Date",
+  "flavour": "Flavour",
+  "cartonsOf": "Cartons of {flavour}",
+  "unitsCount": "{n} units",
+  "upTo": "up to {n}",
+  "cartonsUnits": "{c} cartons · {u} units",
+  "daysLate": "{n, plural, one {# day late} other {# days late}}",
+  "polish": "Polish with AI",
+  "polishing": "Polishing…",
+  "tone": "Tone",
+  "tones": {
+    "friendly": "Friendly",
+    "neutral": "Neutral",
+    "firm": "Firm"
+  },
+  "twoStep": {
+    "label": "Two-step code",
+    "help": "Enter the 6-digit code from your authenticator app."
+  },
+  "preview": {
+    "title": "Previewing as {role}",
+    "sub": "You see the app exactly as this role. Changes are switched off.",
+    "stop": "Stop preview"
+  },
+  "tabs": {
+    "home": "Home",
+    "orders": "Orders",
+    "customers": "Customers",
+    "collections": "Money",
+    "more": "More",
+    "toShip": "To ship",
+    "delivered": "Delivered",
+    "count": "Count"
+  },
+  "nav": {
+    "home": "Home",
+    "sales": "Sales & orders",
+    "customers": "Customers",
+    "collections": "Collections",
+    "purchasing": "Purchasing",
+    "inventory": "Inventory",
+    "warehouse": "Warehouse & shipments",
+    "agents": "Agents & commissions",
+    "earnings": "My earnings",
+    "events": "Events & festivals",
+    "deal_profit": "Deal profit",
+    "pnl": "Monthly P&L",
+    "expenses": "Expenses",
+    "users": "Users & roles",
+    "audit": "Audit log",
+    "settings": "Settings & rules"
+  },
+  "navGroup": {
+    "sales": "Sales",
+    "stock": "Stock",
+    "people": "People",
+    "money": "Money",
+    "admin": "Admin"
+  },
+  "orderStatus": {
+    "draft": "Draft",
+    "payment_to_confirm": "Payment to confirm",
+    "waiting_for_stock": "Waiting for stock",
+    "ready_to_send": "Paid · ready to send",
+    "at_warehouse": "At the warehouse",
+    "delivered": "Delivered",
+    "delivered_part": "Delivered in part",
+    "invoiced": "Invoiced",
+    "cancelled": "Cancelled"
+  },
+  "customerStatus": {
+    "draft": "Draft",
+    "needs_approval": "Needs approval",
+    "active": "Active",
+    "late": "Late",
+    "free_to_claim": "Free to claim",
+    "declined": "Declined",
+    "archived": "Archived"
+  },
+  "docType": {
+    "proforma": "Proforma",
+    "invoice": "Commercial invoice",
+    "credit_note": "Credit note",
+    "purchase_order": "Purchase order",
+    "delivery_note": "Signed delivery note",
+    "upload": "File"
+  },
+  "reasons": {
+    "decline": {
+      "already_customer": "Already a customer",
+      "wrong_details": "Wrong details",
+      "not_a_fit": "Not a fit",
+      "other": "Other"
+    },
+    "adjustment": {
+      "breakage": "Breakage",
+      "samples": "Samples",
+      "count_difference": "Count difference",
+      "other": "Other"
+    },
+    "credit": {
+      "returned": "Returned",
+      "damaged": "Damaged",
+      "price_error": "Price error",
+      "other": "Other"
+    },
+    "change_agent": {
+      "agent_left": "Agent left",
+      "customer_request": "Customer request",
+      "performance": "Performance",
+      "other": "Other"
+    },
+    "part_delivery": {
+      "customer_refused": "Customer refused some",
+      "damaged": "Damaged",
+      "short_on_truck": "Short on the truck",
+      "other": "Other"
+    },
+    "cancel": {
+      "customer_cancelled": "Customer cancelled",
+      "duplicate": "Duplicate",
+      "other": "Other"
+    }
+  },
+  "more": {
+    "title": "More"
+  },
+  "notFound": "Not found",
+  "emailDraft": {
+    "to": "To",
+    "subject": "Subject",
+    "message": "Message"
+  }
+}

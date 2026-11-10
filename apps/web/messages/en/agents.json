@@ -1,0 +1,123 @@
+{
+  "kicker": "{n, plural, =0 {No agents yet} one {# agent} other {# agents}}",
+  "invite": "Invite agent",
+  "tiles": {
+    "ready": "Ready to pay",
+    "readySub": "{n, plural, =0 {Nobody to pay} one {# agent to pay} other {# agents to pay}}",
+    "readySent": "{amount} sent to pay",
+    "coming": "Coming",
+    "comingSub": "Ready once customers pay in full",
+    "didntSell": "Didn't sell this month",
+    "didntSellValue": "{n} of {of}",
+    "didntSellSub": "Payment requests sent this month",
+    "newCustomers": "New customers this month",
+    "newCustomersSub": "Approved this month"
+  },
+  "didntSell": {
+    "title": "Didn't sell this month",
+    "lastOrder": "Last order {date}",
+    "noOrders": "No orders yet",
+    "nudge": "Nudge",
+    "nudgedToday": "Nudged today",
+    "nudgedOn": "Nudged {date}"
+  },
+  "table": {
+    "title": "Agents",
+    "agent": "Agent",
+    "customers": "Customers",
+    "ordersThisMonth": "Orders this month",
+    "ready": "Ready to pay",
+    "coming": "Coming",
+    "actions": "Actions",
+    "sentSub": "{amount} sent to pay",
+    "pay": "Pay",
+    "invited": "Invited"
+  },
+  "empty": {
+    "title": "No agents yet",
+    "text": "Invite your first agent. They sell to their own customers and earn commission per unit."
+  },
+  "sendToPay": "Send to pay",
+  "markPaid": "Mark as paid",
+  "pay": {
+    "sendTitle": "Send to pay",
+    "paidTitle": "Mark as paid",
+    "sendText": "The accountant gets a statement at {email}. These entries then show as sent to pay until you mark them paid.",
+    "sendNoEmail": "Add the accountant's e-mail in Settings before sending a statement.",
+    "paidText": "Mark as paid once the money has left the bank. The agent sees it straight away.",
+    "net": "Commission excl. VAT",
+    "vat": "VAT 20%",
+    "total": "Total to pay",
+    "entries": "{n, plural, one {# order} other {# orders}}",
+    "offset": "Credit note offset",
+    "sent": "Statement sent to the accountant · {amount}",
+    "paid": "{name} marked as paid · {amount}"
+  },
+  "nudge": {
+    "title": "Nudge {name}",
+    "send": "Send nudge",
+    "sent": "Nudge sent to {name}",
+    "subject": "Let's get your next order in, {name}",
+    "body": "Hi {name},\n\nI noticed you haven't sent a payment request yet this month. {lastOrder}\n\nYou look after {customers, plural, one {# customer} other {# customers}}. A quick call to each of them is often enough to get a new order going.\n\nYour commission right now: {ready} ready to pay and {coming} coming.\n\nTell me if there's anything I can help with.\n\n{sender}",
+    "bodyLast": "Your last order was on {date}.",
+    "bodyNone": "You haven't placed an order yet."
+  },
+  "inviteSheet": {
+    "title": "Invite new agent",
+    "name": "Name",
+    "email": "E-mail",
+    "language": "Language",
+    "languages": {
+      "en": "English",
+      "bg": "Bulgarian",
+      "he": "Hebrew"
+    },
+    "draft": "Message",
+    "send": "Send invitation",
+    "sent": "Invitation sent to {email}",
+    "body": "We'd like you to join us as a sales agent for our four canned cocktails: Aloha, Gaia, Santorini and Kyoto.\n\nYour commission is {perUnit} per unit sold, plus VAT. It becomes ready to pay once your customer has paid in full.\n\nSet your password with the link below. It works for {days} days.",
+    "languageHelp": "The invitation e-mail and the app start in this language.",
+    "draftHelp": "We add the greeting and the sign-up link around your message."
+  },
+  "earnings": {
+    "title": "My earnings",
+    "kicker": "Commission on your orders",
+    "sent": "Sent to pay",
+    "sentSub": "With the accountant",
+    "paid": "Paid this year",
+    "readySub": "Customers paid in full",
+    "entriesTitle": "Commission per order",
+    "order": "Order",
+    "units": "Units",
+    "commission": "Commission",
+    "status": "Status",
+    "date": "Date",
+    "emptyTitle": "No commission yet",
+    "emptyText": "Commission shows up here as soon as you send a payment request.",
+    "status_coming": "Coming",
+    "status_ready": "Ready to pay",
+    "status_sent": "Sent to pay",
+    "status_paid": "Paid",
+    "eventSale": "Event sale"
+  },
+  "requests": {
+    "title": "Your requests",
+    "type": "Request",
+    "about": "About",
+    "date": "Sent",
+    "decision": "Decision",
+    "empty": "No requests yet. Requests for new customers, special prices and corrections show up here.",
+    "types": {
+      "new_customer": "New customer",
+      "special_price": "Special price",
+      "correction": "Correction"
+    },
+    "statuses": {
+      "pending": "Waiting for an admin",
+      "approved": "Approved",
+      "declined": "Declined",
+      "withdrawn": "Withdrawn"
+    },
+    "declinedBecause": "Reason: {reason}"
+  }
+}

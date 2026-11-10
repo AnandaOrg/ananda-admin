@@ -1,0 +1,50 @@
+.items {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+@media (max-width: 767px) {
+  .items :global(.an-sitem) {
+    min-height: var(--control-lg);
+    font-size: 16px;
+    line-height: 22px;
+  }
+}
+
+.preview {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: end;
+}
+
+/* Labels never wrap; a long current value is shortened instead. */
+.items :global(.an-sitem) > :global(.grow) {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.items :global(.an-sitem) :global(.val) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+
+.items :global(.an-sitem) :global(.val) bdi {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

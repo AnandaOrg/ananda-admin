@@ -1,0 +1,187 @@
+{
+  "noCustomer": "No customer",
+  "creditNote": "Credit note",
+  "dealsCount": "{n, plural, one {# deal} other {# deals}}",
+  "netShort": "Net {amount}",
+  "marginShort": "Margin {m}",
+  "unitsShort": "{n} units",
+  "breakdown": "Breakdown",
+  "period": {
+    "label": "Period",
+    "this_year": "This year",
+    "this_month": "This month",
+    "last_month": "Last month",
+    "last_year": "Last year",
+    "last_12_months": "Last 12 months",
+    "custom": "Custom range",
+    "any": "Any time",
+    "customTitle": "Custom range",
+    "apply": "Show this range",
+    "from": "From",
+    "to": "To",
+    "toAfterFrom": "Pick a date on or after the start"
+  },
+  "columns": {
+    "button": "Columns · {n} hidden",
+    "title": "Columns",
+    "done": "Done",
+    "full": "The table is full. Turn one column off to add another."
+  },
+  "cols": {
+    "deal": "Deal",
+    "agent": "Agent",
+    "paidOn": "Paid on",
+    "units": "Units",
+    "netSales": "Net sales",
+    "purchaseCost": "Purchase cost",
+    "commission": "Commission",
+    "profit": "Profit",
+    "margin": "Margin",
+    "deals": "Deals",
+    "customer": "Customer",
+    "customers": "Customers",
+    "flavour": "Flavour",
+    "shareOfProfit": "Share of profit",
+    "month": "Month",
+    "dealProfit": "Deal profit",
+    "expensesExclVat": "Expenses excl. VAT",
+    "operatingProfit": "Operating profit",
+    "description": "Description",
+    "category": "Category",
+    "amountExclVat": "Amount excl. VAT"
+  },
+  "tabs": {
+    "deals": "Deals",
+    "customers": "By customer",
+    "agents": "By agent",
+    "flavours": "By flavour"
+  },
+  "equation": {
+    "sentence": "Net sales {net} minus purchase cost {cost} minus commission {commission} equals profit after commission {profit}.",
+    "net": "Net sales",
+    "netSub": "{deals, plural, one {# deal} other {# deals}} · {units} units",
+    "cost": "Purchase cost",
+    "costSub": "{units} units × {cost}",
+    "commission": "Commission",
+    "commissionSub": "Agents' commission on these deals",
+    "profit": "Profit after commission",
+    "profitSub": "Gross {gross}"
+  },
+  "how": {
+    "button": "How it's counted",
+    "title": "How deal profit is counted",
+    "close": "Got it",
+    "paid": {
+      "title": "Counted when paid in full.",
+      "text": "A deal counts on the day the customer's last payment arrives, not when the order is made or delivered."
+    },
+    "net": {
+      "title": "Net sales",
+      "text": "are the order totals without VAT."
+    },
+    "cost": {
+      "title": "Purchase cost",
+      "text": "is units × landed unit cost (goods, freight and excise), fixed on the day the deal was paid."
+    },
+    "commission": {
+      "title": "Commission",
+      "text": "is what the agent earns on the deal; special prices are paid out of it."
+    },
+    "credit": {
+      "title": "Credit notes",
+      "text": "reduce net sales, purchase cost and commission in the period they are issued."
+    },
+    "once": {
+      "title": "Each deal counts once.",
+      "text": "The same figure appears on Home, here and in Monthly P&L."
+    }
+  },
+  "empty": {
+    "dealsTitle": "No paid deals in this period",
+    "dealsText": "Deals appear here on the day the customer pays in full. Try a longer period.",
+    "showYear": "Show this year",
+    "pnlTitle": "No months in this period",
+    "pnlText": "Pick a period that has already started to see sales, expenses and profit per month."
+  },
+  "pnl": {
+    "total": "Total",
+    "netSales": "Net sales",
+    "dealProfit": "Deal profit",
+    "dealProfitSub": "After purchase cost and commission",
+    "expenses": "Expenses",
+    "expensesSub": "Excl. VAT",
+    "operatingProfit": "Operating profit",
+    "operatingSub": "Deal profit − expenses",
+    "open": "Open",
+    "byMonth": "By month",
+    "phoneSub": "Deal profit {profit} · Expenses {expenses}"
+  },
+  "bank": {
+    "record": "Record bank balance",
+    "title": "Record bank balance",
+    "sub": "Use the balance shown in online banking at the end of the day.",
+    "save": "Save balance",
+    "saved": "Bank balance saved",
+    "account": "Account",
+    "accountHelp": "Add your accounts in Settings › Bank details to pick them from a list.",
+    "date": "Balance on",
+    "balance": "Balance",
+    "last": "Last recorded {amount} on {date}",
+    "firstTime": "First balance for this account",
+    "cashOnHand": "Cash on hand",
+    "asOf": "As of {date}",
+    "stale": "The bank balance is {n, plural, one {# day} other {# days}} old",
+    "none": "No bank balance recorded yet",
+    "missingSub": "Record it once a week so cash on hand stays right."
+  },
+  "expenses": {
+    "kicker": "{n, plural, one {# expense} other {# expenses}} · newest first",
+    "new": "New expense",
+    "add": "Add expense",
+    "added": "Expense added",
+    "thisYear": "This year excl. VAT",
+    "thisYearSub": "Same as in Monthly P&L",
+    "thisMonth": "This month",
+    "exclVat": "Excl. VAT",
+    "unpaidTile": "Unpaid",
+    "unpaidSub": "{n, plural, =0 {Nothing to pay} one {# expense incl. VAT} other {# expenses incl. VAT}}",
+    "filters": {
+      "all": "All",
+      "unpaid": "Unpaid",
+      "paid": "Paid"
+    },
+    "search": "Search description or category",
+    "anyCategory": "Any category",
+    "emptyTitle": "No expenses here",
+    "emptyText": "Add rent, marketing, travel and other costs so operating profit stays right.",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "markPaid": "Mark as paid",
+    "markedPaid": "Marked as paid",
+    "viewReceipt": "View receipt",
+    "pickCategory": "Pick a category",
+    "descriptionPlaceholder": "For example: Office rent, Sofia",
+    "vatRate": "VAT rate",
+    "vatLine": "VAT {rate}%",
+    "totalInclVat": "Total incl. VAT",
+    "alreadyPaid": "Already paid",
+    "receipt": "Receipt",
+    "uploadReceipt": "Upload receipt",
+    "changeReceipt": "Change file",
+    "removeReceipt": "Remove",
+    "receiptHelp": "Optional. A photo (JPG, PNG, HEIC) or a PDF, up to 15 MB.",
+    "receiptAttached": "Attached",
+    "noReceipt": "None",
+    "addedBy": "Added by"
+  },
+  "categories": {
+    "marketing": "Marketing",
+    "events": "Events",
+    "travel": "Travel",
+    "office": "Office",
+    "software": "Software",
+    "fees": "Fees",
+    "salaries": "Salaries",
+    "other": "Other"
+  }
+}

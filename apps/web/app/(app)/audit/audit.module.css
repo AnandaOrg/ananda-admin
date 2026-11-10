@@ -1,0 +1,27 @@
+/* Category chips fit from 1024 up; below that they become one dropdown (DS: Other components at narrow widths). */
+.chipsWide {
+  display: block;
+}
+
+.chipsNarrow {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .chipsWide {
+    display: none;
+  }
+
+  .chipsNarrow {
+    display: block;
+  }
+}
+
+.timeCell {
+  white-space: nowrap;
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+}

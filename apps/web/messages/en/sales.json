@@ -1,0 +1,225 @@
+{
+  "kicker": "{n, plural, one {# order} other {# orders}} · newest first",
+  "searchPlaceholder": "Search customer or order number",
+  "noCustomer": "No customer yet",
+  "created": "Created",
+  "anyFlavour": "Any flavour",
+  "filters": {
+    "all": "All",
+    "needs_action": "Needs action",
+    "late": "Late",
+    "drafts": "Drafts",
+    "closed": "Closed"
+  },
+  "period": {
+    "any": "Any time",
+    "30": "Last 30 days",
+    "90": "Last 90 days",
+    "year": "This year"
+  },
+  "cols": {
+    "customer": "Customer",
+    "agent": "Agent",
+    "created": "Created"
+  },
+  "empty": {
+    "title": "No orders here",
+    "text": "Orders appear here once a sale is saved. Start one with New sale."
+  },
+  "form": {
+    "editTitle": "Draft {number}",
+    "customer": "Customer",
+    "chooseCustomer": "Choose a customer",
+    "customerHelpAgent": "Your approved customers. Add a new one from Customers.",
+    "customerHelp": "Approved customers. The order stays with the customer's agent.",
+    "cartonsTitle": "Cartons per flavour",
+    "belowMinimum": "Add {n} more cartons to reach the minimum of {min}.",
+    "noteLabel": "Note for the team",
+    "noteHelp": "Shown on the order, not on the proforma.",
+    "summary": "Summary",
+    "cartonsOfMin": "{n} of {min} minimum",
+    "tier": "Price tier",
+    "tierRange": "{from}–{to} cartons",
+    "terms": "Payment terms",
+    "termsDays": "{n, plural, =0 {Pay before delivery} one {# day} other {# days}}",
+    "advanceNeeded": "From 834 cartons this price needs payment in advance or a volume commitment.",
+    "commission": "Agent commission {amount} + VAT",
+    "sendRequest": "Send payment request",
+    "needCustomer": "Choose a customer to send the payment request.",
+    "needCartons": "Add {n} more cartons to send the payment request.",
+    "saved": "Draft saved.",
+    "sent": "Payment request sent to the customer."
+  },
+  "flow": {
+    "payment_request": "Payment request sent",
+    "confirm_payment": "Confirm payment",
+    "send_to_warehouse": "Send to warehouse",
+    "delivered": "Delivered",
+    "invoice": "Commercial invoice",
+    "notSent": "Not sent yet",
+    "sendRequest": "Send payment request",
+    "partPaid": "{amount} paid so far",
+    "dueOn": "Due {date}",
+    "allocate": "Allocate stock",
+    "atWarehouse": "At the warehouse"
+  },
+  "order": {
+    "created": "Created {date}",
+    "moreActions": "More actions",
+    "correctionPending": "Correction pending",
+    "waitingTitle": "Paid, waiting for stock",
+    "short": "needs {need} units, {have} available",
+    "expected": "expected {date}",
+    "noPurchase": "no purchase on the way",
+    "pending": {
+      "correction": "A correction is waiting for an admin. Nothing changes until it is approved.",
+      "special_price": "The special price is waiting for an admin. Send the payment request once it is approved.",
+      "new_customer": "The customer is waiting for approval."
+    },
+    "declined": "Your last request was declined",
+    "holdReleased": "The stock hold was released on {date} because the payment did not arrive. The order stays open.",
+    "cancelled": "Cancelled on {date}. {reason}",
+    "flow": "Order flow",
+    "lines": "Lines",
+    "deliveredOf": "{d} of {c}",
+    "specialPrice": "Special price {price} per unit (list price {list}).",
+    "tierNote": "{n} cartons fall in the {from}–{to} tier: {price} per unit.",
+    "payments": "Payments",
+    "history": "History",
+    "money": "Money",
+    "vat": "VAT number",
+    "vatValid": "Valid",
+    "vatInvalid": "Not valid",
+    "contact": "Contact",
+    "deliverTo": "Deliver to",
+    "terms": "Terms",
+    "documents": "Documents",
+    "noDocuments": "Documents appear once the payment request is sent.",
+    "replaced": "Replaced"
+  },
+  "money": {
+    "paid": "Paid",
+    "toPay": "Still to pay",
+    "credited": "Credited",
+    "commission": "Agent commission",
+    "noteDraft": "Nothing is owed until the payment request is sent.",
+    "noteOwed": "{amount} still to pay. The order ships only when it is paid in full.",
+    "notePaid": "Paid in full. Commission is {status}.",
+    "commissionReady": "ready to pay",
+    "commissionPaid": "paid"
+  },
+  "method": {
+    "bank_transfer": "Bank transfer",
+    "cash": "Cash",
+    "card": "Card",
+    "other": "Other"
+  },
+  "actions": {
+    "edit": {
+      "title": "Edit draft"
+    },
+    "delete": {
+      "title": "Delete draft",
+      "consequence": "The draft is removed. Nothing was sent to the customer.",
+      "done": "Draft deleted."
+    },
+    "send_payment_request": {
+      "title": "Send payment request"
+    },
+    "special_price": {
+      "title": "Ask for a special price",
+      "cta": "Send for approval",
+      "listPrice": "List price per unit",
+      "price": "Price per unit, excl. VAT",
+      "priceHelp": "Below the list price. The difference comes out of your commission.",
+      "reasonHelp": "Why this customer needs it. The admin sees this.",
+      "done": "Special price sent for approval."
+    },
+    "confirm_payment": {
+      "title": "Confirm payment",
+      "cta": "Confirm payment",
+      "receivedOn": "Date received",
+      "paidBy": "Paid by",
+      "reference": "Bank reference",
+      "partHelp": "A smaller amount records a part payment; the order ships once it is paid in full.",
+      "consequence": "Once paid in full the order becomes Paid · ready to send, or waits for stock.",
+      "done": "Payment confirmed."
+    },
+    "allocate": {
+      "title": "Allocate stock"
+    },
+    "send_to_warehouse": {
+      "title": "Send to warehouse",
+      "cta": "Send to warehouse",
+      "consequence": "The warehouse gets the order without prices. Quantities are fixed from now on.",
+      "done": "Sent to the warehouse."
+    },
+    "issue_invoice": {
+      "title": "Issue commercial invoice",
+      "cta": "Issue and e-mail",
+      "partNote": "The cartons that came back are credited on a credit note issued with the invoice.",
+      "consequence": "The invoice is e-mailed to the customer, the agent, the admins and the accountant. It never changes.",
+      "done": "Invoice {number} issued and e-mailed."
+    },
+    "part_outcome": {
+      "title": "Decide on the part delivery",
+      "summary": "{n, plural, one {# carton came back} other {# cartons came back}} to the warehouse.",
+      "kept": "{kept} of {sent} kept",
+      "credit_note": "Credit note",
+      "redeliver": "Deliver again",
+      "cta_credit_note": "Credit the returned cartons",
+      "cta_redeliver": "Send again to the warehouse",
+      "consequence_credit_note": "The invoice covers the order and a credit note covers the cartons that came back.",
+      "consequence_redeliver": "The warehouse delivers the missing cartons again before the invoice.",
+      "done_credit_note": "The returned cartons will be credited with the invoice.",
+      "done_redeliver": "Sent to the warehouse again."
+    },
+    "correction": {
+      "title": "Ask for a correction",
+      "cta": "Send for approval",
+      "cartons": "Cartons",
+      "reasonHelp": "What changed and why. The admin sees this.",
+      "consequence": "After approval the customer gets a corrected proforma. The current one stays as it is.",
+      "done": "Correction sent for approval."
+    },
+    "cancel": {
+      "title": "Cancel order",
+      "cta": "Cancel order",
+      "paidWarning": "{amount} was already paid. Arrange the refund separately.",
+      "consequence": "The reserved stock is released and the commission is removed.",
+      "done": "Order cancelled."
+    },
+    "credit_note": {
+      "title": "Issue credit note",
+      "cta": "Issue credit note",
+      "noteForCustomer": "Note for the customer (optional)",
+      "total": "Credit incl. VAT",
+      "consequence": "The credit note references the invoice and is e-mailed to the customer and the agent. Returned cartons go back to stock.",
+      "done": "Credit note {number} issued."
+    }
+  },
+  "timeline": {
+    "draft_created": "Draft created",
+    "draft_updated": "Draft updated",
+    "payment_request_sent": "Payment request sent",
+    "special_price_requested": "Special price asked for",
+    "special_price_approved": "Special price approved",
+    "special_price_declined": "Special price declined",
+    "payment_confirmed": "Payment confirmed",
+    "part_payment_confirmed": "Part payment confirmed",
+    "sent_to_warehouse": "Sent to warehouse",
+    "delivered": "Delivered",
+    "delivered_in_part": "Delivered in part",
+    "invoice_issued": "Invoice issued",
+    "credit_note_issued": "Credit note issued",
+    "correction_requested": "Correction asked for",
+    "correction_applied": "Correction applied",
+    "correction_declined": "Correction declined",
+    "cancelled": "Cancelled",
+    "allocated": "Stock allocated",
+    "stock_hold_released": "Stock hold released",
+    "reminder_sent": "Payment reminder sent",
+    "part_delivery_credit_note": "Part delivery: credit note",
+    "part_delivery_redeliver": "Part delivery: deliver again"
+  }
+}

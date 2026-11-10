@@ -1,0 +1,187 @@
+{
+  "noCustomer": "אין לקוח",
+  "creditNote": "הודעת זיכוי",
+  "dealsCount": "{n, plural, one {עסקה #} two {# עסקאות} other {# עסקאות}}",
+  "netShort": "נטו {amount}",
+  "marginShort": "מרווח {m}",
+  "unitsShort": "{n} יחידות",
+  "breakdown": "פירוט",
+  "period": {
+    "label": "תקופה",
+    "this_year": "השנה",
+    "this_month": "החודש",
+    "last_month": "החודש שעבר",
+    "last_year": "השנה שעברה",
+    "last_12_months": "12 החודשים האחרונים",
+    "custom": "טווח מותאם",
+    "any": "בכל זמן",
+    "customTitle": "טווח מותאם",
+    "apply": "הצגת הטווח",
+    "from": "מ־",
+    "to": "עד",
+    "toAfterFrom": "יש לבחור תאריך שווה או מאוחר יותר מההתחלה"
+  },
+  "columns": {
+    "button": "עמודות · {n} מוסתרות",
+    "title": "עמודות",
+    "done": "סיום",
+    "full": "הטבלה מלאה. יש לכבות עמודה אחת כדי להוסיף אחרת."
+  },
+  "cols": {
+    "deal": "עסקה",
+    "agent": "סוכן",
+    "paidOn": "שולמה ב־",
+    "units": "יחידות",
+    "netSales": "מכירות נטו",
+    "purchaseCost": "עלות רכישה",
+    "commission": "עמלה",
+    "profit": "רווח",
+    "margin": "מרווח",
+    "deals": "עסקאות",
+    "customer": "לקוח",
+    "customers": "לקוחות",
+    "flavour": "טעם",
+    "shareOfProfit": "חלק מהרווח",
+    "month": "חודש",
+    "dealProfit": "רווח מעסקאות",
+    "expensesExclVat": "הוצאות לפני מע״מ",
+    "operatingProfit": "רווח תפעולי",
+    "description": "תיאור",
+    "category": "קטגוריה",
+    "amountExclVat": "סכום לפני מע״מ"
+  },
+  "tabs": {
+    "deals": "עסקאות",
+    "customers": "לפי לקוח",
+    "agents": "לפי סוכן",
+    "flavours": "לפי טעם"
+  },
+  "equation": {
+    "sentence": "מכירות נטו {net} פחות עלות רכישה {cost} פחות עמלה {commission} שווה רווח אחרי עמלה {profit}.",
+    "net": "מכירות נטו",
+    "netSub": "{deals, plural, one {עסקה #} two {# עסקאות} other {# עסקאות}} · {units} יחידות",
+    "cost": "עלות רכישה",
+    "costSub": "{units} יחידות × {cost}",
+    "commission": "עמלה",
+    "commissionSub": "עמלת הסוכנים על העסקאות האלה",
+    "profit": "רווח אחרי עמלה",
+    "profitSub": "ברוטו {gross}"
+  },
+  "how": {
+    "button": "איך זה נספר",
+    "title": "איך נספר רווח מעסקאות",
+    "close": "הבנתי",
+    "paid": {
+      "title": "נספרת כששולמה במלואה.",
+      "text": "עסקה נספרת ביום שבו מגיע התשלום האחרון של הלקוח, לא כשההזמנה נוצרה או נמסרה."
+    },
+    "net": {
+      "title": "מכירות נטו",
+      "text": "הן סכומי ההזמנות לפני מע״מ."
+    },
+    "cost": {
+      "title": "עלות רכישה",
+      "text": "היא יחידות × עלות נחיתה ליחידה (סחורה, הובלה ובלו), קבועה ליום ששולמה העסקה."
+    },
+    "commission": {
+      "title": "עמלה",
+      "text": "היא מה שהסוכן מרוויח על העסקה; מחירים מיוחדים משולמים ממנה."
+    },
+    "credit": {
+      "title": "הודעות זיכוי",
+      "text": "מקטינות את המכירות נטו, את עלות הרכישה ואת העמלה בתקופה שבה הונפקו."
+    },
+    "once": {
+      "title": "כל עסקה נספרת פעם אחת.",
+      "text": "אותו נתון מופיע בבית, כאן וברווח והפסד חודשי."
+    }
+  },
+  "empty": {
+    "dealsTitle": "אין עסקאות ששולמו בתקופה הזו",
+    "dealsText": "עסקאות מופיעות כאן ביום שבו הלקוח משלם במלואו. אפשר לנסות תקופה ארוכה יותר.",
+    "showYear": "הצגת השנה",
+    "pnlTitle": "אין חודשים בתקופה הזו",
+    "pnlText": "יש לבחור תקופה שכבר התחילה כדי לראות מכירות, הוצאות ורווח לפי חודש."
+  },
+  "pnl": {
+    "total": "סה״כ",
+    "netSales": "מכירות נטו",
+    "dealProfit": "רווח מעסקאות",
+    "dealProfitSub": "אחרי עלות רכישה ועמלה",
+    "expenses": "הוצאות",
+    "expensesSub": "לפני מע״מ",
+    "operatingProfit": "רווח תפעולי",
+    "operatingSub": "רווח מעסקאות − הוצאות",
+    "open": "פתיחה",
+    "byMonth": "לפי חודש",
+    "phoneSub": "רווח מעסקאות {profit} · הוצאות {expenses}"
+  },
+  "bank": {
+    "record": "רישום יתרת בנק",
+    "title": "רישום יתרת בנק",
+    "sub": "יש להזין את היתרה שמוצגת בבנק המקוון בסוף היום.",
+    "save": "שמירת היתרה",
+    "saved": "יתרת הבנק נשמרה",
+    "account": "חשבון",
+    "accountHelp": "אפשר להוסיף חשבונות בהגדרות › פרטי בנק כדי לבחור מרשימה.",
+    "date": "יתרה ליום",
+    "balance": "יתרה",
+    "last": "נרשם לאחרונה {amount} ב־{date}",
+    "firstTime": "יתרה ראשונה לחשבון הזה",
+    "cashOnHand": "מזומן זמין",
+    "asOf": "נכון ל־{date}",
+    "stale": "יתרת הבנק בת {n, plural, one {יום #} two {# ימים} other {# ימים}}",
+    "none": "עדיין לא נרשמה יתרת בנק",
+    "missingSub": "כדאי לרשום אותה פעם בשבוע כדי שהמזומן הזמין יישאר מדויק."
+  },
+  "expenses": {
+    "kicker": "{n, plural, one {הוצאה #} two {# הוצאות} other {# הוצאות}} · החדשות קודם",
+    "new": "הוצאה חדשה",
+    "add": "הוספת הוצאה",
+    "added": "ההוצאה נוספה",
+    "thisYear": "השנה לפני מע״מ",
+    "thisYearSub": "כמו ברווח והפסד חודשי",
+    "thisMonth": "החודש",
+    "exclVat": "לפני מע״מ",
+    "unpaidTile": "שלא שולמו",
+    "unpaidSub": "{n, plural, =0 {אין מה לשלם} one {הוצאה # כולל מע״מ} two {# הוצאות כולל מע״מ} other {# הוצאות כולל מע״מ}}",
+    "filters": {
+      "all": "הכול",
+      "unpaid": "לא שולמו",
+      "paid": "שולמו"
+    },
+    "search": "חיפוש לפי תיאור או קטגוריה",
+    "anyCategory": "כל קטגוריה",
+    "emptyTitle": "אין כאן הוצאות",
+    "emptyText": "אפשר להוסיף שכירות, שיווק, נסיעות והוצאות אחרות כדי שהרווח התפעולי יישאר מדויק.",
+    "paid": "שולם",
+    "unpaid": "לא שולם",
+    "markPaid": "סימון כשולם",
+    "markedPaid": "סומן כשולם",
+    "viewReceipt": "צפייה בקבלה",
+    "pickCategory": "בחירת קטגוריה",
+    "descriptionPlaceholder": "לדוגמה: שכירות משרד, סופיה",
+    "vatRate": "שיעור מע״מ",
+    "vatLine": "מע״מ {rate}%",
+    "totalInclVat": "סה״כ כולל מע״מ",
+    "alreadyPaid": "כבר שולם",
+    "receipt": "קבלה",
+    "uploadReceipt": "העלאת קבלה",
+    "changeReceipt": "החלפת קובץ",
+    "removeReceipt": "הסרה",
+    "receiptHelp": "אופציונלי. תמונה (JPG, PNG, HEIC) או PDF, עד 15 MB.",
+    "receiptAttached": "מצורפת",
+    "noReceipt": "אין",
+    "addedBy": "נוספה על ידי"
+  },
+  "categories": {
+    "marketing": "שיווק",
+    "events": "אירועים",
+    "travel": "נסיעות",
+    "office": "משרד",
+    "software": "תוכנה",
+    "fees": "עמלות ואגרות",
+    "salaries": "שכר",
+    "other": "אחר"
+  }
+}

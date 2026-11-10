@@ -1,0 +1,355 @@
+{
+  "kicker": "{n, plural, one {# purchase} other {# purchases}}",
+  "searchPlaceholder": "Search purchase or supplier",
+  "arrived": "Arrived {date}",
+  "expectedShort": "Expected {date}",
+  "unitsShort": "{n} units",
+  "tabs": {
+    "label": "Purchasing pages",
+    "purchases": "Purchases",
+    "suppliers": "Suppliers",
+    "payables": "Payables",
+    "shipments": "Shipments"
+  },
+  "filters": {
+    "all": "All",
+    "open": "Open",
+    "late": "Late",
+    "received": "Received"
+  },
+  "cols": {
+    "purchase": "Purchase",
+    "ordered": "Ordered",
+    "expected": "Expected",
+    "toPay": "To pay"
+  },
+  "status": {
+    "ordered": "Ordered",
+    "on_the_way": "On the way",
+    "received": "Received",
+    "cancelled": "Cancelled",
+    "invoiceMissing": "Invoice missing"
+  },
+  "tiles": {
+    "onTheWay": "On the way",
+    "units": "{n} units",
+    "cartons": "{n} cartons",
+    "toPay": "Still to pay suppliers",
+    "notInvoiced": "Incl. {amount} not invoiced yet",
+    "late": "Late",
+    "oldestLate": "{n, plural, one {Oldest # day late} other {Oldest # days late}}",
+    "noneLate": "Everything is on time",
+    "landed": "Landed unit cost",
+    "estimate": "Estimate until received",
+    "onArrival": "On arrival {date}",
+    "inventoryCost": "Inventory cost",
+    "forUnits": "For {n} units",
+    "payable": "Payable incl. VAT",
+    "stillToPay": "Still to pay",
+    "paidSoFar": "{amount} paid so far"
+  },
+  "empty": {
+    "title": "No purchases yet",
+    "text": "Order stock from an approved supplier. It shows here until it arrives and is paid.",
+    "lateTitle": "Nothing is late",
+    "lateText": "Every open purchase is still within its expected date."
+  },
+  "new": {
+    "title": "New purchase",
+    "cta": "Create purchase",
+    "done": "{number} created",
+    "supplier": "Supplier",
+    "supplierPlaceholder": "Choose a supplier",
+    "supplierDefault": "{name} ({flavours})",
+    "supplierHelp": "Lead time {days} days · {price} per unit · pays in {terms} days",
+    "expectedOn": "Expected on",
+    "expectedHelp": "Arrives on {date} if the lead time holds.",
+    "unitPrice": "Purchase price per unit",
+    "goods": "Goods excl. VAT",
+    "consequence": "Creates the next P-number and a purchase order. Transport and excise are added when the goods arrive.",
+    "noSupplier": {
+      "title": "No approved supplier",
+      "text": "Add a supplier and approve it for the flavours it makes, then come back to order."
+    }
+  },
+  "detail": {
+    "purchaseOrder": "Purchase order",
+    "orderedOn": "Ordered {date}",
+    "expectedOn": "Expected {date}",
+    "arrivedOn": "Arrived {date}",
+    "lateBanner": "{n, plural, one {This purchase is # day late. Ask the supplier for a new arrival date.} other {This purchase is # days late. Ask the supplier for a new arrival date.}}",
+    "invoiceMissing": "Received without the supplier invoice. Record it when it comes.",
+    "progress": "Progress",
+    "lines": "Lines",
+    "costs": "Costs and tax",
+    "payables": "Payables",
+    "noPayables": "Bills appear here when the goods arrive or the freight is added.",
+    "waiting": "Waiting on it",
+    "noWaiting": "No paid orders are waiting for these flavours.",
+    "allocate": "Allocate",
+    "paidOn": "Paid {date}",
+    "documents": "Documents",
+    "supplier": "Supplier"
+  },
+  "steps": {
+    "ordered": "Ordered",
+    "on_the_way": "On the way",
+    "supplier_invoice": "Supplier invoice",
+    "paid_supplier": "Paid supplier",
+    "landed_cost": "Landed cost",
+    "expected": "Expected {date}"
+  },
+  "lines": {
+    "ordered": "Units ordered",
+    "received": "Units received",
+    "receivedOf": "{n} of {of} units received"
+  },
+  "costs": {
+    "goods": "Goods",
+    "freight": "Freight",
+    "freightNone": "Freight (not added yet)",
+    "excise": "Excise",
+    "exciseEstimate": "Excise (estimate)",
+    "inventory": "Inventory cost",
+    "landed": "Landed unit cost",
+    "landedEstimate": "Landed unit cost (estimate)",
+    "landedHelp": "Excise is calculated automatically. Landed unit cost {amount} = inventory cost ÷ {n} units received.",
+    "landedHelpEstimate": "Excise is calculated automatically. Estimated landed unit cost {amount} = inventory cost ÷ {n} units ordered."
+  },
+  "payables": {
+    "kicker": "{n, plural, one {# bill to pay} other {# bills to pay}}",
+    "dueOn": "Due {date}",
+    "kindLabel": "Type",
+    "anyKind": "Any type",
+    "showAll": "Show all",
+    "kind": {
+      "supplier_invoice": "Supplier invoice",
+      "freight": "Freight",
+      "excise": "Excise"
+    },
+    "filters": {
+      "open": "To pay",
+      "due_soon": "Due in 14 days",
+      "overdue": "Overdue",
+      "paid": "Paid",
+      "all": "All"
+    },
+    "cols": {
+      "due": "Due",
+      "party": "To",
+      "amount": "Amount"
+    },
+    "status": {
+      "open": "To pay",
+      "part": "Part paid",
+      "overdue": "Overdue",
+      "paid": "Paid"
+    },
+    "tiles": {
+      "toPay": "To pay",
+      "dueSoon": "Due in 14 days",
+      "overdue": "Overdue",
+      "bills": "{n, plural, one {# bill} other {# bills}}"
+    },
+    "empty": {
+      "clear": "Nothing to pay here",
+      "none": "No bills yet",
+      "text": "Supplier invoices, freight and excise show here by due date."
+    }
+  },
+  "pay": {
+    "title": "Record payment",
+    "cta": "Record payment",
+    "ctaPart": "Record part payment",
+    "done": "Payment recorded",
+    "donePart": "Part payment recorded · {amount} still to pay",
+    "payable": "Payable",
+    "paid": "Paid",
+    "due": "Due",
+    "stillToPay": "Still to pay",
+    "paidOn": "Paid on",
+    "paidFrom": "Paid from",
+    "noAccounts": "No bank accounts are set up in Settings. Type the account name.",
+    "reference": "Bank reference (optional)",
+    "proof": "Proof of payment (optional)",
+    "partHelp": "A part payment. {amount} stays to pay."
+  },
+  "receive": {
+    "title": "Mark as received",
+    "cta": "Mark as received",
+    "done": "Received. Stock and landed cost are updated.",
+    "doneWaiting": "{n, plural, one {Received. # waiting order can now be allocated.} other {Received. # waiting orders can now be allocated.}}",
+    "arrivedOn": "Arrived on",
+    "counted": "Units counted",
+    "unitsOf": "{flavour} units counted",
+    "ordered": "Ordered {n} units ({c} cartons)",
+    "shortHelp": "The count differs from the order. Stock and landed cost use the units counted.",
+    "hasInvoice": "The supplier invoice is here",
+    "laterInvoice": "You can receive without the supplier invoice and record it later.",
+    "hasFreight": "Add the carrier invoice",
+    "consequence": "{orders, plural, =0 {Adds {n} units to stock, calculates excise and landed cost and creates the bills on Payables.} one {Adds {n} units to stock, calculates excise and landed cost, creates the bills on Payables and tells Admins that # waiting order can be allocated.} other {Adds {n} units to stock, calculates excise and landed cost, creates the bills on Payables and tells Admins that # waiting orders can be allocated.}}"
+  },
+  "invoice": {
+    "title": "Record supplier invoice",
+    "cta": "Record invoice",
+    "done": "Supplier invoice recorded",
+    "number": "Invoice number",
+    "dueOn": "Pay by",
+    "amount": "Amount excl. VAT",
+    "amountHelp": "Ordered goods come to {amount}. Change it if the invoice says otherwise.",
+    "upload": "Invoice file (optional)",
+    "vat": "VAT {rate}%",
+    "consequence": "Adds the supplier invoice to Payables.",
+    "consequenceReceived": "Adds the supplier invoice to Payables and updates the landed cost if the amount changed."
+  },
+  "freight": {
+    "title": "Edit freight",
+    "edit": "Edit freight",
+    "cta": "Save freight",
+    "done": "Freight saved",
+    "carrier": "Carrier",
+    "amount": "Amount excl. VAT",
+    "vatRate": "VAT rate",
+    "withVat": "VAT {vat} · {total} incl. VAT",
+    "invoiceNumber": "Carrier invoice number",
+    "payBy": "Pay by",
+    "upload": "Carrier invoice (optional)",
+    "consequence": "Saving adds the freight bill to Payables. Deals already paid keep the cost they were counted with.",
+    "alreadyPaid": "{amount} of this freight bill is already paid. The new amount cannot be lower."
+  },
+  "onTheWay": {
+    "title": "Mark as on the way",
+    "cta": "Mark as on the way",
+    "done": "Marked as on the way",
+    "expectedOn": "Expected on",
+    "addShipment": "Add the shipment",
+    "departOn": "Left on"
+  },
+  "ask": {
+    "title": "Ask supplier",
+    "cta": "Send e-mail",
+    "done": "E-mail sent. Follow-up on {date} if there is no answer.",
+    "topic": "About",
+    "to": "To",
+    "followUp": "{n, plural, one {If there is no answer, a follow-up shows in Needs attention after # day.} other {If there is no answer, a follow-up shows in Needs attention after # days.}}",
+    "lineText": "{c} cartons ({u} units)",
+    "topics": {
+      "arrival_date": "New arrival date",
+      "tracking": "Tracking number",
+      "invoice_copy": "Invoice copy",
+      "other": "Other"
+    },
+    "subject": {
+      "arrival_date": "{number}: new arrival date?",
+      "tracking": "{number}: tracking number",
+      "invoice_copy": "{number}: copy of the invoice",
+      "other": "About our order {number}"
+    },
+    "body": {
+      "arrival_date": "Hello {name},\n\nOur order {number} from {ordered} was expected on {expected} and has not arrived yet.\n\n{lines}\n\nCould you tell us the new arrival date?\n\nThank you.",
+      "tracking": "Hello {name},\n\nCould you send us the tracking number for our order {number} from {ordered}, expected on {expected}?\n\n{lines}\n\nThank you.",
+      "invoice_copy": "Hello {name},\n\nCould you send us a copy of the invoice for our order {number} from {ordered}?\n\n{lines}\n\nThank you.",
+      "other": "Hello {name},\n\nAbout our order {number} from {ordered}, expected on {expected}:\n\n{lines}\n\n\n\nThank you."
+    }
+  },
+  "messages": {
+    "title": "Questions to the supplier",
+    "empty": "No questions asked yet.",
+    "followUpOn": "Sent {date} · follow up on {followUp}",
+    "followUpDue": "Sent {date} · no answer yet, follow up now",
+    "answered": "Sent {date} · answered",
+    "resolve": "Mark as answered",
+    "resolved": "Marked as answered"
+  },
+  "docs": {
+    "upload": "Upload",
+    "cta": "Upload file",
+    "done": "File uploaded",
+    "label": "What is it? (optional)",
+    "labelPlaceholder": "For example: packing list",
+    "file": "File",
+    "emptyTitle": "No documents yet"
+  },
+  "file": {
+    "choose": "Choose file",
+    "remove": "Remove file",
+    "help": "A photo (JPG, PNG, HEIC) or a PDF, up to 15 MB."
+  },
+  "shipments": {
+    "kicker": "{n, plural, one {# shipment on the way} other {# shipments on the way}}",
+    "mode": "Mode",
+    "route": "Route",
+    "late": "Late",
+    "arrivedOn": "Arrived {date}",
+    "arrivesOn": "Arrives {date}",
+    "leftOn": "Left {date}",
+    "cols": {
+      "carrier": "Carrier and mode",
+      "when": "When"
+    },
+    "modes": {
+      "road": "Road",
+      "sea": "Sea",
+      "air": "Air",
+      "rail": "Rail"
+    },
+    "status": {
+      "booked": "Booked",
+      "in_transit": "In transit",
+      "arrived": "Arrived"
+    },
+    "empty": {
+      "title": "No shipments",
+      "text": "Shipments are added when a purchase is marked as on the way."
+    }
+  },
+  "suppliers": {
+    "kicker": "{n, plural, one {# approved supplier} other {# approved suppliers}}",
+    "new": "New supplier",
+    "edit": "Edit supplier",
+    "createCta": "Add supplier",
+    "created": "{name} added",
+    "saved": "{name} saved",
+    "allFlavours": "All four",
+    "perUnit": "per unit",
+    "never": "Never",
+    "days": "{n, plural, one {# day} other {# days}}",
+    "defaultFor": "Default for {flavours}",
+    "approvedFor": "{n, plural, one {Approved for # flavour} other {Approved for # flavours}}",
+    "cols": {
+      "supplier": "Supplier and country",
+      "approved": "Approved for",
+      "default": "Default for",
+      "leadTime": "Lead time",
+      "lastPurchase": "Last purchase",
+      "terms": "Payment terms"
+    },
+    "status": {
+      "approved": "Approved",
+      "pending": "Pending",
+      "inactive": "Inactive"
+    },
+    "empty": {
+      "title": "No suppliers yet",
+      "text": "Add the companies you buy from and the flavours each one is approved for."
+    },
+    "form": {
+      "company": "Company",
+      "country": "Country",
+      "countryHelp": "Two letters, e.g. IT",
+      "vat": "VAT number (optional)",
+      "contact": "Contact",
+      "ordersEmail": "Orders e-mail",
+      "phone": "Phone (optional)",
+      "approved": "Approved flavours",
+      "defaults": "Default for",
+      "defaultsHelp": "New purchases of these flavours start with this supplier.",
+      "moves": "{flavour} moves from {from}.",
+      "leadTime": "Lead time (days)",
+      "terms": "Payment terms (days)",
+      "price": "Purchase price per unit (€)",
+      "priceHelp": "Excl. VAT, up to 4 decimals, for example 2.65",
+      "notApprovedHelp": "Only approved suppliers can be chosen for purchases or be a default."
+    }
+  }
+}

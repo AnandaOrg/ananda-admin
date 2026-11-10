@@ -1,0 +1,200 @@
+{
+  "brandLine": "תפעול וכספים",
+  "welcome": "ברוך שובך, {name}",
+  "asOf": "נכון ל־{date}",
+  "mainNav": "ראשי",
+  "menu": "תפריט",
+  "breadcrumb": "נתיב ניווט",
+  "profile": "פרופיל ומכשירים",
+  "signOut": "יציאה",
+  "inbox": "תיבת הודעות",
+  "inboxEmpty": "אין חדש. עדכונים על ההזמנות והבקשות שלך יופיעו כאן.",
+  "markAllRead": "סימון הכול כנקרא",
+  "language": "שפה",
+  "loading": "טוען…",
+  "error": "משהו השתבש. אפשר לנסות שוב.",
+  "retry": "לנסות שוב",
+  "close": "סגירה",
+  "undo": "ביטול פעולה",
+  "save": "שמירה",
+  "saveDraft": "שמירת טיוטה",
+  "cancel": "ביטול",
+  "discard": "השלכה",
+  "send": "שליחה",
+  "approve": "אישור",
+  "decline": "דחייה",
+  "review": "בדיקה",
+  "edit": "עריכה",
+  "delete": "מחיקה",
+  "confirm": "אישור",
+  "continue": "המשך",
+  "back": "חזרה",
+  "showAll": "הצגת הכול",
+  "view": "צפייה",
+  "download": "הורדה",
+  "exportCsv": "ייצוא ל־CSV",
+  "search": "חיפוש",
+  "filters": "מסננים",
+  "all": "הכול",
+  "none": "ללא",
+  "yes": "כן",
+  "no": "לא",
+  "other": "אחר",
+  "optional": "אופציונלי",
+  "note": "הערה",
+  "noteOptional": "הערה (אופציונלי)",
+  "messageOptional": "הודעה (אופציונלי)",
+  "reason": "סיבה",
+  "today": "היום",
+  "newSale": "מכירה חדשה",
+  "call": "חיוג",
+  "email": "אימייל",
+  "directions": "ניווט",
+  "everyone": "כולם",
+  "anyAgent": "כל סוכן",
+  "agent": "סוכן",
+  "customer": "לקוח",
+  "status": "סטטוס",
+  "created": "נוצר",
+  "total": "סה״כ",
+  "totalInclVat": "סה״כ כולל מע״מ",
+  "totalExclVat": "סה״כ לפני מע״מ",
+  "vat": "מע״מ 20%",
+  "cartons": "קרטונים",
+  "units": "יחידות",
+  "unitPrice": "מחיר ליחידה",
+  "amount": "סכום",
+  "date": "תאריך",
+  "flavour": "טעם",
+  "cartonsOf": "קרטונים של {flavour}",
+  "unitsCount": "{n} יחידות",
+  "upTo": "עד {n}",
+  "cartonsUnits": "{c} קרטונים · {u} יחידות",
+  "daysLate": "{n, plural, one {# יום איחור} two {# ימי איחור} other {# ימי איחור}}",
+  "polish": "שיפור עם AI",
+  "polishing": "משפר…",
+  "tone": "טון",
+  "tones": {
+    "friendly": "ידידותי",
+    "neutral": "ניטרלי",
+    "firm": "תקיף"
+  },
+  "twoStep": {
+    "label": "קוד אימות דו־שלבי",
+    "help": "יש להזין את הקוד בן 6 הספרות מאפליקציית האימות."
+  },
+  "preview": {
+    "title": "תצוגה בתפקיד {role}",
+    "sub": "האפליקציה מוצגת בדיוק כפי שהתפקיד הזה רואה אותה. שינויים כבויים.",
+    "stop": "הפסקת תצוגה"
+  },
+  "tabs": {
+    "home": "בית",
+    "orders": "הזמנות",
+    "customers": "לקוחות",
+    "collections": "כספים",
+    "more": "עוד",
+    "toShip": "למשלוח",
+    "delivered": "נמסרו",
+    "count": "ספירה"
+  },
+  "nav": {
+    "home": "בית",
+    "sales": "מכירות והזמנות",
+    "customers": "לקוחות",
+    "collections": "גבייה",
+    "purchasing": "רכש",
+    "inventory": "מלאי",
+    "warehouse": "מחסן ומשלוחים",
+    "agents": "סוכנים ועמלות",
+    "earnings": "ההכנסות שלי",
+    "events": "אירועים ופסטיבלים",
+    "deal_profit": "רווח מעסקאות",
+    "pnl": "רווח והפסד חודשי",
+    "expenses": "הוצאות",
+    "users": "משתמשים ותפקידים",
+    "audit": "יומן ביקורת",
+    "settings": "הגדרות וכללים"
+  },
+  "navGroup": {
+    "sales": "מכירות",
+    "stock": "מלאי",
+    "people": "אנשים",
+    "money": "כספים",
+    "admin": "ניהול"
+  },
+  "orderStatus": {
+    "draft": "טיוטה",
+    "payment_to_confirm": "תשלום לאישור",
+    "waiting_for_stock": "ממתינה למלאי",
+    "ready_to_send": "שולמה · מוכנה לשליחה",
+    "at_warehouse": "במחסן",
+    "delivered": "נמסרה",
+    "delivered_part": "נמסרה חלקית",
+    "invoiced": "חויבה",
+    "cancelled": "בוטלה"
+  },
+  "customerStatus": {
+    "draft": "טיוטה",
+    "needs_approval": "לאישור",
+    "active": "פעיל",
+    "late": "בפיגור",
+    "free_to_claim": "פנוי לתפיסה",
+    "declined": "נדחה",
+    "archived": "בארכיון"
+  },
+  "docType": {
+    "proforma": "חשבון עסקה",
+    "invoice": "חשבונית מס",
+    "credit_note": "הודעת זיכוי",
+    "purchase_order": "הזמנת רכש",
+    "delivery_note": "תעודת משלוח חתומה",
+    "upload": "קובץ"
+  },
+  "reasons": {
+    "decline": {
+      "already_customer": "כבר לקוח",
+      "wrong_details": "פרטים שגויים",
+      "not_a_fit": "לא מתאים",
+      "other": "אחר"
+    },
+    "adjustment": {
+      "breakage": "שבר",
+      "samples": "דוגמאות",
+      "count_difference": "הפרש ספירה",
+      "other": "אחר"
+    },
+    "credit": {
+      "returned": "הוחזר",
+      "damaged": "ניזוק",
+      "price_error": "טעות במחיר",
+      "other": "אחר"
+    },
+    "change_agent": {
+      "agent_left": "הסוכן עזב",
+      "customer_request": "בקשת הלקוח",
+      "performance": "ביצועים",
+      "other": "אחר"
+    },
+    "part_delivery": {
+      "customer_refused": "הלקוח סירב לחלק",
+      "damaged": "ניזוק",
+      "short_on_truck": "חסר במשאית",
+      "other": "אחר"
+    },
+    "cancel": {
+      "customer_cancelled": "הלקוח ביטל",
+      "duplicate": "כפילות",
+      "other": "אחר"
+    }
+  },
+  "more": {
+    "title": "עוד"
+  },
+  "notFound": "לא נמצא",
+  "emailDraft": {
+    "to": "אל",
+    "subject": "נושא",
+    "message": "הודעה"
+  }
+}

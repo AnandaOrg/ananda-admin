@@ -1,0 +1,122 @@
+{
+  "kicker": "{n} units in stock · {c} cartons",
+  "caption": "Sold per day is the average of the last {days} days. Status compares the runs-out date with the default supplier's lead time.",
+  "tabs": {
+    "label": "Inventory views",
+    "stock": "Stock",
+    "movements": "Stock movements",
+    "counts": "Stock counts",
+    "countsOpen": "Stock counts · {n}"
+  },
+  "tiles": {
+    "available": "Available",
+    "cartons": "{n} cartons",
+    "reserved": "Reserved",
+    "reservedSub": "Held for paid and requested orders",
+    "onTheWay": "On the way",
+    "value": "Stock value",
+    "valueSub": "At landed cost"
+  },
+  "waiting": {
+    "title": "{n, plural, one {# paid order is waiting for stock} other {# paid orders are waiting for stock}}",
+    "canAllocate": "There is stock for at least the oldest one. Allocate to make it ready to send.",
+    "notYet": "Not enough stock yet. Allocate when the next purchase arrives."
+  },
+  "status": {
+    "months": "{n} months left",
+    "reorder_soon": "Reorder soon",
+    "reorder_now": "Reorder now",
+    "noSales": "No recent sales"
+  },
+  "card": {
+    "availableCaption": "Available units",
+    "reserved": "Reserved",
+    "inStock": "In stock",
+    "value": "Stock value",
+    "perUnit": "{amount} per unit",
+    "onTheWay": "On the way",
+    "onTheWayValue": "{n} units · next {date}",
+    "runsOut": "Runs out",
+    "noSales": "No sales in 60 days",
+    "soldPerDay": "Sold per day",
+    "soldPerDayValue": "{n} units",
+    "leadTime": "Supplier lead time",
+    "days": "{n, plural, one {# day} other {# days}}",
+    "reorder": "New purchase",
+    "adjust": "Adjust"
+  },
+  "allocate": {
+    "title": "Allocate",
+    "sub": "{n, plural, one {# order waiting} other {# orders waiting}}",
+    "cta": "{n, plural, =0 {Allocate} one {Allocate # order} other {Allocate # orders}}",
+    "done": "{n, plural, =0 {Nothing allocated} one {# order allocated. Its agent is told.} other {# orders allocated. Their agents are told.}}",
+    "available": "Available",
+    "needed": "Needed",
+    "after": "After",
+    "orders": "Waiting orders, oldest first",
+    "paidOn": "paid {date}",
+    "units": "{n} units",
+    "short": "Not enough {flavours} for every ticked order. Untick one to continue.",
+    "consequence": "Ticked orders become Paid · ready to send and their agents are told. Unticked orders keep their place in the queue.",
+    "emptyTitle": "Nothing is waiting",
+    "emptyText": "Every paid order has its stock."
+  },
+  "adjust": {
+    "title": "Stock adjustment",
+    "cta": "Save adjustment",
+    "done": "{flavour} adjusted by {n} cartons",
+    "change": "Change in cartons",
+    "changeHelp": "Use minus for cartons that left the stock, plus for cartons found.",
+    "inStockNow": "In stock now",
+    "inStockAfter": "In stock after",
+    "consequence": "Written to stock movements and the audit log."
+  },
+  "movements": {
+    "when": "When",
+    "why": "Why",
+    "by": "By",
+    "system": "System",
+    "eventStock": "event stock",
+    "anyFlavour": "Any flavour",
+    "anyKind": "Any reason",
+    "more": "Show more",
+    "emptyTitle": "No stock movements",
+    "emptyText": "Receipts, dispatches, returns and adjustments show here, newest first."
+  },
+  "kinds": {
+    "purchase_receipt": "Purchase received",
+    "dispatch": "Sent to customer",
+    "return": "Returned",
+    "credit_return": "Credit note return",
+    "adjustment": "Adjustment",
+    "event_out": "To event",
+    "event_in": "Back from event",
+    "event_sale": "Sold at event"
+  },
+  "counts": {
+    "title": "Count of {date}",
+    "help": "The warehouse counts blind. Each count shows here with what the system expected, so you can correct the difference.",
+    "banner": "{n, plural, one {# stock count from the warehouse needs a check.} other {# stock counts from the warehouse need a check.}}",
+    "review": "Review",
+    "counted": "Counted",
+    "expected": "Expected",
+    "difference": "Difference",
+    "countedBy": "Counted by {name}",
+    "reconciledBy": "checked by {name} on {date}",
+    "differences": "{n, plural, one {# flavour differs} other {# flavours differ}}",
+    "matches": "Matches the system",
+    "matchesText": "The count matches what the system expected. Nothing will change.",
+    "open": "To check",
+    "reconciled": "Checked",
+    "correct": "Correct with adjustment",
+    "correctCta": "Correct stock",
+    "accept": "Mark as checked",
+    "acceptCta": "Mark as checked",
+    "correctConsequence": "Creates one stock adjustment per flavour for the difference, reason Count difference, and marks the count as checked.",
+    "acceptConsequence": "Marks the count as checked.",
+    "doneAdjusted": "{n, plural, one {Stock corrected for # flavour} other {Stock corrected for # flavours}}",
+    "doneMatched": "Count marked as checked",
+    "emptyTitle": "No stock counts yet",
+    "emptyText": "Counts sent from the warehouse show here for checking."
+  }
+}

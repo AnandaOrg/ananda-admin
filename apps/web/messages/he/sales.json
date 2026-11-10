@@ -1,0 +1,225 @@
+{
+  "kicker": "{n, plural, one {# הזמנה} two {# הזמנות} other {# הזמנות}} · החדשות קודם",
+  "searchPlaceholder": "חיפוש לקוח או מספר הזמנה",
+  "noCustomer": "עדיין אין לקוח",
+  "created": "נוצרה",
+  "anyFlavour": "כל טעם",
+  "filters": {
+    "all": "הכול",
+    "needs_action": "דורשות פעולה",
+    "late": "בפיגור",
+    "drafts": "טיוטות",
+    "closed": "סגורות"
+  },
+  "period": {
+    "any": "בכל זמן",
+    "30": "30 הימים האחרונים",
+    "90": "90 הימים האחרונים",
+    "year": "השנה"
+  },
+  "cols": {
+    "customer": "לקוח",
+    "agent": "סוכן",
+    "created": "נוצרה"
+  },
+  "empty": {
+    "title": "אין הזמנות",
+    "text": "הזמנות מופיעות כאן אחרי שמכירה נשמרת. אפשר להתחיל עם מכירה חדשה."
+  },
+  "form": {
+    "editTitle": "טיוטה {number}",
+    "customer": "לקוח",
+    "chooseCustomer": "בחירת לקוח",
+    "customerHelpAgent": "הלקוחות המאושרים שלך. לקוח חדש מוסיפים דרך לקוחות.",
+    "customerHelp": "לקוחות מאושרים. ההזמנה נשארת אצל הסוכן של הלקוח.",
+    "cartonsTitle": "קרטונים לפי טעם",
+    "belowMinimum": "יש להוסיף עוד {n} קרטונים כדי להגיע למינימום של {min}.",
+    "noteLabel": "הערה לצוות",
+    "noteHelp": "מוצגת בהזמנה, לא בחשבון העסקה.",
+    "summary": "סיכום",
+    "cartonsOfMin": "{n} מתוך מינימום {min}",
+    "tier": "דרגת מחיר",
+    "tierRange": "{from}–{to} קרטונים",
+    "terms": "תנאי תשלום",
+    "termsDays": "{n, plural, =0 {תשלום לפני אספקה} one {# יום} two {# ימים} other {# ימים}}",
+    "advanceNeeded": "מ־834 קרטונים המחיר הזה מחייב תשלום מראש או התחייבות לנפח.",
+    "commission": "עמלת סוכן {amount} + מע״מ",
+    "sendRequest": "שליחת בקשת תשלום",
+    "needCustomer": "יש לבחור לקוח כדי לשלוח בקשת תשלום.",
+    "needCartons": "יש להוסיף עוד {n} קרטונים כדי לשלוח בקשת תשלום.",
+    "saved": "הטיוטה נשמרה.",
+    "sent": "בקשת התשלום נשלחה ללקוח."
+  },
+  "flow": {
+    "payment_request": "בקשת תשלום נשלחה",
+    "confirm_payment": "אישור תשלום",
+    "send_to_warehouse": "שליחה למחסן",
+    "delivered": "נמסרה",
+    "invoice": "חשבונית מס",
+    "notSent": "טרם נשלחה",
+    "sendRequest": "שליחת בקשת תשלום",
+    "partPaid": "{amount} שולמו עד כה",
+    "dueOn": "לתשלום עד {date}",
+    "allocate": "הקצאת מלאי",
+    "atWarehouse": "במחסן"
+  },
+  "order": {
+    "created": "נוצרה ב־{date}",
+    "moreActions": "פעולות נוספות",
+    "correctionPending": "תיקון ממתין",
+    "waitingTitle": "שולמה, ממתינה למלאי",
+    "short": "נדרשות {need} יחידות, זמינות {have}",
+    "expected": "צפוי ב־{date}",
+    "noPurchase": "אין רכישה בדרך",
+    "pending": {
+      "correction": "תיקון ממתין למנהל. שום דבר לא משתנה עד שיאושר.",
+      "special_price": "המחיר המיוחד ממתין למנהל. אפשר לשלוח את בקשת התשלום אחרי שיאושר.",
+      "new_customer": "הלקוח ממתין לאישור."
+    },
+    "declined": "הבקשה האחרונה שלך נדחתה",
+    "holdReleased": "שמירת המלאי שוחררה ב־{date} כי התשלום לא הגיע. ההזמנה נשארת פתוחה.",
+    "cancelled": "בוטלה ב־{date}. {reason}",
+    "flow": "מהלך ההזמנה",
+    "lines": "שורות",
+    "deliveredOf": "{d} מתוך {c}",
+    "specialPrice": "מחיר מיוחד {price} ליחידה (מחירון {list}).",
+    "tierNote": "{n} קרטונים נכללים בדרגה {from}–{to}: {price} ליחידה.",
+    "payments": "תשלומים",
+    "history": "היסטוריה",
+    "money": "כספים",
+    "vat": "מספר עוסק מע״מ",
+    "vatValid": "תקף",
+    "vatInvalid": "לא תקף",
+    "contact": "איש קשר",
+    "deliverTo": "כתובת למסירה",
+    "terms": "תנאים",
+    "documents": "מסמכים",
+    "noDocuments": "מסמכים מופיעים אחרי שליחת בקשת התשלום.",
+    "replaced": "הוחלף"
+  },
+  "money": {
+    "paid": "שולם",
+    "toPay": "נותר לתשלום",
+    "credited": "זוכה",
+    "commission": "עמלת סוכן",
+    "noteDraft": "אין חוב עד שבקשת התשלום נשלחת.",
+    "noteOwed": "{amount} נותרו לתשלום. ההזמנה יוצאת רק אחרי תשלום מלא.",
+    "notePaid": "שולם במלואו. העמלה {status}.",
+    "commissionReady": "מוכנה לתשלום",
+    "commissionPaid": "שולמה"
+  },
+  "method": {
+    "bank_transfer": "העברה בנקאית",
+    "cash": "מזומן",
+    "card": "כרטיס",
+    "other": "אחר"
+  },
+  "actions": {
+    "edit": {
+      "title": "עריכת טיוטה"
+    },
+    "delete": {
+      "title": "מחיקת טיוטה",
+      "consequence": "הטיוטה תוסר. שום דבר לא נשלח ללקוח.",
+      "done": "הטיוטה נמחקה."
+    },
+    "send_payment_request": {
+      "title": "שליחת בקשת תשלום"
+    },
+    "special_price": {
+      "title": "בקשת מחיר מיוחד",
+      "cta": "שליחה לאישור",
+      "listPrice": "מחיר מחירון ליחידה",
+      "price": "מחיר ליחידה, לפני מע״מ",
+      "priceHelp": "נמוך ממחיר המחירון. ההפרש יורד מהעמלה שלך.",
+      "reasonHelp": "למה הלקוח צריך את זה. המנהל רואה זאת.",
+      "done": "המחיר המיוחד נשלח לאישור."
+    },
+    "confirm_payment": {
+      "title": "אישור תשלום",
+      "cta": "אישור תשלום",
+      "receivedOn": "תאריך קבלה",
+      "paidBy": "שולם באמצעות",
+      "reference": "אסמכתא בנקאית",
+      "partHelp": "סכום נמוך יותר נרשם כתשלום חלקי; ההזמנה יוצאת אחרי תשלום מלא.",
+      "consequence": "אחרי תשלום מלא ההזמנה הופכת ל\"שולמה · מוכנה לשליחה\", או ממתינה למלאי.",
+      "done": "התשלום אושר."
+    },
+    "allocate": {
+      "title": "הקצאת מלאי"
+    },
+    "send_to_warehouse": {
+      "title": "שליחה למחסן",
+      "cta": "שליחה למחסן",
+      "consequence": "המחסן מקבל את ההזמנה בלי מחירים. הכמויות ננעלות מעכשיו.",
+      "done": "נשלחה למחסן."
+    },
+    "issue_invoice": {
+      "title": "הנפקת חשבונית מס",
+      "cta": "הנפקה ושליחה",
+      "partNote": "הקרטונים שהוחזרו מזוכים בהודעת זיכוי שמונפקת יחד עם החשבונית.",
+      "consequence": "החשבונית נשלחת במייל ללקוח, לסוכן, למנהלים ולרואה החשבון. היא לעולם לא משתנה.",
+      "done": "חשבונית {number} הונפקה ונשלחה במייל."
+    },
+    "part_outcome": {
+      "title": "החלטה על מסירה חלקית",
+      "summary": "{n, plural, one {# קרטון חזר} two {# קרטונים חזרו} other {# קרטונים חזרו}} למחסן.",
+      "kept": "{kept} מתוך {sent} נשארו",
+      "credit_note": "הודעת זיכוי",
+      "redeliver": "מסירה חוזרת",
+      "cta_credit_note": "זיכוי הקרטונים שהוחזרו",
+      "cta_redeliver": "שליחה חוזרת למחסן",
+      "consequence_credit_note": "החשבונית מכסה את ההזמנה, והודעת זיכוי מכסה את הקרטונים שהוחזרו.",
+      "consequence_redeliver": "המחסן מוסר שוב את הקרטונים החסרים לפני החשבונית.",
+      "done_credit_note": "הקרטונים שהוחזרו יזוכו יחד עם החשבונית.",
+      "done_redeliver": "נשלחה שוב למחסן."
+    },
+    "correction": {
+      "title": "בקשת תיקון",
+      "cta": "שליחה לאישור",
+      "cartons": "קרטונים",
+      "reasonHelp": "מה השתנה ולמה. המנהל רואה זאת.",
+      "consequence": "אחרי האישור הלקוח מקבל חשבון עסקה מתוקן. הנוכחי נשאר כמו שהוא.",
+      "done": "התיקון נשלח לאישור."
+    },
+    "cancel": {
+      "title": "ביטול הזמנה",
+      "cta": "ביטול הזמנה",
+      "paidWarning": "{amount} כבר שולמו. את ההחזר יש לסדר בנפרד.",
+      "consequence": "המלאי השמור משוחרר והעמלה מוסרת.",
+      "done": "ההזמנה בוטלה."
+    },
+    "credit_note": {
+      "title": "הנפקת הודעת זיכוי",
+      "cta": "הנפקת הודעת זיכוי",
+      "noteForCustomer": "הערה ללקוח (אופציונלי)",
+      "total": "זיכוי כולל מע״מ",
+      "consequence": "הודעת הזיכוי מפנה לחשבונית ונשלחת במייל ללקוח ולסוכן. קרטונים שהוחזרו חוזרים למלאי.",
+      "done": "הודעת זיכוי {number} הונפקה."
+    }
+  },
+  "timeline": {
+    "draft_created": "הטיוטה נוצרה",
+    "draft_updated": "הטיוטה עודכנה",
+    "payment_request_sent": "בקשת תשלום נשלחה",
+    "special_price_requested": "נתבקש מחיר מיוחד",
+    "special_price_approved": "המחיר המיוחד אושר",
+    "special_price_declined": "המחיר המיוחד נדחה",
+    "payment_confirmed": "התשלום אושר",
+    "part_payment_confirmed": "תשלום חלקי אושר",
+    "sent_to_warehouse": "נשלחה למחסן",
+    "delivered": "נמסרה",
+    "delivered_in_part": "נמסרה חלקית",
+    "invoice_issued": "החשבונית הונפקה",
+    "credit_note_issued": "הודעת הזיכוי הונפקה",
+    "correction_requested": "נתבקש תיקון",
+    "correction_applied": "התיקון הוחל",
+    "correction_declined": "התיקון נדחה",
+    "cancelled": "בוטלה",
+    "allocated": "המלאי הוקצה",
+    "stock_hold_released": "שמירת המלאי שוחררה",
+    "reminder_sent": "נשלחה תזכורת תשלום",
+    "part_delivery_credit_note": "מסירה חלקית: הודעת זיכוי",
+    "part_delivery_redeliver": "מסירה חלקית: מסירה חוזרת"
+  }
+}

@@ -1,0 +1,72 @@
+# Local stack: database, mail catcher, API and web.
+#   docker compose up -d --build        # everything
+#   docker compose up -d db mail        # only the services needed for `pnpm dev`
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ananda
+      POSTGRES_PASSWORD: ananda
+      POSTGRES_DB: ananda
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ananda"]
+      interval: 2s
+      retries: 20
+
+  mail:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "1026:1025"
+      - "8026:8025"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
+    environment:
+      TZ: Europe/Sofia
+      DATABASE_URL: postgres://ananda:ananda@db:5432/ananda
+      PORT: "4010"
+      WEB_ORIGIN: http://localhost:3010
+      SMTP_HOST: mail
+      SMTP_PORT: "1025"
+      MAIL_FROM: "ANANDA <office@ananda.bg>"
+      UPLOAD_DIR: /app/apps/api/uploads
+      SEED_DEMO: "true"
+      # Local demo only: plain http cookies and the 000000 two-step code. Remove both on a real server.
+      COOKIE_SECURE: "false"
+      DEV_TWO_STEP_CODE: "000000"
+      ALLOW_DEV_TWO_STEP_CODE: "true"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "4010:4010"
+    volumes:
+      - uploads:/app/apps/api/uploads
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_URL: http://api:4010
+    depends_on:
+      - api
+    environment:
+      TZ: Europe/Sofia
+    ports:
+      - "3010:3000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:

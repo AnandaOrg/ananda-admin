@@ -1,0 +1,70 @@
+/* Route-local layout for the Money pages; tokens only. */
+
+/* Profit equation: four tiles and three operator columns on one row from 1024 up (DS: KpiTile, Equation row).
+   Below 1024 the shared rule in app.css puts "= Profit after commission" full width underneath. */
+@media (min-width: 1024px) {
+  .eqn {
+    grid-template-columns: minmax(0, 1fr) var(--control-md) minmax(0, 1fr) var(--control-md) minmax(0, 1fr) var(--control-md) minmax(0, 1fr);
+  }
+}
+
+.howList {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  color: var(--text-muted);
+}
+
+.howList strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.cash {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.colsBtn {
+  display: none;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .colsBtn {
+    display: inline-flex;
+  }
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.fileRow input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.fileName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.totalRow td {
+  font-weight: 500;
+  background: var(--bg);
+}
+
+.noData td {
+  color: var(--text-subtle);
+}

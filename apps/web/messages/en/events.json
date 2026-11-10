@@ -1,0 +1,108 @@
+{
+  "kicker": "{n, plural, =0 {No events yet} one {# event} other {# events}}",
+  "new": "New event",
+  "tiles": {
+    "stock": "Stock at events",
+    "stockSub": "{n, plural, =0 {At no event} one {At # event} other {At # events}}",
+    "sales": "Event sales this year",
+    "salesSub": "{u} units",
+    "expenses": "Direct event expenses",
+    "expensesSub": "This year, excl. VAT"
+  },
+  "cartons": "{n, plural, one {# carton} other {# cartons}}",
+  "empty": {
+    "title": "No events yet",
+    "text": "An event or festival holds its own stock. Move cartons to it, record what agents sell there and see its direct costs."
+  },
+  "cols": {
+    "event": "Event",
+    "dates": "Dates",
+    "agents": "Agents",
+    "stock": "Stock there",
+    "sold": "Sold",
+    "costs": "Direct costs",
+    "status": "Status"
+  },
+  "kind": {
+    "event": "Event",
+    "festival": "Festival"
+  },
+  "status": {
+    "upcoming": "Upcoming",
+    "on": "On now",
+    "past": "Finished"
+  },
+  "noAgents": "No agents invited",
+  "form": {
+    "title": "New event",
+    "name": "Name",
+    "from": "From",
+    "to": "To",
+    "place": "Place",
+    "kind": "Type",
+    "agents": "Invited agents",
+    "agentsHelp": "Invited agents see the event and can sell there.",
+    "noAgents": "There are no agents yet.",
+    "create": "Create event",
+    "created": "{name} created"
+  },
+  "detail": {
+    "moveTo": "Move stock to event",
+    "moveBack": "Bring stock back",
+    "recordSale": "Record sales",
+    "stockTitle": "Stock at the event",
+    "stockEmpty": "No stock at the event. Move cartons here from the warehouse.",
+    "moved": "Moved in {c}",
+    "sold": "Sold {c}",
+    "tileStock": "Stock at the event",
+    "tileSold": "Sold at the event",
+    "tileCosts": "Direct costs",
+    "tileCostsSub": "Excl. VAT",
+    "units": "{u} units",
+    "salesTitle": "Sales by agent",
+    "salesEmpty": "No sales recorded yet.",
+    "agent": "Agent",
+    "commission": "Commission",
+    "commissionHelp": "Normal commission per unit (A13). It goes straight to the agent’s Ready to pay.",
+    "costsTitle": "Direct costs",
+    "costsEmpty": "No expenses linked to this event. Add one in Expenses and choose this event.",
+    "addExpense": "Add expense",
+    "description": "Description",
+    "date": "Date",
+    "amount": "Excl. VAT",
+    "historyTitle": "Stock history",
+    "historyEmpty": "Nothing moved yet.",
+    "kinds": {
+      "event_out": "To the event",
+      "event_in": "Back to the warehouse",
+      "event_sale": "Sold"
+    },
+    "by": "By {name}",
+    "invited": "Invited agents",
+    "what": "What",
+    "who": "Who"
+  },
+  "move": {
+    "titleTo": "Move stock to the event",
+    "titleBack": "Bring stock back",
+    "direction": "Direction",
+    "to": "To the event",
+    "back": "Back to the warehouse",
+    "helpTo": "Up to what is available at the warehouse (in stock minus reserved).",
+    "helpBack": "Up to what is at the event now.",
+    "total": "{n, plural, one {# carton} other {# cartons}} · {u} units",
+    "submitTo": "Move to event",
+    "submitBack": "Bring back",
+    "doneTo": "{n, plural, one {# carton} other {# cartons}} moved to {name}",
+    "doneBack": "{n, plural, one {# carton} other {# cartons}} back at the warehouse"
+  },
+  "sale": {
+    "title": "Record sales",
+    "agent": "Sold by",
+    "agentPlaceholder": "Choose an agent",
+    "help": "Cartons sold at the event, per flavour. Up to the stock at the event.",
+    "submit": "Record sales",
+    "done": "{n, plural, one {# carton} other {# cartons}} recorded for {name} · {amount} commission ready to pay",
+    "noAgents": "Invite an agent to the event before recording sales."
+  }
+}

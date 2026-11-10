@@ -1,0 +1,94 @@
+/* ANANDA — generated from tokens.json */
+@font-face { font-family: "Rubik"; src: url("/fonts/Rubik-Variable.woff2") format("woff2"); font-weight: 300 900; font-style: normal; font-display: swap; }
+:root, [data-theme="dark"] {
+  --bg: #0A0A0B;
+  --surface-1: #131314;
+  --surface-2: #19191B;
+  --surface-3: #212123;
+  --line: #222224;
+  --text: #F2F2F0;
+  --text-muted: #A3A3A0;
+  --text-subtle: #6A6A68;
+  --accent: #E4F04E;
+  --on-accent: #111111;
+  --accent-hover: #EEF77A;
+  --accent-pressed: #CBD63C;
+  --accent-soft: #22240F;
+  --accent-line: #3E4317;
+  --good: #3CCB7F;
+  --good-soft: #12241A;
+  --warn: #F0B429;
+  --warn-soft: #2A2312;
+  --bad: #F2685E;
+  --bad-soft: #2B1715;
+  --bad-line: #4A2621;
+  --on-bad: #FFFFFF;
+  --info: #4FB8C9;
+  --info-soft: #12262A;
+  --blue: #8F99FF;
+  --blue-soft: #1A1D33;
+  --flavour-aloha: #F0B429;
+  --flavour-gaia: #3CCB7F;
+  --flavour-santorini: #6E7BFF;
+  --flavour-kyoto: #E879A8;
+  --scrim: rgba(0,0,0,0.6);
+  --paper-bg: #F6F5F0;
+  --paper-ink: #1D1D1B;
+  --paper-muted: #6B6A64;
+  --paper-panel: #ECEBE4;
+  --paper-line: #D8D6CC;
+  --paper-note-bg: #FBECCB;
+  --paper-note-ink: #6B4A00;
+  --shadow-popover: 0 12px 32px -8px rgba(0,0,0,0.65);
+  --shadow-panel: -30px 0 60px -20px rgba(0,0,0,0.6);
+  --shadow-paper: 0 10px 30px -12px rgba(0,0,0,0.6);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --page-margin: 20px;
+  --page-margin-phone: 16px;
+  --layout-gap: 20px;
+  --section-gap: 16px;
+  --row-gap: 12px;
+  --card-padding: 20px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+  --control-sm: 36px;
+  --control-md: 44px;
+  --control-lg: 48px;
+  --pill-height: 24px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --focus-ring: 2px;
+  --panel-width: 460px;
+  --sidebar-width: 257px;
+  --rail-width: 72px;
+  --nav-row: 45px;
+  /* Breakpoints: for reference; use the values directly in media queries */
+  --bp-tablet: 768px;
+  --bp-laptop: 1024px;
+  --bp-desktop: 1280px;
+  --avatar-sm: 36px;
+  --avatar-lg: 44px;
+  --popover-width: 300px;
+  --font-sans: "Rubik", system-ui, sans-serif;
+}
+.display { font-family: var(--font-sans); font-size: 34px; line-height: 40px; font-weight: 300; }
+.title-1 { font-family: var(--font-sans); font-size: 28px; line-height: 34px; font-weight: 300; }
+.title-2 { font-family: var(--font-sans); font-size: 22px; line-height: 28px; font-weight: 400; }
+.title-3 { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 400; }
+.body-lg { font-family: var(--font-sans); font-size: 16px; line-height: 22px; font-weight: 400; }
+.body { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+.body-strong { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
+.body-sm { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.caption { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; }
+.overline { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; }

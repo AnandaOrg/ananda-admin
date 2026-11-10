@@ -1,0 +1,22 @@
+{
+  "kicker": "Late and due payments, oldest first",
+  "tiles": {
+    "late": "Late",
+    "lateSub": "{n, plural, one {# order} other {# orders}} · oldest {days} days",
+    "nothingLate": "Nothing late",
+    "week": "Due this week",
+    "count": "{n, plural, one {# order} other {# orders}}",
+    "all": "All unpaid",
+    "allSub": "{n, plural, one {# order} other {# orders}} · same as Owed to us",
+    "allTip": "Every unpaid customer amount incl. VAT, the same figure as Owed to us on Home."
+  },
+  "filters": { "late": "Late", "week": "Due this week", "all": "All unpaid" },
+  "cols": { "customer": "Customer and order", "howLate": "How late", "actions": "Actions" },
+  "dueOn": "Due {date}",
+  "lastReminder": "reminded {date}",
+  "remind": "Reminder",
+  "getInTouch": "Get in touch",
+  "agentCopied": "{agent} is copied on this reminder.",
+  "reminderSent": "Reminder sent to {name}.",
+  "empty": { "title": "Nothing to collect", "text": "Every payment request is paid. New ones appear here once they are sent." }
+}
