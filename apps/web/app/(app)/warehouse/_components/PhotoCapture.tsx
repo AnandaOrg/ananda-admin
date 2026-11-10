@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, Camera, EmptyState } from '@/components/ui';
+import { shrinkImage } from '@/lib/image';
 
 export interface PhotoCaptureHandle {
   /** Opens the camera (or the file picker on desktop). */
@@ -39,10 +40,11 @@ export const PhotoCapture = forwardRef<PhotoCaptureHandle, { file: File | null; 
         hidden
         tabIndex={-1}
         aria-hidden
-        onChange={(e) => {
+        onChange={async (e) => {
           const f = e.target.files?.[0];
-          if (f) onFile(f);
           e.target.value = '';
+          // Keep uploads under the hosting request limit; the note stays legible at 2000 px.
+          if (f) onFile(await shrinkImage(f));
         }}
       />
       {url ? (

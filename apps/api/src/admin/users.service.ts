@@ -10,8 +10,8 @@ import { SettingsService } from '../core/settings.service';
 import { randomToken, sha256 } from '../core/crypto';
 import type { AuthContext } from '../common/context';
 import type { InviteMemberInput } from './admin.schemas';
+import { webOrigin } from '../core/origin';
 
-const webOrigin = () => process.env.WEB_ORIGIN ?? 'http://localhost:3010';
 
 const INVITE_COPY = {
   en: { subject: 'You are invited to ANANDA', hello: 'Hello', body: (by: string) => `${by} invited you to ANANDA, the operations and finance app.`, cta: 'Set your password here', valid: (d: string) => `The link works until ${d}.` },

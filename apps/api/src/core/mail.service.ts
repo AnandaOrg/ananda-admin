@@ -22,7 +22,7 @@ export class MailService {
   private readonly transport: Transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? 'localhost',
     port: Number(process.env.SMTP_PORT ?? 1026),
-    secure: false,
+    secure: process.env.SMTP_SECURE === 'true',
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
   });
 
@@ -36,9 +36,12 @@ export class MailService {
     const cc = unique(input.cc ?? []).filter((e) => !to.includes(e));
     if (to.length === 0) return;
     const email = await this.settings.get('email');
-    let status: 'sent' | 'failed' = 'sent';
+    let status: 'sent' | 'failed' | 'skipped' = 'sent';
     let error: string | undefined;
-    try {
+    if (process.env.SEEDING) {
+      status = 'skipped';
+      error = 'Demo data: not sent';
+    } else try {
       await this.transport.sendMail({
         from: email.sender || process.env.MAIL_FROM || 'ANANDA <office@ananda.local>',
         replyTo: email.replyTo || undefined,

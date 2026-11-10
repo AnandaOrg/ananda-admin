@@ -43,6 +43,7 @@ import {
   type Column,
 } from '@/components/ui';
 import css from '../money.module.css';
+import { shrinkImage } from '@/lib/image';
 
 interface Expense {
   id: string;
@@ -371,7 +372,10 @@ function NewExpenseSheet({ open, onClose }: { open: boolean; onClose: () => void
       <div className="an-field">
         <label>{t('expenses.receipt')}</label>
         <div className={css.fileRow}>
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} aria-label={t('expenses.receipt')} />
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" onChange={async (e) => {
+            const f = e.target.files?.[0] ?? null;
+            setFile(f ? await shrinkImage(f) : null);
+          }} aria-label={t('expenses.receipt')} />
           <Button size="sm" icon={file ? FileText : UploadSimple} onClick={() => fileRef.current?.click()}>
             {file ? t('expenses.changeReceipt') : t('expenses.uploadReceipt')}
           </Button>

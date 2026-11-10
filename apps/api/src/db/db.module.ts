@@ -14,7 +14,8 @@ const POOL = Symbol('POOL');
 @Global()
 @Module({
   providers: [
-    { provide: POOL, useFactory: () => new Pool({ connectionString: process.env.DATABASE_URL, max: 10 }) },
+    { provide: POOL, // Serverless instances each hold a few connections; use the provider's pooled URL on Vercel.
+      useFactory: () => new Pool({ connectionString: process.env.DATABASE_URL, max: process.env.VERCEL ? 3 : 10 }), },
     { provide: DB, inject: [POOL], useFactory: (pool: Pool) => drizzle(pool, { schema }) },
   ],
   exports: [DB],

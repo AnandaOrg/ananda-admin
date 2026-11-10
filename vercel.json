@@ -1,0 +1,40 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "api": {
+      "root": "apps/api",
+      "framework": "nestjs",
+      "entrypoint": "dist/main.js",
+      "buildCommand": "pnpm --filter @ananda/shared build && pnpm build && if [ -n \"$DATABASE_URL\" ]; then node dist/db/migrate.js; fi && if [ \"$SEED_DEMO\" = \"true\" ]; then node dist/db/seed.js; fi"
+    },
+    "web": {
+      "root": "apps/web",
+      "framework": "nextjs",
+      "buildCommand": "pnpm --filter @ananda/shared build && pnpm build"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/orders",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/ownership",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

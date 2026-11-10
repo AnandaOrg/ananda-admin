@@ -50,6 +50,8 @@ export class StockService {
         and(
           eq(orders.allocated, true),
           inArray(orders.status, ['payment_to_confirm', 'ready_to_send']),
+          // A hold past its date no longer reserves stock, even before the daily job records the release.
+          sql`(${orders.reservedUntil} is null or ${orders.reservedUntil} > now())`,
           excludeOrderId ? sql`${orders.id} <> ${excludeOrderId}` : undefined,
         ),
       )

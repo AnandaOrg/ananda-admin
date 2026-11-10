@@ -24,7 +24,8 @@ import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
+    // Local and Docker: in-process timers. On Vercel there is no long-lived process; Vercel Cron calls /api/cron/*.
+    ...(process.env.VERCEL ? [] : [ScheduleModule.forRoot()]),
     DbModule,
     CoreModule,
     AuthModule,

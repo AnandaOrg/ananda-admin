@@ -55,6 +55,31 @@ The seed also prints a real authenticator secret.
 | warehouse@ananda.bg | Warehouse (phone app) |
 | ivan@ananda.bg, petya@ananda.bg, dimitar@ananda.bg | Sales agents |
 
+## Deploy to Vercel
+
+`vercel.json` defines one Vercel project with two services: `web` (Next.js, everything except `/api`)
+and `api` (NestJS, `/api/*`). The browser calls `/api` on the same domain, so the session cookie stays
+first-party and the services need no bindings. What changes on Vercel:
+
+- **Files** go to a private Vercel Blob store (connect one to the project); without it they go to local disk.
+- **Scheduled jobs** run from Vercel Cron once a day (Hobby plan): `/api/cron/orders` at 04:00 UTC and
+  `/api/cron/ownership` at 06:00 UTC, authorised with `CRON_SECRET`. Expired stock holds stop counting as
+  reserved the moment they expire; the daily job records the release and tells the agent.
+- **Live updates** poll every 20 seconds instead of streaming, since requests can land on different instances.
+- **Photos** are scaled down in the browser before upload to stay under the 4.5 MB request limit.
+- **Database:** Neon from the Vercel Marketplace, with a separate database (branch) for preview
+  deployments. Migrations run in every `api` build that has a `DATABASE_URL`. Set `SEED_DEMO=true` on the
+  Preview environment to load demo data into preview databases; the seed never sends e-mail.
+- **Sign-in:** the demo code `000000` does not work on Vercel; Admin, System admin and Finance use an
+  authenticator app (the seed prints the key in the build log).
+
+Environment variables (Project → Settings → Environment Variables): `DATABASE_URL` (added by the Neon
+integration), `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` (`true` for port 465), `SMTP_USER`, `SMTP_PASS`,
+`MAIL_FROM`, `CRON_SECRET` (a long random string), optional `ANTHROPIC_API_KEY`, and
+`ENABLE_EXPERIMENTAL_COREPACK=1` so the build uses the pnpm version pinned in `package.json`. Do not set
+`DEV_TWO_STEP_CODE`, `ALLOW_DEV_TWO_STEP_CODE` or `COOKIE_SECURE` there. Blob credentials are added when
+a private Blob store is connected to the project.
+
 ## Tests
 
 ```bash

@@ -3,6 +3,7 @@
 import { useId, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, IconButton, UploadSimple, X } from '@/components/ui';
+import { shrinkImage } from '@/lib/image';
 
 /** Optional upload (photo or PDF) inside a sheet: a button, then the chosen file name. */
 export function FilePick({ label, file, onFile, help }: { label: string; file: File | null; onFile: (f: File | null) => void; help?: string }) {
@@ -18,7 +19,10 @@ export function FilePick({ label, file, onFile, help }: { label: string; file: F
         type="file"
         accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
         className="sr-only"
-        onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        onChange={async (e) => {
+          const f = e.target.files?.[0] ?? null;
+          onFile(f ? await shrinkImage(f) : null);
+        }}
       />
       {file ? (
         <div className="row">

@@ -529,7 +529,7 @@ export const emailLog = pgTable('email_log', {
   kind: text('kind').notNull(),
   recordType: text('record_type'),
   recordId: text('record_id'),
-  status: text('status').$type<'sent' | 'failed'>().notNull(),
+  status: text('status').$type<'sent' | 'failed' | 'skipped'>().notNull(),
   error: text('error'),
   createdAt: createdAt(),
 });
