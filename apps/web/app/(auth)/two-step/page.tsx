@@ -41,7 +41,15 @@ export default function TwoStepPage() {
   return (
     <Card title={setup ? t('setupTitle') : t('verifyTitle')}>
       <form className="stack" onSubmit={submit}>
-        <p className="muted">{setup ? t('setupText') : t('verifyText')}</p>
+        {setup ? (
+          <ol className="stack tight body-sm muted" style={{ margin: 0, paddingInlineStart: 'var(--space-5)' }}>
+            <li>{t('setupStep1')}</li>
+            <li>{t('setupStep2')}</li>
+            <li>{t('setupStep3')}</li>
+          </ol>
+        ) : (
+          <p className="muted">{t('verifyText')}</p>
+        )}
         {setup && qr.data && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -63,7 +71,7 @@ export default function TwoStepPage() {
           required
         />
         <Button variant="primary" type="submit" busy={busy} disabled={code.length !== 6} block size="lg">
-          {t('continue')}
+          {setup ? t('confirmCode') : t('continue')}
         </Button>
         <button type="button" className="link body-sm" onClick={() => api.post('/auth/logout').finally(() => router.replace('/login'))}>
           {t('useOtherAccount')}

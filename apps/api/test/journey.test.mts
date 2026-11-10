@@ -23,6 +23,8 @@ class Client {
   async login(email: string) {
     const r = await this.req('POST', '/auth/login', { email, password: 'ananda-demo-2026' });
     assert.equal(r.status, 200, `login ${email}`);
+    // First sign-in shows the QR code (setup) before a code can confirm it.
+    if (r.data.twoStep === 'setup') assert.equal((await this.req('POST', '/auth/two-step/setup')).status, 201);
     if (r.data.twoStep !== 'none') assert.equal((await this.req('POST', '/auth/two-step/verify', { code: CODE })).status, 200);
     return this;
   }

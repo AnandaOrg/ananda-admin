@@ -1,0 +1,9 @@
+# Keep local secrets and build output out of CLI deployments.
+**/.env
+**/.env.local
+**/node_modules
+**/dist
+**/.next
+**/*.tsbuildinfo
+apps/api/uploads
+.vercel

@@ -29,7 +29,6 @@ import { ApprovalsService } from '../approvals/approvals.service';
 import { SettingsService } from '../core/settings.service';
 import { NumberingService } from '../core/numbering.service';
 import type { AuthContext } from '../common/context';
-import { newTotpSecret } from '../core/crypto';
 
 const PASSWORD = 'ananda-demo-2026';
 const ROLE_NAMES: Record<SystemRole, [string, string]> = {
@@ -77,13 +76,13 @@ async function main() {
     { key: 'petya', name: 'Petya Georgieva', email: 'petya@ananda.bg', role: 'agent', phone: '+359 89 220 1188', language: 'bg' },
     { key: 'dimitar', name: 'Dimitar Stoyanov', email: 'dimitar@ananda.bg', role: 'agent', phone: '+359 87 554 9021', language: 'en' },
   ];
-  const secret = newTotpSecret();
+  // Two-step sign-in is not pre-configured: roles that require it scan a QR code and confirm a code
+  // at their first sign-in, so every person gets their own authenticator key.
   const uid: Record<string, string> = {};
   for (const p of people) {
-    const needs = ROLE_DEFAULTS[p.role].twoStepRequired;
     const [u] = await db
       .insert(s.users)
-      .values({ name: p.name, email: p.email, phone: p.phone, passwordHash: hash, roleId: roleIds[p.role], language: p.language ?? 'en', status: 'active', totpSecret: needs ? secret : null, totpEnabled: needs })
+      .values({ name: p.name, email: p.email, phone: p.phone, passwordHash: hash, roleId: roleIds[p.role], language: p.language ?? 'en', status: 'active' })
       .returning();
     uid[p.key] = u.id;
   }
@@ -302,7 +301,7 @@ async function main() {
   console.log('\nSeeded ANANDA demo data.');
   console.log(`Sign in with any of these (password: ${PASSWORD}):`);
   for (const p of people) console.log(`  ${p.email.padEnd(24)} ${ROLE_NAMES[p.role][0]}`);
-  console.log(`Two-step code: in development enter ${process.env.DEV_TWO_STEP_CODE ?? '(set DEV_TWO_STEP_CODE)'}, or add this secret to an authenticator app: ${secret}`);
+  console.log('System admin, Admin and Finance set up two-step sign-in at their first sign-in: scan the QR code, then confirm a code.');
 }
 
 main().catch((e) => {

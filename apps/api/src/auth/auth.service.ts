@@ -67,6 +67,8 @@ export class AuthService {
 
   async twoStepVerify(auth: AuthContext, code: string) {
     const [user] = await this.db.select().from(users).where(eq(users.id, auth.user.id));
+    // First sign-in: the key must have been shown (QR) before a code can confirm it.
+    if (!user.totpEnabled && !user.totpSecret) throw new BadRequestException({ message: 'Scan the QR code first, then enter the code from your app.' });
     if (!verifyTotp(user.totpSecret, code)) throw new BadRequestException({ message: 'That code did not work. Enter the current code from your app.', fields: { code: 'That code did not work' } });
     if (!user.totpEnabled) {
       await this.db.update(users).set({ totpEnabled: true }).where(eq(users.id, user.id));
