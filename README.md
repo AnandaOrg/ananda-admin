@@ -58,7 +58,8 @@ The seed also prints a real authenticator secret.
 ## Deploy to Vercel
 
 `vercel.json` defines one Vercel project with two services: `web` (Next.js, everything except `/api`)
-and `api` (NestJS, `/api/*`). The browser calls `/api` on the same domain, so the session cookie stays
+and `api` (NestJS, `/api/*`). The API runs as a container service built from `apps/api/Dockerfile`, the
+same image as the Docker Compose stack. The browser calls `/api` on the same domain, so the session cookie stays
 first-party and the services need no bindings. What changes on Vercel:
 
 - **Files** go to a private Vercel Blob store (connect one to the project); without it they go to local disk.
@@ -68,8 +69,8 @@ first-party and the services need no bindings. What changes on Vercel:
 - **Live updates** poll every 20 seconds instead of streaming, since requests can land on different instances.
 - **Photos** are scaled down in the browser before upload to stay under the 4.5 MB request limit.
 - **Database:** Neon from the Vercel Marketplace, with a separate database (branch) for preview
-  deployments. Migrations run in every `api` build that has a `DATABASE_URL`. Set `SEED_DEMO=true` on the
-  Preview environment to load demo data into preview databases; the seed never sends e-mail.
+  deployments. Migrations run when the API container starts. Set `SEED_DEMO=true` on the Preview environment to
+  load demo data into empty preview databases; the seed never sends e-mail.
 - **Sign-in:** the demo code `000000` does not work on Vercel; Admin, System admin and Finance use an
   authenticator app (the seed prints the key in the build log).
 
