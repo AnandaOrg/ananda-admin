@@ -12,7 +12,8 @@ COPY apps/api apps/api
 RUN pnpm --filter @ananda/shared build && pnpm --filter @ananda/api build
 
 FROM node:24-alpine
-ENV NODE_ENV=production
+# Vercel container services receive traffic on port 80; docker-compose sets PORT=4010.
+ENV NODE_ENV=production PORT=80
 WORKDIR /app
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/packages/shared packages/shared
@@ -24,6 +25,6 @@ COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh && mkdir -p /app/apps/api/uploads && chown -R node:node /app/apps/api/uploads
 WORKDIR /app/apps/api
 USER node
-EXPOSE 4010
+EXPOSE 80 4010
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "dist/main.js"]
