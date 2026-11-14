@@ -66,24 +66,24 @@ export function MoveStockSheet({ data, direction, onDirection, open, onClose }: 
   );
 }
 
-/** Cartons sold at the event by an invited agent. */
+/** Cartons sold at the event by an invited broker. */
 export function SaleSheet({ data, open, onClose }: { data: EventDetail; open: boolean; onClose: () => void }) {
   const t = useTranslations('events');
   const tc = useTranslations('common');
   const { num, money } = useFmt();
-  const [agentId, setAgentId] = useState('');
+  const [brokerId, setBrokerId] = useState('');
   const [cartons, setCartons] = useState<CartonsByFlavour>({});
   const [amount, setAmount] = useState<number | null>(null);
   useEffect(() => {
     setCartons({});
     setAmount(null);
-    setAgentId(data.agents.length === 1 ? data.agents[0].id : '');
+    setBrokerId(data.brokers.length === 1 ? data.brokers[0].id : '');
     // Reset only when the sheet opens, not on every background refetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
   const max: CartonsByFlavour = Object.fromEntries(data.stock.map((s) => [s.flavour, s.cartons]));
-  const name = data.agents.find((a) => a.id === agentId)?.name ?? '';
-  const act = useAction(() => api.post<{ cartons: number; commissionCents: number }>(`/events/${data.event.id}/sales`, { agentId, cartons, amountNetCents: amount }), {
+  const name = data.brokers.find((a) => a.id === brokerId)?.name ?? '';
+  const act = useAction(() => api.post<{ cartons: number; commissionCents: number }>(`/events/${data.event.id}/sales`, { brokerId, cartons, amountNetCents: amount }), {
     success: (r) => t('sale.done', { n: r.cartons, name, amount: money(r.commissionCents) }),
     onDone: onClose,
   });
@@ -100,17 +100,17 @@ export function SaleSheet({ data, open, onClose }: { data: EventDetail; open: bo
       footer={
         <>
           <Button onClick={onClose}>{tc('cancel')}</Button>
-          <Button variant="primary" busy={act.isPending} disabled={n === 0 || !agentId || amount == null || amount < 0} onClick={() => act.mutate(undefined)}>
+          <Button variant="primary" busy={act.isPending} disabled={n === 0 || !brokerId || amount == null || amount < 0} onClick={() => act.mutate(undefined)}>
             {t('sale.submit')}
           </Button>
         </>
       }
     >
-      {data.agents.length === 0 ? (
-        <Banner>{t('sale.noAgents')}</Banner>
+      {data.brokers.length === 0 ? (
+        <Banner>{t('sale.noBrokers')}</Banner>
       ) : (
         <>
-          <Select label={t('sale.agent')} value={agentId} onChange={(e) => setAgentId(e.target.value)} placeholder={t('sale.agentPlaceholder')} options={data.agents.map((a) => ({ value: a.id, label: a.name }))} error={act.fields.agentId} />
+          <Select label={t('sale.broker')} value={brokerId} onChange={(e) => setBrokerId(e.target.value)} placeholder={t('sale.brokerPlaceholder')} options={data.brokers.map((a) => ({ value: a.id, label: a.name }))} error={act.fields.brokerId} />
           <span className="body-sm muted">{t('sale.help')}</span>
           <CartonsEditor value={cartons} onChange={setCartons} max={max} only={data.stock.filter((s) => s.cartons > 0).map((s) => s.flavour)} />
           <div className="row between body-sm">

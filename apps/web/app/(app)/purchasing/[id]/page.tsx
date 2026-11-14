@@ -193,7 +193,7 @@ export default function PurchasePage() {
         </>
       ),
     },
-    { key: 'agent', header: t('waiting.agent'), render: (o) => <bdi>{o.agentName ?? '—'}</bdi> },
+    { key: 'broker', header: t('waiting.broker'), render: (o) => <bdi>{o.brokerName ?? '—'}</bdi> },
     { key: 'cartons', header: tc('cartons'), render: (o) => num(o.cartons) },
     { key: 'status', header: tc('status'), type: 'status', render: (o) => <Pill tone="mute">{o.since ? t('waiting.since', { date: dateShort(o.since) }) : t('waiting.waiting')}</Pill> },
     { key: 'go', header: <span className="sr-only" />, type: 'amount', render: () => <CaretRight className="an-ic sm subtle" aria-hidden /> },
@@ -377,10 +377,10 @@ export default function PurchasePage() {
                     <>
                       <bdi>{o.number}</bdi>
                       {o.since && <> · {t('waiting.sinceLower', { date: dateShort(o.since) })}</>}
-                      {o.agentName && (
+                      {o.brokerName && (
                         <>
                           {' · '}
-                          <bdi>{o.agentName}</bdi>
+                          <bdi>{o.brokerName}</bdi>
                         </>
                       )}
                     </>

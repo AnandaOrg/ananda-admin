@@ -20,35 +20,35 @@ export interface NotificationInput {
  * messages common.notify.<kind>. The English text here is what is stored as the fallback.
  */
 export const NOTIFY_KINDS = {
-  /** Admin: an agent wants to add a customer. data: agent, customer */
-  customer_approval: { title: (d: D) => `${d.agent} wants to add ${d.customer}`, body: (d: D) => (d.vatValid ? 'New customer · VAT valid' : 'New customer') },
-  /** Admin: an agent asks for a special price. data: agent, order, customer, priceCents?, listPriceCents? */
-  special_price: { title: (d: D) => `${d.agent} asks for a special price`, body: (d: D) => (d.priceCents != null && d.listPriceCents != null ? `${d.order} · ${eur(d.priceCents)} instead of ${eur(d.listPriceCents)}` : `${d.order} · ${d.customer}`) },
-  /** Admin: an agent asks for a correction. data: agent, order, customer */
-  correction: { title: (d: D) => `${d.agent} asks for a correction`, body: (d: D) => `${d.order} · ${d.customer}` },
-  /** Admin: an agent uploaded a document on an order. data: agent, doc (label), order, customer */
-  agent_upload: { title: (d: D) => `${d.agent} uploaded ${String(d.doc).toLowerCase().startsWith('a') ? 'an' : 'a'} ${String(d.doc).toLowerCase()}`, body: (d: D) => `${d.order} · ${d.customer}` },
-  /** Admin: a new agent signed the agent agreement and waits to be countersigned. data: agent */
-  agent_signed: { title: (d: D) => `${d.agent} signed the agent agreement`, body: () => 'Company and bank details are in. Countersign to finish their set-up.' },
-  /** Admin + agent: delivered with the signed note. data: order, customer */
+  /** Admin: a broker wants to add a customer. data: broker, customer */
+  customer_approval: { title: (d: D) => `${d.broker} wants to add ${d.customer}`, body: (d: D) => (d.vatValid ? 'New customer · VAT valid' : 'New customer') },
+  /** Admin: a broker asks for a special price. data: broker, order, customer, priceCents?, listPriceCents? */
+  special_price: { title: (d: D) => `${d.broker} asks for a special price`, body: (d: D) => (d.priceCents != null && d.listPriceCents != null ? `${d.order} · ${eur(d.priceCents)} instead of ${eur(d.listPriceCents)}` : `${d.order} · ${d.customer}`) },
+  /** Admin: a broker asks for a correction. data: broker, order, customer */
+  correction: { title: (d: D) => `${d.broker} asks for a correction`, body: (d: D) => `${d.order} · ${d.customer}` },
+  /** Admin: a broker uploaded a document on an order. data: broker, doc (label), order, customer */
+  broker_upload: { title: (d: D) => `${d.broker} uploaded ${String(d.doc).toLowerCase().startsWith('a') ? 'an' : 'a'} ${String(d.doc).toLowerCase()}`, body: (d: D) => `${d.order} · ${d.customer}` },
+  /** Admin: a new broker signed the broker agreement and waits to be countersigned. data: broker */
+  broker_signed: { title: (d: D) => `${d.broker} signed the broker agreement`, body: () => 'Company and bank details are in. Countersign to finish their set-up.' },
+  /** Admin + broker: delivered with the signed note. data: order, customer */
   delivered: { title: (d: D) => (d.customer ? `${d.order} delivered to ${d.customer}` : `${d.order} delivered`), body: () => 'The warehouse uploaded the signed note.' },
   /** Admin: a purchase is late. data: purchase, days, supplier, waiting (orders waiting for it) */
   purchase_late: { title: (d: D) => `${d.purchase} is ${d.days} days late`, body: (d: D) => (Number(d.waiting) > 0 ? `${d.supplier} · ${d.waiting} orders wait for this stock` : String(d.supplier)) },
-  /** Admin + agent: payment confirmed. data: order, customer, amountCents */
+  /** Admin + broker: payment confirmed. data: order, customer, amountCents */
   payment_confirmed: { title: (d: D) => `Payment confirmed for ${d.order}`, body: (d: D) => `${d.customer} · ${eur(d.amountCents)}` },
-  /** Agent: a customer is late paying. data: customer, days, order, amountCents */
+  /** Broker: a customer is late paying. data: customer, days, order, amountCents */
   payment_late: { title: (d: D) => `${d.customer} is ${d.days} days late`, body: (d: D) => `${eur(d.amountCents)} owed on ${d.order}` },
-  /** Agent: the Admin opened the agent's upload. data: doc, order, customer */
+  /** Broker: the Admin opened the broker's upload. data: doc, order, customer */
   upload_opened: { title: () => 'The Admin opened your upload', body: (d: D) => `${d.doc} · ${d.order} · ${d.customer}` },
-  /** Agent: commission paid. data: amountCents, order, customer */
+  /** Broker: commission paid. data: amountCents, order, customer */
   commission_paid: { title: (d: D) => `Commission paid: ${eur(d.amountCents)}`, body: (d: D) => `${d.order} · ${d.customer}. It's on its way to your bank.` },
-  /** Agent: their new customer went to the Admin. data: customer */
+  /** Broker: their new customer went to the Admin. data: customer */
   sent_for_approval: { title: (d: D) => `${d.customer} sent for approval`, body: () => "An Admin reviews it. You'll hear back here." },
-  /** Agent: commission sent to the accountant to pay. data: amountCents */
+  /** Broker: commission sent to the accountant to pay. data: amountCents */
   commission_sent: { title: (d: D) => `Commission sent to pay: ${eur(d.amountCents)}`, body: () => 'With the accountant. You will see it as paid once it leaves the bank.' },
-  /** Agent: an Admin countersigned the agent agreement. data: admin */
-  agent_setup_done: { title: () => 'Your set-up is finished', body: (d: D) => `${d.admin} countersigned your agent agreement.` },
-  /** Agent: invited to an event. data: event, startsOn, endsOn (YYYY-MM-DD, shown per language), place */
+  /** Broker: an Admin countersigned the broker agreement. data: admin */
+  broker_setup_done: { title: () => 'Your set-up is finished', body: (d: D) => `${d.admin} countersigned your broker agreement.` },
+  /** Broker: invited to an event. data: event, startsOn, endsOn (YYYY-MM-DD, shown per language), place */
   event: { title: (d: D) => `You are invited to ${d.event}`, body: (d: D) => `${d.startsOn} – ${d.endsOn}, ${d.place}` },
 } as const;
 
@@ -78,7 +78,7 @@ export class NotifyService {
 
   /**
    * One of the kinds above, to users and/or roles, e.g.
-   * `notify.send('agent_upload', { roles: ['system_admin', 'admin'] }, { agent, doc: 'Purchase order', order: 'S-0008', customer }, '/sales/<id>', tx)`.
+   * `notify.send('broker_upload', { roles: ['system_admin', 'admin'] }, { broker, doc: 'Purchase order', order: 'S-0008', customer }, '/sales/<id>', tx)`.
    */
   async send(kind: NotifyKind, to: { users?: (string | null | undefined)[]; roles?: SystemRole[] }, data: D, link?: string, tx: DbOrTx = this.db) {
     const k = NOTIFY_KINDS[kind] as { title: (d: D) => string; body: (d: D) => string };

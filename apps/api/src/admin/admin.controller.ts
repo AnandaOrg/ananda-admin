@@ -35,8 +35,8 @@ export class UsersController {
     return this.users.history();
   }
 
-  /** Also used by Agents › Invite new agent: without users:edit only the 'agent' role is allowed (checked in the service). */
-  @Access('edit', 'users', 'agents')
+  /** Also used by Brokers › Invite new broker: without users:edit only the 'broker' role is allowed (checked in the service). */
+  @Access('edit', 'users', 'brokers')
   @Post('invite')
   invite(@Auth() auth: AuthContext, @Body(new ZodPipe(inviteMemberSchema)) body: InviteMemberInput) {
     return this.users.invite(auth, body);

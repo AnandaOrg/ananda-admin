@@ -32,7 +32,7 @@ export class CronController {
     return { holdsReleased: await this.orders.releaseExpiredHolds(), proformasReminded: await this.orders.remindExpiredProformas() };
   }
 
-  /** FR-CUST-5: warn agents before ownership ends. */
+  /** FR-CUST-5: warn brokers before ownership ends. */
   @Public()
   @Get('ownership')
   async ownershipJob(@Headers('authorization') auth?: string) {
@@ -40,7 +40,7 @@ export class CronController {
     return { warned: await this.customers.warnExpiringOwnership() };
   }
 
-  /** Late purchases (to Admins) and late customer payments (to their agent), once a week per record. */
+  /** Late purchases (to Admins) and late customer payments (to their broker), once a week per record. */
   @Public()
   @Get('late')
   async lateJob(@Headers('authorization') auth?: string) {

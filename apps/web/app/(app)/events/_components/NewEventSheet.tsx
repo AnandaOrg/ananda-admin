@@ -23,7 +23,7 @@ function PickChips({ label, options, isOn, onPick }: { label: string; options: {
   );
 }
 
-/** New event (FR-EVT-2): name, from, to, place, type and invited agents. */
+/** New event (FR-EVT-2): name, from, to, place, type and invited brokers. */
 export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations('events');
   const tc = useTranslations('common');
@@ -34,8 +34,8 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
   const [endsOn, setEndsOn] = useState(today);
   const [place, setPlace] = useState('');
   const [kind, setKind] = useState<EventKind | null>(null);
-  const [agentIds, setAgentIds] = useState<string[]>([]);
-  const agents = useQuery({ queryKey: ['agents-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/agents'), enabled: open });
+  const [brokerIds, setBrokerIds] = useState<string[]>([]);
+  const brokers = useQuery({ queryKey: ['brokers-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/brokers'), enabled: open });
   useEffect(() => {
     if (!open) return;
     setName('');
@@ -43,9 +43,9 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
     setEndsOn(today);
     setPlace('');
     setKind(null);
-    setAgentIds([]);
+    setBrokerIds([]);
   }, [open, today]);
-  const act = useAction(() => api.post<{ id: string }>('/events', { name, startsOn, endsOn, place, kind, agentIds }), {
+  const act = useAction(() => api.post<{ id: string }>('/events', { name, startsOn, endsOn, place, kind, brokerIds }), {
     success: () => t('form.created'),
     onDone: (r) => {
       onClose();
@@ -84,18 +84,18 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
       <span className="overline">{t('form.kind')}</span>
       <PickChips label={t('form.kind')} options={(['event', 'festival'] as const).map((k) => ({ value: k, label: t(`kind.${k}`) }))} isOn={(v) => v === kind} onPick={(v) => setKind(v as EventKind)} />
       {f.kind && <span className="an-help error">{f.kind}</span>}
-      <span className="overline">{t('form.agents')}</span>
-      {agents.isSuccess && agents.data.length === 0 ? (
-        <span className="body-sm muted">{t('form.noAgents')}</span>
+      <span className="overline">{t('form.brokers')}</span>
+      {brokers.isSuccess && brokers.data.length === 0 ? (
+        <span className="body-sm muted">{t('form.noBrokers')}</span>
       ) : (
         <PickChips
-          label={t('form.agents')}
-          options={(agents.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
-          isOn={(v) => agentIds.includes(v)}
-          onPick={(v) => setAgentIds((x) => (x.includes(v) ? x.filter((y) => y !== v) : [...x, v]))}
+          label={t('form.brokers')}
+          options={(brokers.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
+          isOn={(v) => brokerIds.includes(v)}
+          onPick={(v) => setBrokerIds((x) => (x.includes(v) ? x.filter((y) => y !== v) : [...x, v]))}
         />
       )}
-      {f.agentIds && <span className="an-help error">{f.agentIds}</span>}
+      {f.brokerIds && <span className="an-help error">{f.brokerIds}</span>}
       {act.errorText && <Banner tone="bad">{act.errorText}</Banner>}
     </Sheet>
   );

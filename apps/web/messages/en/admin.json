@@ -69,7 +69,7 @@
       "roleAs": {
         "system_admin": "a System admin",
         "admin": "an Admin",
-        "agent": "an agent",
+        "broker": "a broker",
         "warehouse": "part of the warehouse team",
         "finance": "part of the finance team",
         "custom": "{role}"
@@ -77,9 +77,9 @@
       "roleLine": {
         "system_admin": "You'll see and change everything, including users, roles and settings.",
         "admin": "You'll approve new customers, special prices and corrections, confirm payments and see all reports.",
-        "agent": "You'll see your own customers and orders, create new sales, and track your commission ({commission} a unit, paid once the customer has paid in full).",
+        "broker": "You'll see your own customers and orders, create new sales, and track your commission ({commission} a unit, paid once the customer has paid in full).",
         "warehouse": "You'll see the orders to ship, upload signed delivery notes from your phone and send stock counts.",
-        "finance": "You'll see payments, invoices, expenses and reports, and pay agents' commissions."
+        "finance": "You'll see payments, invoices, expenses and reports, and pay brokers' commissions."
       },
       "aiOff": "Polishing needs the AI service, which isn’t set up yet."
     },
@@ -126,7 +126,7 @@
       "phoneDevice": "Phone",
       "desktopDevice": "Desktop",
       "roleGroup": "Role",
-      "agentFixed": "An agent's account stays an agent. If they also need Admin, Warehouse or Finance access, invite them again with another e-mail.",
+      "brokerFixed": "A broker's account stays a broker. If they also need Admin, Warehouse or Finance access, invite them again with another e-mail.",
       "fixed": "Fixed",
       "suspend": "Suspend access",
       "restore": "Restore access",
@@ -149,14 +149,14 @@
     "seesBy": {
       "system_admin": "Everything",
       "admin": "All customers and orders",
-      "agent": "Own customers only",
+      "broker": "Own customers only",
       "warehouse": "Orders to ship, no prices",
       "finance": "Money and reports",
       "custom": "Custom"
     },
     "alone": {
       "title": "You're the only member",
-      "text": "Invite an Admin, your agents, the warehouse and your accountant. Each role sees only what it needs.",
+      "text": "Invite an Admin, your brokers, the warehouse and your accountant. Each role sees only what it needs.",
       "button": "Invite someone"
     }
   },
@@ -180,7 +180,7 @@
     },
     "scopeHelp": {
       "all": "Sees every customer, order and figure in the areas above.",
-      "own": "Fixed for agents: only the customers and orders they own.",
+      "own": "Fixed for brokers: only the customers and orders they own.",
       "shipping": "Fixed for the warehouse: only orders sent for shipping, never prices."
     },
     "level": {
@@ -200,7 +200,7 @@
       "approve": "Approve customers, special prices and corrections",
       "confirm_payment": "Confirm customer payments",
       "issue_invoices": "Issue invoices and credit notes",
-      "pay_commission": "Pay agents' commission",
+      "pay_commission": "Pay brokers' commission",
       "record_supplier_payment": "Record supplier payments",
       "change_rules": "Change business rules"
     },
@@ -231,7 +231,7 @@
     "previewAs": "Preview as {name}",
     "delete": "Delete role",
     "deleted": "Role deleted",
-    "agentNote": "The agent role is fixed: agents always see only their own customers and orders.",
+    "brokerNote": "The broker role is fixed: brokers always see only their own customers and orders.",
     "matrixTitle": "What this role sees and edits",
     "matrixSub": "Hidden areas disappear from the menu. View can open and export; Edit can also change.",
     "records": "Which records",
@@ -250,14 +250,14 @@
     "names": {
       "system_admin": "System admin",
       "admin": "Admin",
-      "agent": "Agent",
+      "broker": "Broker",
       "warehouse": "Warehouse",
       "finance": "Finance"
     },
     "descriptions": {
       "system_admin": "Everything, including users, roles and settings.",
       "admin": "Approvals, payments, warehouse, invoices, all reports.",
-      "agent": "Own customers and orders, New sale, own commission.",
+      "broker": "Own customers and orders, New sale, own commission.",
       "warehouse": "Orders to ship, signed notes, stock counts. Never prices.",
       "finance": "Payments, invoices, expenses and reports."
     },
@@ -347,7 +347,7 @@
     "fields": {
       "status": "Status",
       "role": "Role",
-      "agentId": "Agent",
+      "brokerId": "Broker",
       "netCents": "Net",
       "totalCents": "Total",
       "paidCents": "Paid",
@@ -379,7 +379,7 @@
       "phoneSessionDays": "Phone session days",
       "inviteValidityDays": "Invitation validity days",
       "passwordMinLength": "Password length",
-      "copyAgent": "Copy agent",
+      "copyBroker": "Copy broker",
       "replyTo": "Reply-to",
       "scope": "Which records"
     },
@@ -419,7 +419,7 @@
       "customer_declined": "Declined a customer",
       "customer_updated": "Updated a customer",
       "customer_claimed": "Claimed a customer",
-      "agent_changed": "Changed the agent",
+      "broker_changed": "Changed the broker",
       "commission_sent_to_pay": "Sent commission to pay",
       "commission_paid": "Paid commission",
       "stock_adjusted": "Adjusted stock",
@@ -510,8 +510,8 @@
       "customer_updated": "Updated customer {rec}",
       "customer_claimed": "Claimed customer {rec}",
       "contact_added": "Added a contact to {rec}",
-      "agent_changed": "Changed the agent for {rec}",
-      "agent_nudged": "Nudged {rec}",
+      "broker_changed": "Changed the broker for {rec}",
+      "broker_nudged": "Nudged {rec}",
       "commission_sent_to_pay": "Sent {rec}'s commission to the accountant to pay",
       "commission_paid": "Marked commission as paid for {rec}",
       "event_commission_ready": "Commission ready for event {rec}",
@@ -537,9 +537,9 @@
       "vat_rechecked": "Checked the VAT number of {rec} again",
       "numbering_changed": "Changed document numbering",
       "two_step_policy_changed": "Changed the two-step sign-in rule",
-      "agent_bank_confirmation_uploaded": "Uploaded the bank confirmation for {rec}",
-      "agent_agreement_signed": "Signed the agent agreement {rec}",
-      "agent_agreement_countersigned": "Countersigned the agent agreement {rec}",
+      "broker_bank_confirmation_uploaded": "Uploaded the bank confirmation for {rec}",
+      "broker_agreement_signed": "Signed the broker agreement {rec}",
+      "broker_agreement_countersigned": "Countersigned the broker agreement {rec}",
       "document_emailed": "E-mailed {rec}",
       "correction_sent": "Sent the corrected proforma for {rec}",
       "cancel_undone": "Undid the cancellation of {rec}",
@@ -547,7 +547,7 @@
       "part_delivered": "Marked {rec} as partly delivered",
       "special_price_undone": "Undid the special price on {rec}",
       "correction_undone": "Undid the correction on {rec}",
-      "agent_details_added": "Added agent details for {rec}"
+      "broker_details_added": "Added broker details for {rec}"
     }
   },
   "settings": {
@@ -569,7 +569,7 @@
     "rule": {
       "ownership": {
         "title": "Customer ownership",
-        "text": "An agent keeps a customer for {months, plural, one {# month} other {# months}} after its {from, select, first_order {first} other {last}} order. If no new order comes in, the agent is notified {days, plural, =0 {on the last day} one {# day before it ends} other {# days before it ends}}, then {end, select, stay_with_agent {it stays with the agent until an Admin moves it} other {any agent can claim it}}.",
+        "text": "A broker keeps a customer for {months, plural, one {# month} other {# months}} after its {from, select, first_order {first} other {last}} order. If no new order comes in, the broker is notified {days, plural, =0 {on the last day} one {# day before it ends} other {# days before it ends}}, then {end, select, stay_with_broker {it stays with the broker until an Admin moves it} other {any broker can claim it}}.",
         "value": "{months, plural, one {# month} other {# months}} after the {from, select, first_order {first} other {last}} order · warned {days, plural, one {# day} other {# days}} before"
       },
       "payment": {
@@ -588,7 +588,7 @@
         "value": "{high} to {low} a unit · minimum {min} cartons"
       },
       "commission": {
-        "title": "Agent commission",
+        "title": "Broker commission",
         "text": "{amount} a unit + VAT. Special prices come out of it.",
         "value": "{amount} a unit + VAT"
       },
@@ -625,7 +625,7 @@
         "accounting": "Accounting e-mail",
         "sender": "Sent from",
         "replyTo": "Replies go to",
-        "agentCopied": "Agent copied"
+        "brokerCopied": "Broker copied"
       },
       "bank": {
         "title": "Bank and sign-in",
@@ -660,15 +660,15 @@
       "commission": "Commission a unit, excl. VAT",
       "appliesNote": "Applies to new orders only. Logged in the Audit log.",
       "fixedNote": "This rule is part of how orders work, so it can't be changed here.",
-      "warnTitle": "Warn the agent",
+      "warnTitle": "Warn the broker",
       "warnChip": "{n} days before",
       "warnNote": "Only if there's no new order by then.",
-      "getsTitle": "What the agent gets",
+      "getsTitle": "What the broker gets",
       "getsLine": "{n, plural, one {# day} other {# days}} left with {customer}",
       "aCustomer": "a customer",
       "noOrderSince": "No order since {date}.",
-      "getsText": "If {customer} doesn't order by {date}, {end, select, stay_with_agent {it stays with the agent until an Admin moves it} other {it becomes free for any agent to claim}}. Push notification and e-mail.",
-      "getsTextNone": "If the customer doesn't order by then, {end, select, stay_with_agent {it stays with the agent until an Admin moves it} other {it becomes free for any agent to claim}}. Push notification and e-mail."
+      "getsText": "If {customer} doesn't order by {date}, {end, select, stay_with_broker {it stays with the broker until an Admin moves it} other {it becomes free for any broker to claim}}. Push notification and e-mail.",
+      "getsTextNone": "If the customer doesn't order by then, {end, select, stay_with_broker {it stays with the broker until an Admin moves it} other {it becomes free for any broker to claim}}. Push notification and e-mail."
     },
     "cardPanel": {
       "saved": "{card} settings saved.",
@@ -686,7 +686,7 @@
       "logoRemoved": "Logo removed.",
       "footer": "Footer on every document",
       "companyTitle": "Company on documents",
-      "copyAgent": "Copy the agent on reminders",
+      "copyBroker": "Copy the broker on reminders",
       "bic": "BIC / SWIFT",
       "accounts": "Accounts",
       "accountsHelp": "The accounts you record balances for, such as UniCredit Bulbank · EUR.",

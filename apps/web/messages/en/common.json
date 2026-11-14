@@ -51,8 +51,8 @@
   "email": "E-mail",
   "directions": "Directions",
   "everyone": "Everyone",
-  "anyAgent": "Any agent",
-  "agent": "Agent",
+  "anyBroker": "Any broker",
+  "broker": "Broker",
   "customer": "Customer",
   "status": "Status",
   "created": "Created",
@@ -106,7 +106,7 @@
     "purchasing": "Purchasing",
     "inventory": "Inventory",
     "warehouse": "Warehouse",
-    "agents": "Agents & commissions",
+    "brokers": "Brokers & commissions",
     "earnings": "My earnings",
     "events": "Events & festivals",
     "deal_profit": "Deal profit",
@@ -170,8 +170,8 @@
       "price_error": "Price error",
       "other": "Other"
     },
-    "change_agent": {
-      "agent_left": "Agent left",
+    "change_broker": {
+      "broker_left": "Broker left",
       "customer_request": "Customer request",
       "performance": "Performance",
       "other": "Other"
@@ -268,7 +268,7 @@
     "earlier": "Earlier",
     "emptyTitle": "No notifications yet",
     "emptyAdmin": "Approvals, uploads, late payments and stock alerts show up here.",
-    "emptyAgent": "You'll hear here when a customer is approved, pays or gets their delivery.",
+    "emptyBroker": "You'll hear here when a customer is approved, pays or gets their delivery.",
     "caughtUp": "You're all caught up",
     "caughtUpText": "Nothing unread. Older notifications are under All.",
     "settings": "Notification settings",
@@ -295,23 +295,23 @@
   "searchNone": "Nothing matches “{q}”",
   "notify": {
     "customer_approval": {
-      "title": "{agent} wants to add {customer}",
+      "title": "{broker} wants to add {customer}",
       "body": "New customer"
     },
     "special_price": {
-      "title": "{agent} asks for a special price",
+      "title": "{broker} asks for a special price",
       "body": "{order} · {customer}"
     },
     "correction": {
-      "title": "{agent} asks for a correction",
+      "title": "{broker} asks for a correction",
       "body": "{order} · {customer}"
     },
-    "agent_upload": {
-      "title": "{agent} uploaded a document",
+    "broker_upload": {
+      "title": "{broker} uploaded a document",
       "body": "{doc} · {order} · {customer}"
     },
-    "agent_signed": {
-      "title": "{agent} signed the agent agreement",
+    "broker_signed": {
+      "title": "{broker} signed the broker agreement",
       "body": "Company and bank details are in. Countersign to finish their set-up."
     },
     "delivered": {
@@ -346,9 +346,9 @@
       "title": "Commission sent to pay: {amount}",
       "body": "With the accountant. You will see it as paid once it leaves the bank."
     },
-    "agent_setup_done": {
+    "broker_setup_done": {
       "title": "Your set-up is finished",
-      "body": "{admin} countersigned your agent agreement."
+      "body": "{admin} countersigned your broker agreement."
     },
     "event": {
       "title": "You are invited to {event}",
@@ -358,7 +358,7 @@
   "systemRole": {
     "system_admin": "System admin",
     "admin": "Admin",
-    "agent": "Agent",
+    "broker": "Broker",
     "warehouse": "Warehouse",
     "finance": "Finance"
   }

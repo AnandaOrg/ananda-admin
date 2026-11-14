@@ -21,7 +21,7 @@ export interface CustomerDocData {
   bank: { bank: string; iban: string; bic: string };
   customer: { companyName: string; vatNumber: string; registeredAddress: string; deliveryAddress: string | null; contactName: string; invoiceEmail: string };
   orderNumber: string;
-  agentName: string;
+  brokerName: string;
   lines: DocLine[];
   netCents: number;
   vatCents: number;
@@ -113,10 +113,10 @@ export class DocumentsService implements OnModuleInit {
     extra: Partial<CustomerDocData> = {},
   ): Promise<CustomerDocData> {
     const [row] = await tx
-      .select({ order: orders, customer: customers, agent: users })
+      .select({ order: orders, customer: customers, broker: users })
       .from(orders)
       .innerJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(eq(orders.id, orderId));
     const [company, bank, language] = await Promise.all([this.settings.get('company', tx), this.settings.get('bank', tx), this.languageFor(row.customer.proformaLanguage, tx)]);
     void this.brand().catch(() => undefined);
@@ -137,7 +137,7 @@ export class DocumentsService implements OnModuleInit {
         invoiceEmail: row.customer.invoiceEmail,
       },
       orderNumber: row.order.number,
-      agentName: row.agent.name,
+      brokerName: row.broker.name,
       lines: FLAVOURS.flatMap((f) => lines.filter((l) => l.flavour === f)),
       netCents,
       vatCents,
@@ -161,7 +161,7 @@ export class DocumentsService implements OnModuleInit {
     return { doc, buffer };
   }
 
-  /** "The Admin opened your upload": told once to the agent who uploaded it. */
+  /** "The Admin opened your upload": told once to the broker who uploaded it. */
   private async markUploadOpened(auth: AuthContext, doc: typeof documents.$inferSelect) {
     const data = (doc.data ?? {}) as Record<string, unknown>;
     if (doc.type !== 'upload' || !doc.orderId || !data.uploadKind || data.openedAt || auth.perms.scope !== 'all' || !doc.createdById || doc.createdById === auth.user.id) return;

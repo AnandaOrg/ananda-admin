@@ -14,7 +14,7 @@ export const NAMESPACES = [
   'purchasing',
   'inventory',
   'warehouse',
-  'agents',
+  'brokers',
   'events',
   'money',
   'admin',

@@ -230,11 +230,11 @@ export class PurchasesService {
 
     const flavours = lines.map((l) => l.flavour);
     const waitingRaw = waiting.filter((o) => o.lines.some((l) => flavours.includes(l.flavour)));
-    const agentIds = [...new Set(waitingRaw.map((o) => o.agentId))];
-    const agents = agentIds.length ? await this.db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, agentIds)) : [];
+    const brokerIds = [...new Set(waitingRaw.map((o) => o.brokerId))];
+    const brokers = brokerIds.length ? await this.db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, brokerIds)) : [];
     const waitingOn = waitingRaw.map((o) => {
       const mine = o.lines.filter((l) => flavours.includes(l.flavour));
-      return { ...o, agentName: agents.find((a) => a.id === o.agentId)?.name ?? null, since: o.paidAt, cartons: mine.reduce((s, l) => s + l.cartons, 0), units: mine.reduce((s, l) => s + l.units, 0) };
+      return { ...o, brokerName: brokers.find((a) => a.id === o.brokerId)?.name ?? null, since: o.paidAt, cartons: mine.reduce((s, l) => s + l.cartons, 0), units: mine.reduce((s, l) => s + l.units, 0) };
     });
 
     const open = (OPEN as readonly string[]).includes(p.status);

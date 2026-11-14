@@ -10,28 +10,28 @@ import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { ActionError, Bank, Button, Card, Check, Clock, ErrorState, FileText, Icon, PageHeader, PageSkeleton, Pill, Select, Signature, TextField, UploadSimple, useToast } from '@/components/ui';
 import { bankFromIban, groupIban, validIban } from '../_components/bank';
-import type { AgentSetup } from '../_components/types';
-import s from '../agents.module.css';
+import type { BrokerSetup } from '../_components/types';
+import s from '../brokers.module.css';
 
 type Step = 0 | 1 | 2 | 3;
-const stepOf = (status: AgentSetup['status']): Step => (status === 'company' || status === 'invited' ? 0 : status === 'bank' ? 1 : status === 'sign' ? 2 : 3);
+const stepOf = (status: BrokerSetup['status']): Step => (status === 'company' || status === 'invited' ? 0 : status === 'bank' ? 1 : status === 'sign' ? 2 : 3);
 const EU = ['AT', 'BE', 'CY', 'CZ', 'DE', 'DK', 'EE', 'EL', 'ES', 'FI', 'FR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK'];
 
 /**
- * Agent set-up after accepting the invitation (10 Nov feedback): 1. Company, 2. Bank, 3. Contract
+ * Broker set-up after accepting the invitation (10 Nov feedback): 1. Company, 2. Bank, 3. Contract
  * (sign in the app or on paper). Then an Admin countersigns; until then the set-up is not finished.
  */
-export default function AgentSetupPage() {
-  const t = useTranslations('agents');
+export default function BrokerSetupPage() {
+  const t = useTranslations('brokers');
   const tc = useTranslations('common');
-  const { isAgent, me } = useSession();
-  const q = useQuery({ queryKey: ['agents', 'setup', 'me'], queryFn: () => api.get<AgentSetup>('/agents/me/setup'), enabled: isAgent });
+  const { isBroker, me } = useSession();
+  const q = useQuery({ queryKey: ['brokers', 'setup', 'me'], queryFn: () => api.get<BrokerSetup>('/brokers/me/setup'), enabled: isBroker });
   const [step, setStep] = useState<Step | null>(null);
   useEffect(() => {
     if (q.data && step === null) setStep(stepOf(q.data.status));
   }, [q.data, step]);
 
-  if (!isAgent) return <ErrorState error={{ status: 404, message: 'Not found' }} />;
+  if (!isBroker) return <ErrorState error={{ status: 404, message: 'Not found' }} />;
   if (q.isLoading || step === null) return <PageSkeleton />;
   if (!q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
   const d = q.data;
@@ -40,7 +40,7 @@ export default function AgentSetupPage() {
 
   return (
     <div className="page">
-      <PageHeader crumbs={[{ label: tc('nav.earnings'), href: '/agents' }, { label: t('setup.kicker') }]} kicker={t('setup.kicker')} title={step === 3 ? (d.status === 'done' ? t('setup.done.finishedTitle') : t('setup.done.title')) : t('setup.title')} />
+      <PageHeader crumbs={[{ label: tc('nav.earnings'), href: '/brokers' }, { label: t('setup.kicker') }]} kicker={t('setup.kicker')} title={step === 3 ? (d.status === 'done' ? t('setup.done.finishedTitle') : t('setup.done.title')) : t('setup.title')} />
       <div className={s.setup}>
         {step < 3 && (
           <>
@@ -64,13 +64,13 @@ export default function AgentSetupPage() {
 }
 
 function useSaved() {
-  const t = useTranslations('agents');
+  const t = useTranslations('brokers');
   const toast = useToast();
   return () => toast(t('setup.saved'));
 }
 
-function CompanyStep({ d, email, locked, onNext }: { d: AgentSetup; email: string; locked: boolean; onNext: () => void }) {
-  const t = useTranslations('agents');
+function CompanyStep({ d, email, locked, onNext }: { d: BrokerSetup; email: string; locked: boolean; onNext: () => void }) {
+  const t = useTranslations('brokers');
   const det = d.details;
   const qc = useQueryClient();
   const saved = useSaved();
@@ -83,17 +83,17 @@ function CompanyStep({ d, email, locked, onNext }: { d: AgentSetup; email: strin
     address: det?.address ?? '',
     city: det?.city ?? '',
     vatRegistered: det?.vatRegistered ?? true,
-    managerName: det?.managerName ?? d.agent.name,
+    managerName: det?.managerName ?? d.broker.name,
     managerRole: det?.managerRole ?? '',
     payoutEmail: det?.payoutEmail ?? email,
   });
   const [lookup, setLookup] = useState<'idle' | 'busy' | 'found' | 'nf' | 'down'>(det?.companyName ? 'found' : 'idle');
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }));
   const body = () => ({ ...f, country: f.registeredIn === 'bg' ? 'BG' : f.registeredIn === 'eu' ? f.country : f.country.slice(0, 2).toUpperCase() || 'XX', vatNumber: f.vatNumber || null, companyRegNumber: f.companyRegNumber || null, city: f.city || null });
-  const save = useAction(() => api.post('/agents/me/setup/company', body()), {
-    onDone: () => qc.refetchQueries({ queryKey: ['agents', 'setup', 'me'] }).then(onNext),
+  const save = useAction(() => api.post('/brokers/me/setup/company', body()), {
+    onDone: () => qc.refetchQueries({ queryKey: ['brokers', 'setup', 'me'] }).then(onNext),
   });
-  const later = useAction(() => api.post('/agents/me/setup/draft', body()), { onDone: saved });
+  const later = useAction(() => api.post('/brokers/me/setup/draft', body()), { onDone: saved });
 
   async function lookUp() {
     setLookup('busy');
@@ -224,7 +224,7 @@ function CompanyStep({ d, email, locked, onNext }: { d: AgentSetup; email: strin
 }
 
 function FileDrop({ label, busy, fileName, onFile, error }: { label: string; busy?: boolean; fileName?: string | null; onFile: (f: File) => void; error?: string | null }) {
-  const t = useTranslations('agents');
+  const t = useTranslations('brokers');
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   return (
@@ -260,8 +260,8 @@ function FileDrop({ label, busy, fileName, onFile, error }: { label: string; bus
   );
 }
 
-function BankStep({ d, locked, onBack, onNext }: { d: AgentSetup; locked: boolean; onBack: () => void; onNext: () => void }) {
-  const t = useTranslations('agents');
+function BankStep({ d, locked, onBack, onNext }: { d: BrokerSetup; locked: boolean; onBack: () => void; onNext: () => void }) {
+  const t = useTranslations('brokers');
   const det = d.details;
   const qc = useQueryClient();
   const saved = useSaved();
@@ -280,16 +280,16 @@ function BankStep({ d, locked, onBack, onNext }: { d: AgentSetup; locked: boolea
     }
   };
   const body = () => ({ ...f, iban: raw, bankAddress: f.bankAddress || null });
-  const save = useAction(() => api.post('/agents/me/setup/bank', body()), {
-    onDone: () => qc.refetchQueries({ queryKey: ['agents', 'setup', 'me'] }).then(onNext),
+  const save = useAction(() => api.post('/brokers/me/setup/bank', body()), {
+    onDone: () => qc.refetchQueries({ queryKey: ['brokers', 'setup', 'me'] }).then(onNext),
   });
-  const later = useAction(() => api.post('/agents/me/setup/draft', body()), { onDone: saved });
+  const later = useAction(() => api.post('/brokers/me/setup/draft', body()), { onDone: saved });
   async function upload(fl: File) {
     setFile({ busy: true, name: null, error: null });
     try {
       const fd = new FormData();
       fd.append('file', fl);
-      const r = await api.post<{ fileName: string }>('/agents/me/setup/bank-confirmation', fd);
+      const r = await api.post<{ fileName: string }>('/brokers/me/setup/bank-confirmation', fd);
       setFile({ busy: false, name: r.fileName, error: null });
     } catch (e) {
       setFile({ busy: false, name: null, error: errorText(e) });
@@ -331,7 +331,7 @@ function BankStep({ d, locked, onBack, onNext }: { d: AgentSetup; locked: boolea
           <span className={s.help}>{t('setup.bank.confirmationHelp')}</span>
           {!locked && <FileDrop label={t('setup.bank.drop')} busy={file.busy} fileName={file.name === '✓' ? null : file.name} onFile={upload} error={file.error} />}
           {file.name === '✓' && (
-            <a className="link body-sm" href={`/api/agents/${d.agent.id}/setup/files/${det?.bankConfirmation}`} target="_blank" rel="noreferrer">
+            <a className="link body-sm" href={`/api/brokers/${d.broker.id}/setup/files/${det?.bankConfirmation}`} target="_blank" rel="noreferrer">
               {t('countersign.openConfirmation')}
             </a>
           )}
@@ -353,30 +353,30 @@ function BankStep({ d, locked, onBack, onNext }: { d: AgentSetup; locked: boolea
   );
 }
 
-function ContractStep({ d, onBack, onDone }: { d: AgentSetup; onBack: () => void; onDone: () => void }) {
-  const t = useTranslations('agents');
+function ContractStep({ d, onBack, onDone }: { d: BrokerSetup; onBack: () => void; onDone: () => void }) {
+  const t = useTranslations('brokers');
   const { unit } = useFmt();
   const qc = useQueryClient();
   const [method, setMethod] = useState<'app' | 'paper'>('app');
   const [name, setName] = useState('');
   const [agree, setAgree] = useState(false);
   const [scan, setScan] = useState<File | null>(null);
-  const company = d.details?.companyName ?? d.agent.name;
-  const signer = d.details?.managerName ?? d.agent.name;
-  const after = () => qc.refetchQueries({ queryKey: ['agents', 'setup', 'me'] }).then(onDone);
-  const signApp = useAction(() => api.post('/agents/me/setup/sign', { name: name.trim(), agree }), { onDone: after });
+  const company = d.details?.companyName ?? d.broker.name;
+  const signer = d.details?.managerName ?? d.broker.name;
+  const after = () => qc.refetchQueries({ queryKey: ['brokers', 'setup', 'me'] }).then(onDone);
+  const signApp = useAction(() => api.post('/brokers/me/setup/sign', { name: name.trim(), agree }), { onDone: after });
   const signPaper = useAction(
     () => {
       const fd = new FormData();
       fd.append('agree', 'true');
       if (scan) fd.append('file', scan);
-      return api.post('/agents/me/setup/sign-paper', fd);
+      return api.post('/brokers/me/setup/sign-paper', fd);
     },
     { onDone: after },
   );
   const act = method === 'app' ? signApp : signPaper;
   const ready = agree && (method === 'app' ? !!name.trim() : !!scan);
-  const href = `/api/agents/${d.agent.id}/agreement`;
+  const href = `/api/brokers/${d.broker.id}/agreement`;
   return (
     <Card>
       <div className={s.form}>
@@ -466,8 +466,8 @@ function ContractStep({ d, onBack, onDone }: { d: AgentSetup; onBack: () => void
   );
 }
 
-function DoneStep({ d, onReview }: { d: AgentSetup; onReview: () => void }) {
-  const t = useTranslations('agents');
+function DoneStep({ d, onReview }: { d: BrokerSetup; onReview: () => void }) {
+  const t = useTranslations('brokers');
   const { date } = useFmt();
   const done = d.status === 'done';
   const iban = d.details?.iban ?? '';
@@ -499,7 +499,7 @@ function DoneStep({ d, onReview }: { d: AgentSetup; onReview: () => void }) {
         {!done && <span className={s.help}>{t('setup.done.note')}</span>}
         <div className={s.btns}>
           {done ? (
-            <a className="an-btn secondary" href={`/api/agents/${d.agent.id}/agreement`} target="_blank" rel="noreferrer">
+            <a className="an-btn secondary" href={`/api/brokers/${d.broker.id}/agreement`} target="_blank" rel="noreferrer">
               {t('setup.done.read')}
             </a>
           ) : (

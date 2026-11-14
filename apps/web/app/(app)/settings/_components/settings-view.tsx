@@ -215,7 +215,7 @@ function cardRows(k: CardKey, d: SettingsData, t: T): [string, string][] {
       [t('settings.cards.mail.accounting'), or(d.email.accounting)],
       [t('settings.cards.mail.sender'), or(d.email.sender)],
       [t('settings.cards.mail.replyTo'), or(d.email.replyTo)],
-      [t('settings.cards.mail.agentCopied'), d.email.copyAgent ? t('settings.yes') : t('settings.no')],
+      [t('settings.cards.mail.brokerCopied'), d.email.copyBroker ? t('settings.yes') : t('settings.no')],
     ];
   return [
     [t('settings.cards.bank.bank'), or(d.bank.bank)],
@@ -422,7 +422,7 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
         {text('accounting', t('settings.cards.mail.accounting'), { type: 'email' })}
         {text('sender', t('settings.cards.mail.sender'))}
         {text('replyTo', t('settings.cards.mail.replyTo'), { type: 'email' })}
-        <Select label={t('settings.cardPanel.copyAgent')} value={v.copyAgent ? 'yes' : 'no'} onChange={(e) => set('copyAgent', e.target.value === 'yes')} disabled={!editable} options={[{ value: 'yes', label: t('settings.yes') }, { value: 'no', label: t('settings.no') }]} />
+        <Select label={t('settings.cardPanel.copyBroker')} value={v.copyBroker ? 'yes' : 'no'} onChange={(e) => set('copyBroker', e.target.value === 'yes')} disabled={!editable} options={[{ value: 'yes', label: t('settings.yes') }, { value: 'no', label: t('settings.no') }]} />
       </>
     );
   } else {

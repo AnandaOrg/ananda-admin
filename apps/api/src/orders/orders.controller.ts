@@ -40,8 +40,8 @@ export class OrdersController {
     sendCsv(
       res,
       'orders.csv',
-      ['Order', 'Customer', 'Agent', 'Created', 'Cartons', 'Units', 'Total incl. VAT', 'Paid', 'Status', 'Days late'],
-      items.map((o) => [o.number, o.customerName, o.houseSale ? 'No agent' : o.agentName, o.createdAt.toISOString().slice(0, 10), o.totalCartons, o.totalUnits, euros(o.totalCents), euros(o.paidCents), o.status, o.daysLate]),
+      ['Order', 'Customer', 'Broker', 'Created', 'Cartons', 'Units', 'Total incl. VAT', 'Paid', 'Status', 'Days late'],
+      items.map((o) => [o.number, o.customerName, o.houseSale ? 'No broker' : o.brokerName, o.createdAt.toISOString().slice(0, 10), o.totalCartons, o.totalUnits, euros(o.totalCents), euros(o.paidCents), o.status, o.daysLate]),
     );
   }
 
@@ -145,7 +145,7 @@ export class OrdersController {
     return this.orders.uncancel(auth, id);
   }
 
-  /** An agent's upload on their own order (multipart: file, kind, description). Admins are told. */
+  /** A broker's upload on their own order (multipart: file, kind, description). Admins are told. */
   @Access('edit', 'sales')
   @Post(':id/uploads')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }))

@@ -104,7 +104,7 @@ export function RoleDetailView({ id, onBack, onOpenRole, onOpenMember }: { id: s
 
   const push = (patch: Partial<{ name: string; areas: AreaMatrix; sensitive: string[]; scope: RecordScope }>) =>
     save.mutate({ name: role.name, description: role.description ?? undefined, areas: role.areas, sensitive: role.sensitive, scope: role.scope, ...patch });
-  const isAgent = role.baseRole === 'agent';
+  const isBroker = role.baseRole === 'broker';
   const blocked = (s: SensitiveAction) => (role.baseRole === 'warehouse' && s === 'see_prices') || (role.baseRole !== 'system_admin' && s === 'change_rules');
   const movesMoney = MONEY.some((s) => role.sensitive.includes(s));
   const isSystemAdmin = me.user.baseRole === 'system_admin';
@@ -155,7 +155,7 @@ export function RoleDetailView({ id, onBack, onOpenRole, onOpenMember }: { id: s
               {t('roles.previewAs', { name: rt.name(role) })}
             </Button>
           )}
-          {editableUsers && !isAgent && (
+          {editableUsers && !isBroker && (
             <Button icon={Plus} writes busy={duplicate.isPending} onClick={() => duplicate.mutate(undefined)}>
               {t('roles.duplicate')}
             </Button>
@@ -172,7 +172,7 @@ export function RoleDetailView({ id, onBack, onOpenRole, onOpenMember }: { id: s
       {role.isSystem && (
         <div className={css.lockNote}>
           <Icon as={Lock} size="sm" />
-          <span>{isAgent ? t('roles.agentNote') : t('roles.systemNote')}</span>
+          <span>{isBroker ? t('roles.brokerNote') : t('roles.systemNote')}</span>
         </div>
       )}
 
@@ -188,7 +188,7 @@ export function RoleDetailView({ id, onBack, onOpenRole, onOpenMember }: { id: s
           <Card title={t('roles.records')}>
             <div className={`an-chips ${css.wrapChips}`} role="group" aria-label={t('roles.records')}>
               {SCOPES.map((s) => (
-                <button key={s} type="button" className="an-chip" aria-pressed={role.scope === s} disabled={!editable || isAgent || role.baseRole === 'agent' || save.isPending} onClick={() => role.scope !== s && push({ scope: s })}>
+                <button key={s} type="button" className="an-chip" aria-pressed={role.scope === s} disabled={!editable || isBroker || role.baseRole === 'broker' || save.isPending} onClick={() => role.scope !== s && push({ scope: s })}>
                   {t(`roles.scope.${s}`)}
                 </button>
               ))}

@@ -1,6 +1,6 @@
 {
   "range": "{from} – {to}",
-  "invite": "Invite new agent",
+  "invite": "Invite new broker",
   "tiles": {
     "ready": "Ready to pay",
     "readySub": "Once the customer has paid",
@@ -20,13 +20,13 @@
     "nudgeLong": "Nudge · no sale this month"
   },
   "table": {
-    "agent": "Agent",
+    "broker": "Broker",
     "customers": "Customers",
     "ordersThisMonth": "Orders this month",
     "ready": "Ready to pay",
     "coming": "Coming",
     "actions": "Actions",
-    "role": "{status} · Agent",
+    "role": "{status} · Broker",
     "status": {
       "invited": "Invited",
       "company": "Setting up",
@@ -45,16 +45,16 @@
     "customerPaid": "Customer paid in full"
   },
   "empty": {
-    "kicker": "No agents yet",
-    "title": "Invite your agents",
-    "text": "Each agent sees only their own customers and orders, and earns {perUnit} a unit once the customer pays in full.",
-    "action": "Invite an agent"
+    "kicker": "No brokers yet",
+    "title": "Invite your brokers",
+    "text": "Each broker sees only their own customers and orders, and earns {perUnit} a unit once the customer pays in full.",
+    "action": "Invite a broker"
   },
   "sendToPay": "Send to pay",
   "markPaid": "Mark as paid",
   "panel": {
-    "sub": "Agent · last order {date}",
-    "subNone": "Agent · no orders yet",
+    "sub": "Broker · last order {date}",
+    "subNone": "Broker · no orders yet",
     "customers": "Customers · {n}",
     "customerLast": "Last order {date}",
     "customerNone": "No orders yet",
@@ -63,14 +63,14 @@
     "setup": "Set-up",
     "company": "Company",
     "bank": "Bank account",
-    "agreement": "Agent agreement",
+    "agreement": "Broker agreement",
     "readAgreement": "Read the agreement"
   },
   "pay": {
     "sendTitle": "Send {name}'s commission to pay",
     "sendSub": "The accountant gets all they need to pay {name}.",
     "to": "To",
-    "agent": "Agent",
+    "broker": "Broker",
     "commission": "Commission",
     "vat": "VAT 20%",
     "toPay": "To pay",
@@ -79,7 +79,7 @@
     "statementSub": "Orders paid in full, units × {perUnit}",
     "bank": "Bank details",
     "bankSub": "{holder} · IBAN {iban}",
-    "noBank": "No bank details yet: the agent adds them in set-up",
+    "noBank": "No bank details yet: the broker adds them in set-up",
     "note": "Note for the accountant (optional)",
     "notePh": "e.g. please pay by Friday",
     "send": "Send to the accountant",
@@ -107,7 +107,7 @@
       "formal": "More formal"
     },
     "aiHelp": "AI rewrites it in your tone. You review it first.",
-    "sentFrom": "Sent from ANANDA's address. A copy stays in the agent's history.",
+    "sentFrom": "Sent from ANANDA's address. A copy stays in the broker's history.",
     "discard": "Discard",
     "send": "Send",
     "nudgeSubject": "This month's sales",
@@ -118,7 +118,7 @@
     "aiOff": "AI polishing is not set up"
   },
   "inviteSheet": {
-    "title": "Invite new agent",
+    "title": "Invite new broker",
     "name": "Name",
     "namePh": "e.g. Elena Dimitrova",
     "email": "E-mail",
@@ -126,7 +126,7 @@
     "letter": "Invitation e-mail",
     "subjectLine": "Subject: {subject}",
     "subject": "You're invited to ANANDA",
-    "body": "Hi [Name],\n\nYou're invited to join ANANDA as an agent. You'll see your own customers and orders, create new sales, and track your commission ({perUnit} a unit, paid once the customer has paid in full).\n\nClick the link below to set your password. It works for {days} days. Then add your company and bank details and sign the agent agreement in the app.\n\n{sender}",
+    "body": "Hi [Name],\n\nYou're invited to join ANANDA as a broker. You'll see your own customers and orders, create new sales, and track your commission ({perUnit} a unit, paid once the customer has paid in full).\n\nClick the link below to set your password. It works for {days} days. Then add your company and bank details and sign the broker agreement in the app.\n\n{sender}",
     "hint": "They set their own password from the link.",
     "send": "Send invitation",
     "sent": "Invitation sent. It waits under Invitations."
@@ -154,7 +154,7 @@
   },
   "setupBanner": {
     "title": "Finish your set-up",
-    "text": "Add your company and bank details and sign the agent agreement.",
+    "text": "Add your company and bank details and sign the broker agreement.",
     "action": "Continue",
     "waitingTitle": "ANANDA countersigns your agreement",
     "waitingText": "Usually within a working day. You'll get an e-mail and a notification.",
@@ -255,8 +255,8 @@
     },
     "contract": {
       "title": "Sign the contract",
-      "lead": "Read the agent agreement, then sign it the way that suits you.",
-      "agreement": "Agent agreement",
+      "lead": "Read the broker agreement, then sign it the way that suits you.",
+      "agreement": "Broker agreement",
       "version": "Version {v} · filled in with your details",
       "read": "Read",
       "commission": "Commission",
@@ -304,7 +304,7 @@
     },
     "agreementCard": {
       "title": "Agreement and invoices",
-      "line": "Agent agreement · version {v}",
+      "line": "Broker agreement · version {v}",
       "signed": "Signed by you {date}",
       "both": "Signed by you {date} · countersigned by ANANDA {counter}"
     }

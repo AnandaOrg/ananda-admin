@@ -33,24 +33,24 @@ class Client {
 const as = (email: string) => new Client().login(email);
 
 test('Journey 2: payment request → payment → warehouse → signed note → invoice', async () => {
-  const agent = await as('ivan@ananda.bg');
+  const broker = await as('ivan@ananda.bg');
   const finance = await as('finance@ananda.bg');
   const admin = await as('maya@ananda.bg');
   const warehouse = await as('warehouse@ananda.bg');
 
-  const customers = await agent.req('GET', '/customers');
+  const customers = await broker.req('GET', '/customers');
   const customer = customers.data.items.find((c: { mine: boolean; status: string }) => c.mine && c.status === 'active');
-  assert.ok(customer, 'agent has an active customer');
+  assert.ok(customer, 'broker has an active customer');
 
   // Below the minimum the payment request is blocked.
-  const small = await agent.req('POST', '/orders', { customerId: customer.id, cartons: { aloha: 10 } });
+  const small = await broker.req('POST', '/orders', { customerId: customer.id, cartons: { aloha: 10 } });
   assert.equal(small.status, 201);
-  assert.equal((await agent.req('POST', `/orders/${small.data.id}/send`)).status, 400);
-  assert.equal((await agent.req('DELETE', `/orders/${small.data.id}`)).status, 200);
+  assert.equal((await broker.req('POST', `/orders/${small.data.id}/send`)).status, 400);
+  assert.equal((await broker.req('DELETE', `/orders/${small.data.id}`)).status, 200);
 
-  const draft = await agent.req('POST', '/orders', { customerId: customer.id, cartons: { aloha: 22, gaia: 20 } });
+  const draft = await broker.req('POST', '/orders', { customerId: customer.id, cartons: { aloha: 22, gaia: 20 } });
   const id = draft.data.id;
-  assert.equal((await agent.req('POST', `/orders/${id}/send`)).status, 200);
+  assert.equal((await broker.req('POST', `/orders/${id}/send`)).status, 200);
   let o = (await admin.req('GET', `/orders/${id}`)).data;
   assert.equal(o.order.status, 'payment_to_confirm');
   assert.equal(o.order.totalCents, Math.round(42 * 24 * 515 * 1.2));
@@ -58,7 +58,7 @@ test('Journey 2: payment request → payment → warehouse → signed note → i
 
   // Confirming a payment needs the two-step code and the right role.
   const pay = { receivedOn: new Date().toISOString().slice(0, 10), amountCents: o.order.totalCents, method: 'bank_transfer', bankReference: 'TEST-1' };
-  assert.equal((await agent.req('POST', `/orders/${id}/confirm-payment`, pay, { 'x-two-step-code': CODE })).status, 403);
+  assert.equal((await broker.req('POST', `/orders/${id}/confirm-payment`, pay, { 'x-two-step-code': CODE })).status, 403);
   assert.equal((await finance.req('POST', `/orders/${id}/confirm-payment`, pay)).status, 403);
   assert.equal((await finance.req('POST', `/orders/${id}/confirm-payment`, pay, { 'x-two-step-code': '123456' })).status, 403);
   const confirmed = await finance.req('POST', `/orders/${id}/confirm-payment`, pay, { 'x-two-step-code': CODE });
@@ -66,9 +66,9 @@ test('Journey 2: payment request → payment → warehouse → signed note → i
   assert.equal(confirmed.data.status, 'ready_to_send');
 
   // Only admins send to the warehouse; quantities are fixed after that.
-  assert.equal((await agent.req('POST', `/orders/${id}/send-to-warehouse`)).status, 403);
+  assert.equal((await broker.req('POST', `/orders/${id}/send-to-warehouse`)).status, 403);
   assert.equal((await admin.req('POST', `/orders/${id}/send-to-warehouse`)).status, 200);
-  assert.equal((await agent.req('POST', `/orders/${id}/correction`, { cartons: { aloha: 50 }, reason: 'late change' })).status, 409);
+  assert.equal((await broker.req('POST', `/orders/${id}/correction`, { cartons: { aloha: 50 }, reason: 'late change' })).status, 409);
 
   // Warehouse sees the order without any money.
   const w = (await warehouse.req('GET', `/orders/${id}`)).data;
@@ -95,7 +95,7 @@ test('Journey 2: payment request → payment → warehouse → signed note → i
   assert.equal((await finance.req('POST', `/orders/${id}/invoice`)).status, 409, 'invoices are issued once');
 });
 
-test('record scope: agents cannot see other agents’ orders; hidden areas are refused', async () => {
+test('record scope: brokers cannot see other brokers’ orders; hidden areas are refused', async () => {
   const ivan = await as('ivan@ananda.bg');
   const petya = await as('petya@ananda.bg');
   const ivanOrders = (await ivan.req('GET', '/orders')).data.items;

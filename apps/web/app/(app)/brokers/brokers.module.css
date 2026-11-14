@@ -1,4 +1,4 @@
-/* Agents & commissions, agent set-up. Every value comes from the design tokens. */
+/* Brokers & commissions, broker set-up. Every value comes from the design tokens. */
 
 .kpis4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
 .kpis2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
@@ -70,7 +70,7 @@
 .tone:focus-visible { outline: var(--focus-ring) solid var(--accent); outline-offset: 2px; }
 .polishBtn { min-height: 32px !important; font-size: 12.5px !important; }
 
-/* agent set-up */
+/* broker set-up */
 .setup { display: grid; gap: var(--space-4); max-width: 720px; }
 .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
 .step { display: grid; gap: 6px; font: 500 13px/18px var(--font-sans); color: var(--text-muted); }

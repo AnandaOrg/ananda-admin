@@ -6,10 +6,10 @@ import { z } from 'zod';
 import { commissionPaySchema, nudgeSchema } from '@ananda/shared';
 import { Access, Auth, Sensitive, type AuthContext } from '../common/context';
 import { ZodPipe } from '../common/zod.pipe';
-import { agentFilter } from '../core/scope';
-import { AgentsService } from './agents.service';
-import { AgentSetupService } from './setup.service';
-import { agentInviteSchema, paperSignSchema, setupBankSchema, setupCompanySchema, setupDraftSchema, signSchema, type AgentInviteInput, type SetupBankInput, type SetupCompanyInput, type SetupDraftInput, type SignInput } from './agents.schemas';
+import { brokerFilter } from '../core/scope';
+import { BrokersService } from './brokers.service';
+import { BrokerSetupService } from './setup.service';
+import { brokerInviteSchema, paperSignSchema, setupBankSchema, setupCompanySchema, setupDraftSchema, signSchema, type BrokerInviteInput, type SetupBankInput, type SetupCompanyInput, type SetupDraftInput, type SignInput } from './brokers.schemas';
 
 type Upload = { buffer: Buffer; originalname: string; mimetype: string };
 const limits = { limits: { fileSize: MAX_UPLOAD_BYTES } };
@@ -18,72 +18,72 @@ const payBodySchema = commissionPaySchema.extend({ note: z.string().trim().max(1
 
 const uuid = new ParseUUIDPipe();
 
-/** Agents & commissions (PRD §5.8). Agents only ever reach their own earnings. */
-@Controller('agents')
-export class AgentsController {
+/** Brokers & commissions (PRD §5.8). Brokers only ever reach their own earnings. */
+@Controller('brokers')
+export class BrokersController {
   constructor(
-    private readonly agents: AgentsService,
-    private readonly setup: AgentSetupService,
+    private readonly brokers: BrokersService,
+    private readonly setup: BrokerSetupService,
   ) {}
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Get()
   overview(@Auth() auth: AuthContext) {
-    // Agents never receive other agents' figures (FR-AUTH-2).
-    if (agentFilter(auth)) throw new NotFoundException({ message: 'Not found' });
-    return this.agents.overview();
+    // Brokers never receive other brokers' figures (FR-AUTH-2).
+    if (brokerFilter(auth)) throw new NotFoundException({ message: 'Not found' });
+    return this.brokers.overview();
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Get('me/earnings')
   myEarnings(@Auth() auth: AuthContext) {
-    return this.agents.earnings(auth, auth.user.id);
+    return this.brokers.earnings(auth, auth.user.id);
   }
 
-  // ---- Agent onboarding: details, signature, countersignature ----
+  // ---- Broker onboarding: details, signature, countersignature ----
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Get('me/setup')
   mySetup(@Auth() auth: AuthContext) {
     return this.setup.get(auth, auth.user.id);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Post('me/setup/company')
   @HttpCode(200)
   saveCompany(@Auth() auth: AuthContext, @Body(new ZodPipe(setupCompanySchema)) body: SetupCompanyInput) {
     return this.setup.saveCompany(auth, body);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Post('me/setup/bank')
   @HttpCode(200)
   saveBank(@Auth() auth: AuthContext, @Body(new ZodPipe(setupBankSchema)) body: SetupBankInput) {
     return this.setup.saveBank(auth, body);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Post('me/setup/draft')
   @HttpCode(200)
   saveDraft(@Auth() auth: AuthContext, @Body(new ZodPipe(setupDraftSchema)) body: SetupDraftInput) {
     return this.setup.saveDraft(auth, body);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Post('me/setup/bank-confirmation')
   @UseInterceptors(FileInterceptor('file', limits))
   bankConfirmation(@Auth() auth: AuthContext, @UploadedFile() file?: Upload) {
     return this.setup.uploadBankConfirmation(auth, file);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Post('me/setup/sign')
   @HttpCode(200)
   sign(@Auth() auth: AuthContext, @Body(new ZodPipe(signSchema)) body: SignInput, @Req() req: Request) {
     return this.setup.sign(auth, { method: 'app', name: body.name }, req.ip ?? null);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Post('me/setup/sign-paper')
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('file', limits))
@@ -91,7 +91,7 @@ export class AgentsController {
     return this.setup.sign(auth, { method: 'paper', file }, req.ip ?? null);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Get(':id/setup/files/:docId')
   async setupFile(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Param('docId', uuid) docId: string, @Res() res: Response) {
     const { doc, buffer } = await this.setup.file(auth, id, docId);
@@ -100,27 +100,27 @@ export class AgentsController {
     res.send(buffer);
   }
 
-  @Access('edit', 'agents')
+  @Access('edit', 'brokers')
   @Post('invite')
-  invite(@Auth() auth: AuthContext, @Body(new ZodPipe(agentInviteSchema)) body: AgentInviteInput) {
-    if (agentFilter(auth)) throw new NotFoundException({ message: 'Not found' });
-    return this.agents.invite(auth, body);
+  invite(@Auth() auth: AuthContext, @Body(new ZodPipe(brokerInviteSchema)) body: BrokerInviteInput) {
+    if (brokerFilter(auth)) throw new NotFoundException({ message: 'Not found' });
+    return this.brokers.invite(auth, body);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Get(':id/setup')
-  agentSetup(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
+  brokerSetup(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
     return this.setup.get(auth, id);
   }
 
-  @Access('edit', 'agents')
+  @Access('edit', 'brokers')
   @Post(':id/countersign')
   @HttpCode(200)
   countersign(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(signSchema)) body: SignInput) {
     return this.setup.countersign(auth, id, body);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Get(':id/agreement')
   async agreement(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Res() res: Response) {
     const html = await this.setup.agreementPage(auth, id);
@@ -128,47 +128,47 @@ export class AgentsController {
     res.send(html);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Get(':id')
   detail(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
-    if (agentFilter(auth)) throw new NotFoundException({ message: 'Agent not found' });
-    return this.agents.detail(id);
+    if (brokerFilter(auth)) throw new NotFoundException({ message: 'Broker not found' });
+    return this.brokers.detail(id);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Get(':id/earnings')
   earnings(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
-    return this.agents.earnings(auth, id);
+    return this.brokers.earnings(auth, id);
   }
 
-  @Access('edit', 'agents')
+  @Access('edit', 'brokers')
   @Post(':id/nudge')
   nudge(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(nudgeSchema)) body: z.infer<typeof nudgeSchema>) {
-    if (agentFilter(auth)) throw new NotFoundException({ message: 'Agent not found' });
-    return this.agents.nudge(auth, id, body);
+    if (brokerFilter(auth)) throw new NotFoundException({ message: 'Broker not found' });
+    return this.brokers.nudge(auth, id, body);
   }
 
-  @Access('edit', 'agents')
+  @Access('edit', 'brokers')
   @Post(':id/email')
   @HttpCode(200)
   email(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(nudgeSchema)) body: z.infer<typeof nudgeSchema>) {
-    if (agentFilter(auth)) throw new NotFoundException({ message: 'Agent not found' });
-    return this.agents.email(auth, id, body);
+    if (brokerFilter(auth)) throw new NotFoundException({ message: 'Broker not found' });
+    return this.brokers.email(auth, id, body);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Sensitive('pay_commission')
   @Post(':id/send-to-pay')
   @HttpCode(200)
   sendToPay(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(payBodySchema)) body: z.infer<typeof payBodySchema>) {
-    return this.agents.sendToPay(auth, id, body.entryIds, body.note);
+    return this.brokers.sendToPay(auth, id, body.entryIds, body.note);
   }
 
-  @Access('view', 'agents')
+  @Access('view', 'brokers')
   @Sensitive('pay_commission')
   @Post(':id/mark-paid')
   @HttpCode(200)
   markPaid(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(commissionPaySchema)) body: z.infer<typeof commissionPaySchema>) {
-    return this.agents.markPaid(auth, id, body.entryIds);
+    return this.brokers.markPaid(auth, id, body.entryIds);
   }
 }

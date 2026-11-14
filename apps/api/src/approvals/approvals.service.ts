@@ -17,7 +17,7 @@ type Req = typeof approvalRequests.$inferSelect;
 /** How long an Admin can take a decision back from Overview (the row shows Undo meanwhile). */
 export const UNDO_MINUTES = 30;
 
-/** Reasons offered when declining, per kind of request; stored as the key, sent to the agent in words. */
+/** Reasons offered when declining, per kind of request; stored as the key, sent to the broker in words. */
 export const DECLINE_REASONS: Record<Req['type'], Record<string, string>> = {
   new_customer: { already_customer: 'Already a customer', wrong_details: 'VAT or details wrong', not_a_fit: 'Not a fit for ANANDA' },
   special_price: { discount_too_big: 'Discount too big', smaller_discount: 'Offer a smaller discount', not_for_customer: 'Not for this customer' },
@@ -44,7 +44,7 @@ export class ApprovalsService {
     return this.db
       .select({
         r: approvalRequests,
-        agentName: users.name,
+        brokerName: users.name,
         customerName: customers.companyName,
         customerVatValid: customers.vatValid,
         customerVatNumber: customers.vatNumber,
@@ -85,7 +85,7 @@ export class ApprovalsService {
     return this.shape(await this.listQuery().where(and(inArray(approvalRequests.status, ['approved', 'declined']), gte(approvalRequests.decidedAt, since))).orderBy(desc(approvalRequests.decidedAt)));
   }
 
-  /** The agent's own requests with decision and decline reason (FR-AGT-5). */
+  /** The broker's own requests with decision and decline reason (FR-AGT-5). */
   async mine(auth: AuthContext) {
     const rows = await this.db
       .select({ r: approvalRequests, customerName: customers.companyName, orderNumber: orders.number })
@@ -107,7 +107,7 @@ export class ApprovalsService {
   /** The facts needed to decide, and the consequence in one line (FR-HOME-4). */
   async review(id: string) {
     const r = await this.get(id);
-    const [agent] = await this.db.select({ id: users.id, name: users.name }).from(users).where(eq(users.id, r.requestedById));
+    const [broker] = await this.db.select({ id: users.id, name: users.name }).from(users).where(eq(users.id, r.requestedById));
     const rules = await this.settings.rules();
     const base = {
       id: r.id,
@@ -116,7 +116,7 @@ export class ApprovalsService {
       reason: r.reason,
       createdAt: r.createdAt,
       decidedAt: r.decidedAt,
-      agent,
+      broker,
       declineReason: r.declineReason,
       declineReasons: Object.keys(DECLINE_REASONS[r.type]),
       canUndo: r.status !== 'pending' && !!r.decidedAt && Date.now() - r.decidedAt.getTime() < UNDO_MINUTES * 60_000,
@@ -190,8 +190,8 @@ export class ApprovalsService {
       if (r.type === 'new_customer') {
         const [c] = await tx.select().from(customers).where(eq(customers.id, r.customerId!));
         const rules = await this.settings.rules(tx);
-        // The agent keeps the customer for N months from approval, then from each order.
-        const ownedUntil = c.ownedUntil ?? (c.agentId ? isoDate(addMonths(new Date(), rules.ownership.months)) : null);
+        // The broker keeps the customer for N months from approval, then from each order.
+        const ownedUntil = c.ownedUntil ?? (c.brokerId ? isoDate(addMonths(new Date(), rules.ownership.months)) : null);
         await tx.update(customers).set({ status: 'active', approvedAt: new Date(), approvedById: auth.user.id, ownedUntil }).where(eq(customers.id, c.id));
         label = c.companyName;
         await this.audit.log(auth, { category: 'customers', action: 'customer_approved', recordType: 'customer', recordId: c.id, recordLabel: c.companyName, changes: { status: { from: c.status, to: 'active' } } }, tx);
@@ -212,7 +212,7 @@ export class ApprovalsService {
       const c = corrected as Awaited<ReturnType<OrdersService['applyCorrection']>>;
       await this.orders.sendCorrectedProforma(c.order, c.data, c.number);
     }
-    await this.mailAgent(r, `Approved: ${label}`, approvedLine(r));
+    await this.mailBroker(r, `Approved: ${label}`, approvedLine(r));
     return { ok: true, label };
   }
 
@@ -228,7 +228,7 @@ export class ApprovalsService {
       if (r.type === 'new_customer') {
         const [c] = await tx.select().from(customers).where(eq(customers.id, r.customerId!));
         label = c.companyName;
-        // Declined requests return to the agent with the reason (§6.5).
+        // Declined requests return to the broker with the reason (§6.5).
         await tx.update(customers).set({ status: 'declined' }).where(eq(customers.id, c.id));
         await this.audit.log(auth, { category: 'customers', action: 'customer_declined', recordType: 'customer', recordId: c.id, recordLabel: c.companyName, meta: { reason, message } }, tx);
       } else {
@@ -238,19 +238,19 @@ export class ApprovalsService {
       }
       await this.notify.toUsers([r.requestedById], { type: 'declined', title: `Declined: ${label}`, body: [why, message].filter(Boolean).join(' · '), link: r.orderId ? `/sales/${r.orderId}` : `/customers/${r.customerId}` }, tx);
     });
-    await this.mailAgent(r, `Declined: ${label}`, [`Reason: ${why}`, message].filter(Boolean).join('\n\n'));
+    await this.mailBroker(r, `Declined: ${label}`, [`Reason: ${why}`, message].filter(Boolean).join('\n\n'));
     return { ok: true, label };
   }
 
   /**
    * Takes a decision back within UNDO_MINUTES while nothing has happened since: the request waits
-   * again and the agent is told. An approved correction is reversed with another corrected proforma.
+   * again and the broker is told. An approved correction is reversed with another corrected proforma.
    */
   async undo(auth: AuthContext, id: string) {
     const r = await this.get(id);
     if (r.status === 'pending') throw new ConflictException({ message: 'This request is waiting again already' });
     if (r.status !== 'approved' && r.status !== 'declined') throw new ConflictException({ message: 'This request can no longer be undone' });
-    if (!r.decidedAt || Date.now() - r.decidedAt.getTime() > UNDO_MINUTES * 60_000) throw new ConflictException({ message: `Decisions can be undone for ${UNDO_MINUTES} minutes. Ask the agent to send it again.` });
+    if (!r.decidedAt || Date.now() - r.decidedAt.getTime() > UNDO_MINUTES * 60_000) throw new ConflictException({ message: `Decisions can be undone for ${UNDO_MINUTES} minutes. Ask the broker to send it again.` });
     let reversed: Awaited<ReturnType<OrdersService['applyCorrection']>> | null = null;
     let label = '';
     await this.db.transaction(async (tx) => {
@@ -298,7 +298,7 @@ export class ApprovalsService {
     return rows.length;
   }
 
-  private async mailAgent(r: Req, subject: string, body: string) {
+  private async mailBroker(r: Req, subject: string, body: string) {
     const [u] = await this.db.select({ email: users.email }).from(users).where(and(eq(users.id, r.requestedById)));
     if (u) await this.mail.send({ kind: 'approval_decision', to: [u.email], subject, body, recordType: 'approval', recordId: r.id });
   }

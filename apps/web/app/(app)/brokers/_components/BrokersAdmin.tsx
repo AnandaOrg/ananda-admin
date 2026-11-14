@@ -26,47 +26,47 @@ import {
   UserPlus,
   type Column,
 } from '@/components/ui';
-import { AgentSheet, CountersignSheet, InviteSheet, MailSheet, MarkPaidSheet, SendToPaySheet } from './Sheets';
-import type { AgentRow, AgentsOverview } from './types';
-import s from '../agents.module.css';
+import { BrokerSheet, CountersignSheet, InviteSheet, MailSheet, MarkPaidSheet, SendToPaySheet } from './Sheets';
+import type { BrokerRow, BrokersOverview } from './types';
+import s from '../brokers.module.css';
 
-/** Admin and Finance view of agents and commission (FR-AGT-1 … FR-AGT-4), prototype "Agents & commissions". */
-export function AgentsAdmin() {
-  const t = useTranslations('agents');
+/** Admin and Finance view of brokers and commission (FR-AGT-1 … FR-AGT-4), prototype "Brokers & commissions". */
+export function BrokersAdmin() {
+  const t = useTranslations('brokers');
   const tc = useTranslations('common');
   const router = useRouter();
   const params = useSearchParams();
   const { money, date, dateShort, unit } = useFmt();
   const { canEdit, can, readOnly } = useSession();
-  const q = useQuery({ queryKey: ['agents', 'overview'], queryFn: () => api.get<AgentsOverview>('/agents') });
+  const q = useQuery({ queryKey: ['brokers', 'overview'], queryFn: () => api.get<BrokersOverview>('/brokers') });
   const [invite, setInvite] = useState(false);
-  const [mail, setMail] = useState<{ agent: AgentRow; kind: 'nudge' | 'email' } | null>(null);
-  const [send, setSend] = useState<AgentRow | null>(null);
-  const [paid, setPaid] = useState<AgentRow | null>(null);
-  const [detail, setDetail] = useState<AgentRow | null>(null);
+  const [mail, setMail] = useState<{ broker: BrokerRow; kind: 'nudge' | 'email' } | null>(null);
+  const [send, setSend] = useState<BrokerRow | null>(null);
+  const [paid, setPaid] = useState<BrokerRow | null>(null);
+  const [detail, setDetail] = useState<BrokerRow | null>(null);
   const [counter, setCounter] = useState<string | null>(null);
 
-  const mayEdit = canEdit('agents') && !readOnly;
+  const mayEdit = canEdit('brokers') && !readOnly;
   const mayPay = can('pay_commission') && !readOnly;
 
-  // Deep links: ?invite=1 (Home set-up list) and ?countersign=<agent id> (the notification).
+  // Deep links: ?invite=1 (Home set-up list) and ?countersign=<broker id> (the notification).
   useEffect(() => {
     if (params.get('invite') === '1' && mayEdit) setInvite(true);
     const c = params.get('countersign');
     if (c && mayEdit) setCounter(c);
   }, [params, mayEdit]);
   const clearParams = () => {
-    if (params.get('invite') || params.get('countersign')) router.replace('/agents');
+    if (params.get('invite') || params.get('countersign')) router.replace('/brokers');
   };
 
   if (q.isLoading) return <PageSkeleton />;
   if (q.error || !q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
   const d = q.data;
   const perUnit = unit(d.terms.commissionPerUnitCents);
-  const didntSell = d.agents.filter((a) => d.didntSellIds.includes(a.id));
+  const didntSell = d.brokers.filter((a) => d.didntSellIds.includes(a.id));
   const kicker = t('range', { from: dateShort(d.range.from), to: date(d.range.to) });
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  const lastOrder = (a: AgentRow) => (a.lastOrderAt ? t('didntSell.lastOrder', { date: date(a.lastOrderAt) }) : t('didntSell.noOrders'));
+  const lastOrder = (a: BrokerRow) => (a.lastOrderAt ? t('didntSell.lastOrder', { date: date(a.lastOrderAt) }) : t('didntSell.noOrders'));
   const invitePrimary = mayEdit ? (
     <Button size="sm" variant="primary" icon={UserPlus} onClick={() => setInvite(true)}>
       {t('invite')}
@@ -74,7 +74,7 @@ export function AgentsAdmin() {
   ) : undefined;
 
   // Pay buttons on the row: Send to pay (or "With the accountant") and Mark as paid.
-  const payButtons = (a: AgentRow, phone = false) => {
+  const payButtons = (a: BrokerRow, phone = false) => {
     if (!mayPay || a.setup !== 'done') return null;
     const sent = a.sentCents > 0;
     if (!sent && a.readyCents <= 0) return null;
@@ -93,19 +93,19 @@ export function AgentsAdmin() {
       </>
     );
   };
-  const countersignButton = (a: AgentRow, phone = false) =>
+  const countersignButton = (a: BrokerRow, phone = false) =>
     a.setup === 'countersign' && mayEdit ? (
       <Button size={phone ? 'md' : 'sm'} variant="primary" icon={Signature} onClick={() => setCounter(a.id)}>
         {t('table.countersign')}
       </Button>
     ) : null;
-  const ready = (a: AgentRow) => (a.paidTodayCents > 0 && a.readyCents === 0 && a.sentCents === 0 ? <Pill tone="good">{t('table.paidToday')}</Pill> : <bdi>{money(a.readyCents)}</bdi>);
-  const role = (a: AgentRow) => t('table.role', { status: t(`table.status.${a.status === 'invited' ? 'invited' : a.setup}`) });
+  const ready = (a: BrokerRow) => (a.paidTodayCents > 0 && a.readyCents === 0 && a.sentCents === 0 ? <Pill tone="good">{t('table.paidToday')}</Pill> : <bdi>{money(a.readyCents)}</bdi>);
+  const role = (a: BrokerRow) => t('table.role', { status: t(`table.status.${a.status === 'invited' ? 'invited' : a.setup}`) });
 
-  const columns: Column<AgentRow>[] = [
+  const columns: Column<BrokerRow>[] = [
     {
-      key: 'agent',
-      header: t('table.agent'),
+      key: 'broker',
+      header: t('table.broker'),
       render: (a) => (
         <>
           <span className="nm">{a.name}</span>
@@ -129,10 +129,10 @@ export function AgentsAdmin() {
     },
   ];
 
-  if (d.agents.length === 0) {
+  if (d.brokers.length === 0) {
     return (
       <div className="page">
-        <PageHeader crumbs={[{ label: tc('nav.agents') }]} kicker={t('empty.kicker')} title={tc('nav.agents')} actions={invitePrimary} />
+        <PageHeader crumbs={[{ label: tc('nav.brokers') }]} kicker={t('empty.kicker')} title={tc('nav.brokers')} actions={invitePrimary} />
         <Card>
           <EmptyState
             icon={Briefcase}
@@ -161,19 +161,19 @@ export function AgentsAdmin() {
 
   return (
     <div className="page">
-      <PageHeader crumbs={[{ label: tc('nav.agents') }]} kicker={kicker} title={tc('nav.agents')} actions={<span className="only-wide">{invitePrimary}</span>} />
+      <PageHeader crumbs={[{ label: tc('nav.brokers') }]} kicker={kicker} title={tc('nav.brokers')} actions={<span className="only-wide">{invitePrimary}</span>} />
 
       {/* Desktop: four tiles; phone: Ready to pay and Coming side by side. */}
       <div className={`${s.kpis4} only-wide`}>
         <div className={`${s.tileGo} ${d.tiles.readyCents > 0 ? s.warnV : ''}`}>
-          <KpiTile label={t('tiles.ready')} value={money(d.tiles.readyCents)} sub={t('tiles.readySub')} onClick={() => scrollTo('agents-table')} />
+          <KpiTile label={t('tiles.ready')} value={money(d.tiles.readyCents)} sub={t('tiles.readySub')} onClick={() => scrollTo('brokers-table')} />
           <span className={s.go}>
             <Icon as={CaretRight} size="sm" />
           </span>
         </div>
         <KpiTile label={t('tiles.coming')} value={money(d.tiles.comingCents)} sub={t('tiles.comingSub')} />
         <div className={`${s.tileGo} ${d.tiles.didntSell > 0 ? s.badV : ''}`}>
-          <KpiTile label={t('tiles.didntSell')} value={t('tiles.didntSellValue', { n: d.tiles.didntSell, of: d.tiles.activeAgents })} onClick={() => scrollTo('didnt-sell')} />
+          <KpiTile label={t('tiles.didntSell')} value={t('tiles.didntSellValue', { n: d.tiles.didntSell, of: d.tiles.activeBrokers })} onClick={() => scrollTo('didnt-sell')} />
           {d.tiles.didntSell > 0 && (
             <span className={s.go}>
               <Icon as={CaretRight} size="sm" />
@@ -206,7 +206,7 @@ export function AgentsAdmin() {
                 {a.nudgedToday ? (
                   <Pill tone="good">{t('didntSell.nudged')}</Pill>
                 ) : mayEdit ? (
-                  <Button size="sm" icon={EnvelopeSimple} onClick={() => setMail({ agent: a, kind: 'nudge' })}>
+                  <Button size="sm" icon={EnvelopeSimple} onClick={() => setMail({ broker: a, kind: 'nudge' })}>
                     {t('didntSell.nudge')}
                   </Button>
                 ) : null}
@@ -216,13 +216,13 @@ export function AgentsAdmin() {
         </Card>
       )}
 
-      <Card flush className="only-wide" id="agents-table">
-        <Table columns={columns} rows={d.agents} rowKey={(a) => a.id} onRow={(a) => setDetail(a)} picker={{ id: 'agents', locked: ['agent', 'coming', 'act'], priority: ['customers', 'orders', 'ready'] }} />
+      <Card flush className="only-wide" id="brokers-table">
+        <Table columns={columns} rows={d.brokers} rowKey={(a) => a.id} onRow={(a) => setDetail(a)} picker={{ id: 'brokers', locked: ['broker', 'coming', 'act'], priority: ['customers', 'orders', 'ready'] }} />
         <div className={s.foot}>{t('table.foot', { perUnit })}</div>
       </Card>
 
       <div className="list-cards only-phone">
-        {d.agents.map((a) => (
+        {d.brokers.map((a) => (
           <div key={a.id} className={s.pcard}>
             <button type="button" className={s.phead} onClick={() => setDetail(a)}>
               <span className="row between">
@@ -257,7 +257,7 @@ export function AgentsAdmin() {
               </div>
             )}
             {d.didntSellIds.includes(a.id) && !a.nudgedToday && mayEdit && (
-              <Button block icon={EnvelopeSimple} onClick={() => setMail({ agent: a, kind: 'nudge' })}>
+              <Button block icon={EnvelopeSimple} onClick={() => setMail({ broker: a, kind: 'nudge' })}>
                 {t('didntSell.nudgeLong')}
               </Button>
             )}
@@ -271,12 +271,12 @@ export function AgentsAdmin() {
         )}
       </div>
 
-      <AgentSheet
-        agent={detail}
+      <BrokerSheet
+        broker={detail}
         onClose={() => setDetail(null)}
         onEmail={(a) => {
           setDetail(null);
-          setMail({ agent: a, kind: 'email' });
+          setMail({ broker: a, kind: 'email' });
         }}
         onCountersign={(a) => {
           setDetail(null);
@@ -291,11 +291,11 @@ export function AgentsAdmin() {
           clearParams();
         }}
       />
-      <MailSheet agent={mail?.agent ?? null} kind={mail?.kind ?? 'nudge'} onClose={() => setMail(null)} />
-      <SendToPaySheet agent={send} accountingEmail={d.accountingEmail} perUnitCents={d.terms.commissionPerUnitCents} onClose={() => setSend(null)} />
-      <MarkPaidSheet agent={paid} onClose={() => setPaid(null)} />
+      <MailSheet broker={mail?.broker ?? null} kind={mail?.kind ?? 'nudge'} onClose={() => setMail(null)} />
+      <SendToPaySheet broker={send} accountingEmail={d.accountingEmail} perUnitCents={d.terms.commissionPerUnitCents} onClose={() => setSend(null)} />
+      <MarkPaidSheet broker={paid} onClose={() => setPaid(null)} />
       <CountersignSheet
-        agentId={counter}
+        brokerId={counter}
         onClose={() => {
           setCounter(null);
           clearParams();

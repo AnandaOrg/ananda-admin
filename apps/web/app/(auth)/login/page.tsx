@@ -28,9 +28,9 @@ export default function LoginPage() {
       qc.clear();
       const me = await api.get<Me>('/auth/me');
       setLocaleCookie(me.user.language);
-      // A new agent who just accepted the invitation starts with their set-up.
+      // A new broker who just accepted the invitation starts with their set-up.
       const invited = new URLSearchParams(window.location.search).get('invited') === '1';
-      const next = nextPath(me.perms.scope === 'shipping' ? '/warehouse' : invited && me.perms.scope === 'own' ? '/agents/setup' : '/home');
+      const next = nextPath(me.perms.scope === 'shipping' ? '/warehouse' : invited && me.perms.scope === 'own' ? '/brokers/setup' : '/home');
       try {
         // Back to where they were after the session ended: the shell says "Signed in again".
         if (new URLSearchParams(window.location.search).get('next')) sessionStorage.setItem('ananda:again', '1');

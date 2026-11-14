@@ -19,10 +19,10 @@ const cartonsOf = (d: OrderDetail): CartonsByFlavour => Object.fromEntries(d.lin
 export function OrderActionSheet({ action, detail, onClose, onDeleted }: { action: ActionKey | null; detail: OrderDetail; onClose: () => void; onDeleted: () => void }) {
   const t = useTranslations('sales');
   const { money, unit, num } = useFmt();
-  const { isAgent } = useSession();
+  const { isBroker } = useSession();
   const o = detail.order;
   const id = o.id;
-  const agentFirst = detail.houseSale ? null : firstName(detail.agent.name);
+  const brokerFirst = detail.houseSale ? null : firstName(detail.broker.name);
 
   const [cartons, setCartons] = useState<CartonsByFlavour>(cartonsOf(detail));
   const [credit, setCredit] = useState<CartonsByFlavour>({});
@@ -49,7 +49,7 @@ export function OrderActionSheet({ action, detail, onClose, onDeleted }: { actio
 
   const done = { onDone: onClose };
   const correction = useAction(() => api.post<{ applied?: boolean; proforma?: string }>(`/orders/${id}/correction`, { cartons, reason: text }), {
-    success: (r) => (r.applied ? t('actions.correction.done', { number: r.proforma ?? '' }) : t('actions.correction.doneAgent')),
+    success: (r) => (r.applied ? t('actions.correction.done', { number: r.proforma ?? '' }) : t('actions.correction.doneBroker')),
     ...done,
   });
   const cancel = useAction(() => api.post(`/orders/${id}/cancel`, { reason, note: text || undefined }), { success: t('actions.cancel.done', { number: o.number }), ...done });
@@ -88,21 +88,21 @@ export function OrderActionSheet({ action, detail, onClose, onDeleted }: { actio
           sub={t('actions.correction.sub', { number: o.number })}
           footer={
             <Button variant="primary" block disabled={same || low || !text.trim()} busy={correction.isPending} onClick={() => correction.mutate(undefined)}>
-              {isAgent ? t('actions.correction.ctaAgent') : t('actions.correction.cta')}
+              {isBroker ? t('actions.correction.ctaBroker') : t('actions.correction.cta')}
             </Button>
           }
         >
           <FlavourSteppers value={cartons} onChange={setCartons} sub={(f, n) => (n === (before[f] ?? 0) ? t('newSale.units', { n: num(n * UNITS_PER_CARTON) }) : t('actions.correction.was', { n: before[f] ?? 0 }))} />
-          <TextField label={agentFirst ? t('actions.correction.reason', { first: agentFirst }) : t('actions.correction.reasonHouse')} placeholder={t('actions.correction.reasonPh')} value={text} onChange={(e) => setText(e.target.value)} error={correction.fields.reason} />
+          <TextField label={brokerFirst ? t('actions.correction.reason', { first: brokerFirst }) : t('actions.correction.reasonHouse')} placeholder={t('actions.correction.reasonPh')} value={text} onChange={(e) => setText(e.target.value)} error={correction.fields.reason} />
           <SumBox
             rows={[
               [t('actions.correction.total'), <>{money(o.totalCents)} → <b style={{ fontWeight: 600 }}>{money(newCalc.totalCents)}</b></>],
               [t('actions.correction.price'), t('actions.correction.priceValue', { price: unit(newCalc.unitPriceCents), n: num(newCalc.totalCartons) })],
-              ...(agentFirst ? [[t('actions.correction.commission', { first: agentFirst }), t('money.commissionValue', { amount: money(newCalc.commissionCents) })] as [string, string]] : []),
+              ...(brokerFirst ? [[t('actions.correction.commission', { first: brokerFirst }), t('money.commissionValue', { amount: money(newCalc.commissionCents) })] as [string, string]] : []),
             ]}
           />
           {low && <span className="sales-hint bad">{t('actions.correction.low', { min: MIN_ORDER_CARTONS, units: num(MIN_ORDER_CARTONS * UNITS_PER_CARTON) })}</span>}
-          <span className="sales-hint">{isAgent ? t('actions.correction.consequenceAgent') : t('actions.correction.consequence')}</span>
+          <span className="sales-hint">{isBroker ? t('actions.correction.consequenceBroker') : t('actions.correction.consequence')}</span>
           <ActionError action={correction} />
         </Sheet>
       );
@@ -125,7 +125,7 @@ export function OrderActionSheet({ action, detail, onClose, onDeleted }: { actio
           }
         >
           <span className="sales-hint">
-            {detail.houseSale ? t('actions.cancel.textHouse') : t('actions.cancel.text', { agent: agentFirst ?? '' })}
+            {detail.houseSale ? t('actions.cancel.textHouse') : t('actions.cancel.text', { broker: brokerFirst ?? '' })}
             {o.paidCents > 0 && ` ${t('actions.cancel.refund')}`}
           </span>
           <Picker

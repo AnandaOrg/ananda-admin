@@ -51,7 +51,7 @@ export class RolesService {
     return this.db.transaction(async (tx) => {
       const [src] = await tx.select().from(roles).where(eq(roles.id, id));
       if (!src) throw new NotFoundException({ message: 'Role not found' });
-      if (src.baseRole === 'agent') throw new ForbiddenException({ message: 'The agent role is fixed: agents always see only their own customers and orders' });
+      if (src.baseRole === 'broker') throw new ForbiddenException({ message: 'The broker role is fixed: brokers always see only their own customers and orders' });
       const taken = new Set((await tx.select({ name: roles.name }).from(roles)).map((r) => r.name.toLowerCase()));
       const base = opts.name?.trim().slice(0, 70) || `${src.name} (custom)`;
       let name = base;
@@ -75,9 +75,9 @@ export class RolesService {
       // Warehouse-based roles never see prices (FR-AUTH-3); only System admin roles change business rules.
       if (role.baseRole === 'warehouse' && sensitive.includes('see_prices')) throw new BadRequestException({ message: 'Warehouse roles never see prices', fields: { sensitive: 'Warehouse roles never see prices' } });
       if (role.baseRole !== 'system_admin' && sensitive.includes('change_rules')) throw new BadRequestException({ message: 'Only System admin roles can change business rules', fields: { sensitive: 'Only System admin roles can change business rules' } });
-      // Which records: agent-based roles always see only their own customers and orders; warehouse-based roles never see all records with prices.
+      // Which records: broker-based roles always see only their own customers and orders; warehouse-based roles never see all records with prices.
       const scope = input.scope ?? role.scope;
-      if (scope !== role.scope && role.baseRole === 'agent') throw new BadRequestException({ message: 'Agent roles always see only their own customers and orders', fields: { scope: 'Fixed for agent roles' } });
+      if (scope !== role.scope && role.baseRole === 'broker') throw new BadRequestException({ message: 'Broker roles always see only their own customers and orders', fields: { scope: 'Fixed for broker roles' } });
       if (role.baseRole === 'warehouse' && scope === 'all' && sensitive.includes('see_prices')) throw new BadRequestException({ message: 'Warehouse roles never see prices', fields: { scope: 'Warehouse roles never see prices' } });
       const next = { name: input.name, description: input.description ?? null, areas, sensitive, scope };
       const [dupe] = await tx.select({ id: roles.id }).from(roles).where(sql`lower(${roles.name}) = lower(${input.name}) and ${roles.id} <> ${id}`);

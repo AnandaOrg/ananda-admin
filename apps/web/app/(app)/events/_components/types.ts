@@ -11,7 +11,7 @@ export interface EventItem {
   place: string;
   kind: EventKind;
   status: EventStatus;
-  agents: { id: string; name: string }[];
+  brokers: { id: string; name: string }[];
   stockUnits: number;
   soldUnits: number;
   /** Taken at the event excl. VAT: recorded event sales plus linked orders. */
@@ -27,11 +27,11 @@ export interface EventsList {
 
 export interface EventDetail {
   event: { id: string; name: string; startsOn: string; endsOn: string; place: string; kind: EventKind; status: EventStatus; createdAt: string };
-  agents: { id: string; name: string }[];
+  brokers: { id: string; name: string }[];
   stock: { flavour: Flavour; units: number; cartons: number; movedUnits: number; soldUnits: number }[];
   totals: { stockUnits: number; soldUnits: number; movedUnits: number; salesCents: number };
   warehouseAvailableCartons: Record<Flavour, number> | null;
-  sales: { agentId: string; name: string; units: number; cartons: number; byFlavour: Record<Flavour, number>; commissionCents: number; salesCents: number }[];
+  sales: { brokerId: string; name: string; units: number; cartons: number; byFlavour: Record<Flavour, number>; commissionCents: number; salesCents: number }[];
   movements: { id: string; flavour: Flavour; units: number; kind: 'event_out' | 'event_in' | 'event_sale'; createdAt: string; byName: string | null }[];
   expenses?: { id: string; spentOn: string; category: string; description: string; netCents: number; totalCents: number; paid: boolean }[];
   expensesCents?: number;

@@ -20,7 +20,7 @@ function kindOfFile(f: File) {
 }
 
 /**
- * An agent uploads a document to their own order: the customer's purchase order, a signed order,
+ * A broker uploads a document to their own order: the customer's purchase order, a signed order,
  * proof of payment, a delivery photo or signed note, or something else. On the phone the camera
  * opens directly. A proof of payment never confirms the payment: the Admin checks the bank.
  */

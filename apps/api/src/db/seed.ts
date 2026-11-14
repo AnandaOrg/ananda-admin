@@ -29,13 +29,13 @@ import { ApprovalsService } from '../approvals/approvals.service';
 import { SettingsService } from '../core/settings.service';
 import { NumberingService } from '../core/numbering.service';
 import type { AuthContext } from '../common/context';
-import { AgentSetupService } from '../agents/setup.service';
+import { BrokerSetupService } from '../brokers/setup.service';
 
 const PASSWORD = 'ananda-demo-2026';
 const ROLE_NAMES: Record<SystemRole, [string, string]> = {
   system_admin: ['System admin', 'Everything, including users, roles and settings.'],
   admin: ['Admin', 'Approvals, payments, warehouse, invoices, all reports.'],
-  agent: ['Agent', 'Own customers and orders, New sale, own commission.'],
+  broker: ['Broker', 'Own customers and orders, New sale, own commission.'],
   warehouse: ['Warehouse', 'Orders to ship, signed notes, stock counts. Never prices.'],
   finance: ['Finance', 'Payments, invoices, expenses and reports.'],
 };
@@ -49,7 +49,7 @@ async function main() {
   const approvals = app.get(ApprovalsService);
   const settings = app.get(SettingsService);
   const numbering = app.get(NumberingService);
-  const agentSetup = app.get(AgentSetupService);
+  const brokerSetup = app.get(BrokerSetupService);
 
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(s.users);
   if (n > 0) {
@@ -74,11 +74,11 @@ async function main() {
     { key: 'maya', name: 'Maya Petrova', email: 'maya@ananda.bg', role: 'admin', language: 'bg' },
     { key: 'elena', name: 'Elena Dimova', email: 'finance@ananda.bg', role: 'finance', language: 'bg' },
     { key: 'georgi', name: 'Georgi Ivanov', email: 'warehouse@ananda.bg', role: 'warehouse', phone: '+359 88 410 2210', language: 'bg' },
-    { key: 'ivan', name: 'Ivan Kolev', email: 'ivan@ananda.bg', role: 'agent', phone: '+359 88 712 3344', language: 'bg' },
-    { key: 'petya', name: 'Petya Georgieva', email: 'petya@ananda.bg', role: 'agent', phone: '+359 89 220 1188', language: 'bg' },
-    { key: 'dimitar', name: 'Dimitar Stoyanov', email: 'dimitar@ananda.bg', role: 'agent', phone: '+359 87 554 9021', language: 'en' },
-    // A new agent who signed the agent agreement and waits for an Admin to countersign.
-    { key: 'nikolay', name: 'Nikolay Marinov', email: 'nikolay@ananda.bg', role: 'agent', phone: '+359 88 903 5512', language: 'bg' },
+    { key: 'ivan', name: 'Ivan Kolev', email: 'ivan@ananda.bg', role: 'broker', phone: '+359 88 712 3344', language: 'bg' },
+    { key: 'petya', name: 'Petya Georgieva', email: 'petya@ananda.bg', role: 'broker', phone: '+359 89 220 1188', language: 'bg' },
+    { key: 'dimitar', name: 'Dimitar Stoyanov', email: 'dimitar@ananda.bg', role: 'broker', phone: '+359 87 554 9021', language: 'en' },
+    // A new broker who signed the broker agreement and waits for an Admin to countersign.
+    { key: 'nikolay', name: 'Nikolay Marinov', email: 'nikolay@ananda.bg', role: 'broker', phone: '+359 88 903 5512', language: 'bg' },
   ];
   // Two-step sign-in is not pre-configured: roles that require it scan a QR code and confirm a code
   // at their first sign-in, so every person gets their own authenticator key.
@@ -106,7 +106,7 @@ async function main() {
   // ---------- Settings ----------
   await settings.set('company', { name: 'ANANDA', legalName: 'Ananda Drinks EOOD', vatNumber: 'BG207581144', address: 'ul. Tsar Simeon 81', city: 'Sofia', country: 'BG', email: 'office@ananda.bg', phone: '+359 2 491 7700' }, uid.royi);
   await settings.set('bank', { bank: 'UniCredit Bulbank', iban: 'BG80UNCR70001523456789', bic: 'UNCRBGSF', accounts: ['UniCredit Bulbank · EUR'] }, uid.royi);
-  await settings.set('email', { warehouse: 'warehouse@ananda.bg', accounting: 'accounting@ananda.bg', sender: 'ANANDA <office@ananda.bg>', replyTo: 'royi@ananda.bg', copyAgent: true }, uid.royi);
+  await settings.set('email', { warehouse: 'warehouse@ananda.bg', accounting: 'accounting@ananda.bg', sender: 'ANANDA <office@ananda.bg>', replyTo: 'royi@ananda.bg', copyBroker: true }, uid.royi);
 
   // ---------- Suppliers and purchases ----------
   const [sup1] = await db
@@ -180,10 +180,10 @@ async function main() {
     ['Veliko Tarnovo Craft House EOOD', 'BG104882106', 'Veliko Tarnovo', 'Veliko Tarnovo, ul. Gurko 9', 'Yana Nikolova', '+359 87 120 9988', 'petya', 7],
   ];
   const cid: string[] = [];
-  for (const [name, vat, city, addr, contact, phone, agent, terms] of custData) {
+  for (const [name, vat, city, addr, contact, phone, broker, terms] of custData) {
     const [c] = await db
       .insert(s.customers)
-      .values({ companyName: name, vatNumber: vat, vatValid: true, vatCheckedAt: new Date(), country: 'BG', registeredAddress: addr, deliveryAddress: addr, city, contactName: contact, phone, invoiceEmail: `office@${name.toLowerCase().split(' ')[0]}.bg`, proformaLanguage: 'bg', paymentTermsDays: terms, agentId: uid[agent], status: 'active', approvedAt: days(250), approvedById: uid.maya, createdById: uid[agent], createdAt: days(250) })
+      .values({ companyName: name, vatNumber: vat, vatValid: true, vatCheckedAt: new Date(), country: 'BG', registeredAddress: addr, deliveryAddress: addr, city, contactName: contact, phone, invoiceEmail: `office@${name.toLowerCase().split(' ')[0]}.bg`, proformaLanguage: 'bg', paymentTermsDays: terms, brokerId: uid[broker], status: 'active', approvedAt: days(250), approvedById: uid.maya, createdById: uid[broker], createdAt: days(250) })
       .returning();
     await db.insert(s.customerContacts).values({ customerId: c.id, name: contact, phone, email: c.invoiceEmail, role: 'Main contact' });
     cid.push(c.id);
@@ -201,8 +201,8 @@ async function main() {
   const fakeNote = { buffer: Buffer.from('%PDF-1.4\n% signed delivery note (demo)\n'), originalname: 'signed-note.pdf', mimetype: 'application/pdf' };
 
   type Stage = 'draft' | 'sent' | 'paid' | 'warehouse' | 'delivered' | 'invoiced';
-  async function order(agent: string, customer: number, cartons: CartonsByFlavour, stage: Stage, ageDays: number) {
-    const a = ctx(agent);
+  async function order(broker: string, customer: number, cartons: CartonsByFlavour, stage: Stage, ageDays: number) {
+    const a = ctx(broker);
     const { id } = await orders.createDraft(a, { customerId: cid[customer], cartons });
     if (stage !== 'draft') {
       await orders.sendPaymentRequest(a, id);
@@ -238,7 +238,7 @@ async function main() {
     ['ivan', 1, { aloha: 90, santorini: 60 }, 33],
     ['dimitar', 4, { gaia: 60, kyoto: 40 }, 22],
   ];
-  for (const [agent, c, cart, age] of history) await order(agent, c, cart, 'invoiced', age);
+  for (const [broker, c, cart, age] of history) await order(broker, c, cart, 'invoiced', age);
 
   await order('petya', 3, { aloha: 30, gaia: 30 }, 'delivered', 6);
   await order('ivan', 5, { santorini: 25, kyoto: 25 }, 'delivered', 4);
@@ -247,7 +247,7 @@ async function main() {
   // Kyoto runs short: this one waits for the late purchase.
   await order('petya', 7, { kyoto: 400, santorini: 60 }, 'paid', 3);
   const poOrderId = await order('ivan', 0, { aloha: 40, kyoto: 20 }, 'sent', 2);
-  // An agent's upload on their own order (10 Nov feedback): the customer's purchase order, shown in Documents; the Admins are told.
+  // A broker's upload on their own order (10 Nov feedback): the customer's purchase order, shown in Documents; the Admins are told.
   const poFile = Buffer.from('%PDF-1.4\n% Customer purchase order PO-1187 (demo)\n');
   const po = await orders.upload(ctx('ivan'), poOrderId, { buffer: poFile, originalname: 'PO-Sunset-Beach.pdf', mimetype: 'application/pdf', size: poFile.length }, { kind: 'purchase_order' });
   await db.execute(sql`update documents set created_at = now() - interval '1 day' where id = ${po.id}`);
@@ -264,20 +264,20 @@ async function main() {
   await orders.requestCorrection(ctx('petya'), sentId, { santorini: 30, kyoto: 20, aloha: 10 }, 'Customer swapped 10 Kyoto for Aloha.');
   const [newCust] = await db
     .insert(s.customers)
-    .values({ companyName: 'Sozopol Harbour Café EOOD', vatNumber: 'BG205339918', vatValid: true, vatCheckedAt: new Date(), country: 'BG', registeredAddress: 'Sozopol, ul. Kraybrezhna 7', city: 'Sozopol', contactName: 'Vesela Dobreva', phone: '+359 88 640 1203', invoiceEmail: 'hello@sozopolharbour.bg', proformaLanguage: 'bg', agentId: uid.ivan, status: 'needs_approval', createdById: uid.ivan })
+    .values({ companyName: 'Sozopol Harbour Café EOOD', vatNumber: 'BG205339918', vatValid: true, vatCheckedAt: new Date(), country: 'BG', registeredAddress: 'Sozopol, ul. Kraybrezhna 7', city: 'Sozopol', contactName: 'Vesela Dobreva', phone: '+359 88 640 1203', invoiceEmail: 'hello@sozopolharbour.bg', proformaLanguage: 'bg', brokerId: uid.ivan, status: 'needs_approval', createdById: uid.ivan })
     .returning();
   await db.insert(s.approvalRequests).values({ type: 'new_customer', customerId: newCust.id, requestedById: uid.ivan, reason: 'Summer café on the harbour, 3 venues.' });
 
   // One customer whose ownership has run out: free to claim.
   await db.update(s.customers).set({ ownedUntil: isoDate(days(12)) }).where(eq(s.customers.id, cid[7]));
 
-  // An archived house customer (no agent): the Customers "Archived" chip.
-  await db.insert(s.customers).values({ companyName: 'Pirin Mountain Hotel EOOD', vatNumber: 'BG040534040', vatValid: true, vatCheckedAt: new Date(), country: 'BG', registeredAddress: 'ul. Pirin 12', postcode: '2770', city: 'Bansko', contactName: 'Georgi Dimov', phone: '', invoiceEmail: 'office@pirinhotel.bg', proformaLanguage: 'bg', paymentTerms: 'before_shipping', agentId: null, status: 'archived', approvedAt: new Date(), createdById: uid.royi });
+  // An archived house customer (no broker): the Customers "Archived" chip.
+  await db.insert(s.customers).values({ companyName: 'Pirin Mountain Hotel EOOD', vatNumber: 'BG040534040', vatValid: true, vatCheckedAt: new Date(), country: 'BG', registeredAddress: 'ul. Pirin 12', postcode: '2770', city: 'Bansko', contactName: 'Georgi Dimov', phone: '', invoiceEmail: 'office@pirinhotel.bg', proformaLanguage: 'bg', paymentTerms: 'before_shipping', brokerId: null, status: 'archived', approvedAt: new Date(), createdById: uid.royi });
 
-  // Approve-and-decline examples for the agent view.
+  // Approve-and-decline examples for the broker view.
   const [declined] = await db
     .insert(s.customers)
-    .values({ companyName: 'Rila Trail Hut', vatNumber: 'BG000000001', vatValid: false, country: 'BG', registeredAddress: 'Rila', contactName: 'Unknown', phone: '-', invoiceEmail: 'info@rilahut.bg', agentId: uid.dimitar, status: 'needs_approval', createdById: uid.dimitar })
+    .values({ companyName: 'Rila Trail Hut', vatNumber: 'BG000000001', vatValid: false, country: 'BG', registeredAddress: 'Rila', contactName: 'Unknown', phone: '-', invoiceEmail: 'info@rilahut.bg', brokerId: uid.dimitar, status: 'needs_approval', createdById: uid.dimitar })
     .returning();
   const [req] = await db.insert(s.approvalRequests).values({ type: 'new_customer', customerId: declined.id, requestedById: uid.dimitar }).returning();
   await approvals.decline(admin, req.id, 'wrong_details', 'The VAT number is not valid in VIES. Please check it with the customer.');
@@ -286,23 +286,23 @@ async function main() {
   await db.update(s.commissionEntries).set({ status: 'paid', sentAt: days(60), paidAt: days(55) }).where(inArray(s.commissionEntries.orderId, sql`(select id from orders where paid_at < now() - interval '90 days')`));
 
   // ---------- Events, expenses, bank ----------
-  const [evt] = await db.insert(s.events).values({ name: 'Spirit of Burgas', startsOn: isoDate(days(95)), endsOn: isoDate(days(92)), place: 'Burgas, North Beach', kind: 'festival', agentIds: [uid.ivan, uid.dimitar], createdById: uid.maya }).returning();
+  const [evt] = await db.insert(s.events).values({ name: 'Spirit of Burgas', startsOn: isoDate(days(95)), endsOn: isoDate(days(92)), place: 'Burgas, North Beach', kind: 'festival', brokerIds: [uid.ivan, uid.dimitar], createdById: uid.maya }).returning();
   for (const [f, cartons] of [['aloha', 20], ['gaia', 15]] as Array<[Flavour, number]>) {
     await db.insert(s.stockMovements).values({ flavour: f, units: -cartons * 24, kind: 'event_out', reason: 'to_event', byId: uid.maya, createdAt: days(96) });
     await db.insert(s.stockMovements).values({ flavour: f, units: cartons * 24, kind: 'event_out', eventId: evt.id, reason: 'to_event', byId: uid.maya, createdAt: days(96) });
     const soldUnits = Math.round(cartons * 0.7) * 24;
     await db.insert(s.stockMovements).values({ flavour: f, units: -soldUnits, kind: 'event_sale', eventId: evt.id, byId: uid.ivan, createdAt: days(92) });
-    // Agents sell at events with the normal commission (A13); this festival was paid out.
-    await db.insert(s.commissionEntries).values({ agentId: uid.ivan, eventId: evt.id, units: soldUnits, amountCents: soldUnits * 50, status: 'paid', readyAt: days(92), sentAt: days(60), paidAt: days(55), createdAt: days(92) });
+    // Brokers sell at events with the normal commission (A13); this festival was paid out.
+    await db.insert(s.commissionEntries).values({ brokerId: uid.ivan, eventId: evt.id, units: soldUnits, amountCents: soldUnits * 50, status: 'paid', readyAt: days(92), sentAt: days(60), paidAt: days(55), createdAt: days(92) });
   }
   // What the festival took (FR-EVT-3): 600 units sold, excl. VAT.
-  await db.insert(s.eventSales).values({ eventId: evt.id, agentId: uid.ivan, units: 600, netCents: 270_000, recordedById: uid.maya, createdAt: days(92) });
+  await db.insert(s.eventSales).values({ eventId: evt.id, brokerId: uid.ivan, units: 600, netCents: 270_000, recordedById: uid.maya, createdAt: days(92) });
   const exp: Array<[number, string, string, number, string | null]> = [];
   for (let m = 0; m < 10; m++) {
     exp.push([m * 30 + 3, 'office', 'Office rent, Sofia', 120_000, null]);
     exp.push([m * 30 + 8, 'software', 'Accounting software', 4_900, null]);
     if (m % 2 === 0) exp.push([m * 30 + 15, 'marketing', 'Instagram campaign', 35_000, null]);
-    if (m % 3 === 1) exp.push([m * 30 + 20, 'travel', 'Agent travel, Black Sea coast', 18_500, null]);
+    if (m % 3 === 1) exp.push([m * 30 + 20, 'travel', 'Broker travel, Black Sea coast', 18_500, null]);
   }
   exp.push([93, 'events', 'Spirit of Burgas stand and staff', 240_000, evt.id]);
   for (const [age, category, description, net, eventId] of exp) {
@@ -310,25 +310,25 @@ async function main() {
   }
   await db.insert(s.bankBalances).values({ account: 'UniCredit Bulbank · EUR', balanceOn: isoDate(days(9)), balanceCents: 8_642_310, recordedById: uid.elena });
 
-  // ---------- Agent set-up: company and bank details, agent agreement ----------
-  const agentDetails: Array<[string, string, string, string, string, string, string, string]> = [
+  // ---------- Broker set-up: company and bank details, broker agreement ----------
+  const brokerDetails: Array<[string, string, string, string, string, string, string, string]> = [
     ['ivan', 'Kolev Trade EOOD', 'BG204518873', 'ul. Graf Ignatiev 12', 'Sofia', 'Fibank', 'BG11FINV91501014771636', 'FINVBGSF'],
     ['petya', 'PG Sales OOD', 'BG205992014', 'bul. Vasil Levski 44', 'Plovdiv', 'DSK Bank', 'BG80STSA93000024158731', 'STSABGSF'],
     ['dimitar', 'Stoyanov Consult EOOD', 'BG203877215', 'ul. Tsar Simeon 5', 'Varna', 'UniCredit Bulbank', 'BG42UNCR70001522734511', 'UNCRBGSF'],
     ['nikolay', 'Marinov Distribution EOOD', 'BG206114390', 'ul. Aleksandrovska 21', 'Burgas', 'Postbank', 'BG47BPBI79401068452301', 'BPBIBGSF'],
   ];
-  for (const [key, companyName, vatNumber, address, city, bankName, iban, bic] of agentDetails) {
+  for (const [key, companyName, vatNumber, address, city, bankName, iban, bic] of brokerDetails) {
     const who = ctx(key);
-    await agentSetup.saveCompany(who, { registeredIn: 'bg', country: 'BG', vatNumber, companyName, address, city, vatRegistered: true, managerName: who.user.name, managerRole: 'Manager', payoutEmail: who.user.email });
-    await agentSetup.saveBank(who, { accountHolder: companyName, iban, bic, bankName });
-    await agentSetup.sign(who, { method: 'app', name: who.user.name }, null);
-    if (key !== 'nikolay') await agentSetup.countersign(ctx('royi'), uid[key], { name: 'Royi Levi', agree: true });
+    await brokerSetup.saveCompany(who, { registeredIn: 'bg', country: 'BG', vatNumber, companyName, address, city, vatRegistered: true, managerName: who.user.name, managerRole: 'Manager', payoutEmail: who.user.email });
+    await brokerSetup.saveBank(who, { accountHolder: companyName, iban, bic, bankName });
+    await brokerSetup.sign(who, { method: 'app', name: who.user.name }, null);
+    if (key !== 'nikolay') await brokerSetup.countersign(ctx('royi'), uid[key], { name: 'Royi Levi', agree: true });
   }
-  // The long-standing agents signed when they joined; only Nikolay's request is new.
-  await db.update(s.agentProfiles).set({ companyAt: days(260), detailsAt: days(260), signedAt: days(260), countersignedAt: days(259), updatedAt: days(259) }).where(inArray(s.agentProfiles.userId, [uid.ivan, uid.petya, uid.dimitar]));
-  await db.update(s.agentProfiles).set({ companyAt: days(1), detailsAt: days(1), signedAt: days(1), updatedAt: days(1) }).where(eq(s.agentProfiles.userId, uid.nikolay));
-  await db.update(s.notifications).set({ readAt: days(259), createdAt: days(260) }).where(sql`${s.notifications.type} in ('agent_signed', 'agent_setup_done') and ${s.notifications.link} not like ${'%' + uid.nikolay}`);
-  await db.update(s.notifications).set({ createdAt: days(1) }).where(sql`${s.notifications.type} = 'agent_signed' and ${s.notifications.link} like ${'%' + uid.nikolay}`);
+  // The long-standing brokers signed when they joined; only Nikolay's request is new.
+  await db.update(s.brokerProfiles).set({ companyAt: days(260), detailsAt: days(260), signedAt: days(260), countersignedAt: days(259), updatedAt: days(259) }).where(inArray(s.brokerProfiles.userId, [uid.ivan, uid.petya, uid.dimitar]));
+  await db.update(s.brokerProfiles).set({ companyAt: days(1), detailsAt: days(1), signedAt: days(1), updatedAt: days(1) }).where(eq(s.brokerProfiles.userId, uid.nikolay));
+  await db.update(s.notifications).set({ readAt: days(259), createdAt: days(260) }).where(sql`${s.notifications.type} in ('broker_signed', 'broker_setup_done') and ${s.notifications.link} not like ${'%' + uid.nikolay}`);
+  await db.update(s.notifications).set({ createdAt: days(1) }).where(sql`${s.notifications.type} = 'broker_signed' and ${s.notifications.link} like ${'%' + uid.nikolay}`);
 
   await app.close();
   console.log('\nSeeded ANANDA demo data.');

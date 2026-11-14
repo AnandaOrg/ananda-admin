@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function Shell({ children }: { children: ReactNode }) {
   const t = useTranslations('common');
-  const { me, canView, isAgent, isWarehouse, canEdit, readOnly } = useSession();
+  const { me, canView, isBroker, isWarehouse, canEdit, readOnly } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const qc = useQueryClient();
@@ -112,7 +112,7 @@ function Shell({ children }: { children: ReactNode }) {
 
   const groups = visibleNav(canView);
   const current = navItemFor(pathname);
-  const label = (key: string) => t(isAgent && key === 'agents' ? 'nav.earnings' : `nav.${key}`);
+  const label = (key: string) => t(isBroker && key === 'brokers' ? 'nav.earnings' : `nav.${key}`);
   const firstName = me.user.name.split(' ')[0];
   const isAdmin = me.perms.baseRole === 'system_admin' || me.perms.baseRole === 'admin';
   const adminItems = groups.find((g) => g.key === 'admin')?.items ?? [];
@@ -306,7 +306,7 @@ function Shell({ children }: { children: ReactNode }) {
   const blocked = current && !canView(current.area);
 
   // System roles keep their name per language; custom roles show the name they were given.
-  const SYS: Record<string, string> = { system_admin: 'System admin', admin: 'Admin', agent: 'Agent', warehouse: 'Warehouse', finance: 'Finance' };
+  const SYS: Record<string, string> = { system_admin: 'System admin', admin: 'Admin', broker: 'Broker', warehouse: 'Warehouse', finance: 'Finance' };
   const roleName = SYS[me.perms.baseRole] === me.user.roleName ? t(`systemRole.${me.perms.baseRole}`) : me.user.roleName;
   const avatar = <span className="an-av">{me.user.name.trim().charAt(0).toUpperCase()}</span>;
 
@@ -358,7 +358,7 @@ function Shell({ children }: { children: ReactNode }) {
             {firstName}
           </div>
           <div className="an-asof">{t('asOf', { date: formatDate(asOf.today, locale) })}</div>
-          {isAgent && canEdit('sales') && (
+          {isBroker && canEdit('sales') && (
             <div className="new-sale-wrap">
               <Link href="/sales/new" className="an-btn primary block sm new-sale" aria-label={t('newSale')}>
                 <Icon as={Plus} size="sm" />

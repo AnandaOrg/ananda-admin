@@ -6,7 +6,7 @@ const text = (max = 200) => z.string().trim().max(max);
 const email = z.string().trim().toLowerCase().email('Enter a valid e-mail');
 const emailOrEmpty = z.union([email, z.literal('')]);
 
-/** Invite a member. Exactly one of roleId / roleKey (the "Invite new agent" panel sends roleKey 'agent'). */
+/** Invite a member. Exactly one of roleId / roleKey (the "Invite new broker" panel sends roleKey 'broker'). */
 export const inviteMemberSchema = z
   .object({
     name: z.string().trim().min(1, 'Enter a name').max(200),
@@ -31,7 +31,7 @@ export const ruleSchemas = {
     months: z.number().int().min(1, 'At least 1 month').max(60, 'At most 60 months'),
     countedFrom: z.enum(['each_order', 'first_order']),
     warningDays: z.number().int().min(0).max(180, 'At most 180 days'),
-    atEnd: z.enum(['free_to_claim', 'stay_with_agent']),
+    atEnd: z.enum(['free_to_claim', 'stay_with_broker']),
   }),
   minOrderCartons: z.number().int().min(1, 'At least 1 carton').max(10_000),
   stockHoldDays: z.number().int().min(1, 'At least 1 day').max(60, 'At most 60 days'),
@@ -73,7 +73,7 @@ export const settingSchemas = {
     accounting: emailOrEmpty,
     sender: text(200),
     replyTo: emailOrEmpty,
-    copyAgent: z.boolean(),
+    copyBroker: z.boolean(),
   }),
   documents: z.object({
     languages: z.array(z.enum(['en', 'bg'])).min(1, 'Pick at least one language'),

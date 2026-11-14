@@ -136,14 +136,14 @@ export class AdminSettingsService {
   }
 
   /**
-   * A real customer to show what an agent is told before ownership ends: the agent's customer whose
+   * A real customer to show what a broker is told before ownership ends: the broker's customer whose
    * ownership ends next.
    */
   private async ownershipExample() {
     const [c] = await this.db
       .select({ id: customers.id, name: customers.companyName, ownedUntil: customers.ownedUntil })
       .from(customers)
-      .where(and(isNotNull(customers.agentId), isNotNull(customers.ownedUntil), gte(customers.ownedUntil, isoDate()), ne(customers.status, 'archived')))
+      .where(and(isNotNull(customers.brokerId), isNotNull(customers.ownedUntil), gte(customers.ownedUntil, isoDate()), ne(customers.status, 'archived')))
       .orderBy(asc(customers.ownedUntil))
       .limit(1);
     if (!c) return null;

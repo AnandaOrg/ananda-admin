@@ -27,8 +27,8 @@ interface Deal extends Figures {
   documentNumber: string | null;
   customerId: string | null;
   customerName: string | null;
-  agentId: string;
-  agentName: string;
+  brokerId: string;
+  brokerName: string;
   paidAt: string;
   units: number;
 }
@@ -56,7 +56,7 @@ interface Group extends Figures {
   total?: boolean;
 }
 
-type Tab = 'deals' | 'customers' | 'agents' | 'flavours';
+type Tab = 'deals' | 'customers' | 'brokers' | 'flavours';
 type ChipPreset = 'this_year' | 'this_month' | 'last_month' | 'last_year';
 
 /** FR-MON-1: deal profit, counted on the date the customer paid in full. */
@@ -84,7 +84,7 @@ function DealProfit() {
   const toUrl = params.get('to');
   const [range, setRange] = useDayRange<DayPreset>(dayPreset, fromUrl && toUrl ? { preset: 'custom', from: fromUrl, to: toUrl } : 'this_year');
   const [tab, setTabRaw] = useState<Tab>('deals');
-  const [filter, setFilter] = useState<{ by: 'customer' | 'agent'; key: string; name: string } | null>(null);
+  const [filter, setFilter] = useState<{ by: 'customer' | 'broker'; key: string; name: string } | null>(null);
   const [how, setHow] = useState(false);
   const setTab = (v: Tab) => {
     setFilter(null);
@@ -102,13 +102,13 @@ function DealProfit() {
   const deals = useMemo(() => d?.deals ?? [], [d]);
   const paidDeals = deals.filter((x) => x.kind === 'deal').length;
 
-  // By customer / by agent: the same rows as the Deals tab, grouped (so every tab adds up the same).
-  const group = (by: 'customer' | 'agent'): Group[] => {
+  // By customer / by broker: the same rows as the Deals tab, grouped (so every tab adds up the same).
+  const group = (by: 'customer' | 'broker'): Group[] => {
     const m = new Map<string, Group & { o: Set<string> }>();
     for (const r of deals) {
-      const key = by === 'customer' ? (r.customerId ?? 'none') : r.agentId;
-      const g = m.get(key) ?? { key, name: by === 'customer' ? (r.customerName ?? t('noCustomer')) : r.agentName, other: [], o: new Set<string>(), deals: 0, units: 0, netCents: 0, purchaseCostCents: 0, commissionCents: 0, profitCents: 0 };
-      g.o.add(by === 'customer' ? r.agentName : (r.customerId ?? 'none'));
+      const key = by === 'customer' ? (r.customerId ?? 'none') : r.brokerId;
+      const g = m.get(key) ?? { key, name: by === 'customer' ? (r.customerName ?? t('noCustomer')) : r.brokerName, other: [], o: new Set<string>(), deals: 0, units: 0, netCents: 0, purchaseCostCents: 0, commissionCents: 0, profitCents: 0 };
+      g.o.add(by === 'customer' ? r.brokerName : (r.customerId ?? 'none'));
       if (r.kind === 'deal') g.deals += 1;
       g.units += r.units;
       g.netCents += r.netCents;
@@ -123,7 +123,7 @@ function DealProfit() {
   const totalUnits = deals.reduce((a, r) => a + r.units, 0);
   const withTotal = (rows: Group[], other: (rs: Group[]) => string[]): Group[] => (rows.length > 1 ? [...rows, { key: 'total', name: t('deal.total'), other: other(rows), deals: paidDeals, units: totalUnits, ...sum(rows), total: true }] : rows);
   const customers = withTotal(group('customer'), () => []);
-  const agents = withTotal(group('agent'), () => [String(new Set(deals.map((r) => r.customerId ?? 'none')).size)]);
+  const brokers = withTotal(group('broker'), () => [String(new Set(deals.map((r) => r.customerId ?? 'none')).size)]);
   const totalProfit = sum(deals).profitCents;
   const flavourRows: (FlavourGroup & { total?: boolean })[] = d && deals.length ? [...FLAVOURS.map((f) => d.byFlavour.find((g) => g.key === f) ?? { key: f, units: 0, netCents: 0, purchaseCostCents: 0, commissionCents: 0, profitCents: 0 }), { key: 'total', units: totalUnits, ...sum(deals), total: true }] : [];
 
@@ -147,7 +147,7 @@ function DealProfit() {
         </>
       ),
     },
-    { key: 'agent', header: t('cols.agent'), render: (r) => r.agentName },
+    { key: 'broker', header: t('cols.broker'), render: (r) => r.brokerName },
     { key: 'paidOn', header: t('cols.paidOn'), render: (r) => <span className="nowrap">{date(r.paidAt)}</span> },
     { key: 'units', header: t('cols.units'), type: 'amount', render: (r) => num(r.units) },
     { key: 'net', header: t('cols.netSales'), type: 'amount', render: (r) => amount(r.netCents) },
@@ -157,15 +157,15 @@ function DealProfit() {
   ];
   const customerCols: Column<Group>[] = [
     { key: 'customer', header: t('cols.customer'), render: (g) => (g.total ? <b>{g.name}</b> : <span className="nm nowrap">{g.name}</span>) },
-    { key: 'agent', header: t('cols.agent'), render: (g) => g.other.join(', ') },
+    { key: 'broker', header: t('cols.broker'), render: (g) => g.other.join(', ') },
     { key: 'deals', header: t('cols.deals'), type: 'count', render: (g) => strong(g, num(g.deals)) },
     { key: 'units', header: t('cols.units'), type: 'amount', render: (g) => strong(g, num(g.units)) },
     { key: 'net', header: t('cols.netSales'), type: 'amount', render: (g) => strong(g, amount(g.netCents)) },
     { key: 'profit', header: t('cols.profit'), type: 'amount', render: (g) => strong(g, profit(g.profitCents)) },
     { key: 'margin', header: t('cols.margin'), type: 'amount', render: (g) => strong(g, pct(g.profitCents, g.netCents)) },
   ];
-  const agentCols: Column<Group>[] = [
-    { key: 'agent', header: t('cols.agent'), render: (g) => (g.total ? <b>{g.name}</b> : <span className="nm nowrap">{g.name}</span>) },
+  const brokerCols: Column<Group>[] = [
+    { key: 'broker', header: t('cols.broker'), render: (g) => (g.total ? <b>{g.name}</b> : <span className="nm nowrap">{g.name}</span>) },
     { key: 'customers', header: t('cols.customers'), type: 'count', render: (g) => strong(g, g.total ? g.other[0] : num(g.other.length)) },
     { key: 'deals', header: t('cols.deals'), type: 'count', render: (g) => strong(g, num(g.deals)) },
     { key: 'units', header: t('cols.units'), type: 'amount', render: (g) => strong(g, num(g.units)) },
@@ -254,8 +254,8 @@ function DealProfit() {
     </Button>
   );
 
-  const shown = filter ? deals.filter((r) => (filter.by === 'customer' ? (r.customerId ?? 'none') : r.agentId) === filter.key) : deals;
-  const pickGroup = (by: 'customer' | 'agent') => (g: Group) => {
+  const shown = filter ? deals.filter((r) => (filter.by === 'customer' ? (r.customerId ?? 'none') : r.brokerId) === filter.key) : deals;
+  const pickGroup = (by: 'customer' | 'broker') => (g: Group) => {
     if (g.total) return;
     setTabRaw('deals');
     setFilter({ by, key: g.key, name: g.name });
@@ -290,7 +290,7 @@ function DealProfit() {
           options={[
             { value: 'deals', label: t('deal.tabs.deals') },
             { value: 'customers', label: t('deal.tabs.customers') },
-            { value: 'agents', label: t('deal.tabs.agents') },
+            { value: 'brokers', label: t('deal.tabs.brokers') },
             { value: 'flavours', label: t('deal.tabs.flavours') },
           ]}
         />
@@ -309,12 +309,12 @@ function DealProfit() {
                   </button>
                 </div>
               )}
-              <Table columns={dealCols} rows={shown} rowKey={(r) => r.id} onRow={(r) => router.push(`/sales/${r.orderId}`)} empty={noneRow} loading={q.isFetching && !q.data} picker={{ id: 'deal-profit-deals', locked: ['deal', 'profit'], priority: ['agent', 'paidOn', 'net', 'units', 'cost', 'commission'] }} />
+              <Table columns={dealCols} rows={shown} rowKey={(r) => r.id} onRow={(r) => router.push(`/sales/${r.orderId}`)} empty={noneRow} loading={q.isFetching && !q.data} picker={{ id: 'deal-profit-deals', locked: ['deal', 'profit'], priority: ['broker', 'paidOn', 'net', 'units', 'cost', 'commission'] }} />
             </>
           ) : tab === 'customers' ? (
-            <Table columns={customerCols} rows={customers} rowKey={(g) => g.key} onRow={pickGroup('customer')} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={{ id: 'deal-profit-customers', locked: ['customer', 'profit'], priority: ['net', 'margin', 'deals', 'units', 'agent'] }} />
-          ) : tab === 'agents' ? (
-            <Table columns={agentCols} rows={agents} rowKey={(g) => g.key} onRow={pickGroup('agent')} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={{ id: 'deal-profit-agents', locked: ['agent', 'profit'], priority: ['net', 'margin', 'deals', 'commission', 'customers', 'units'] }} />
+            <Table columns={customerCols} rows={customers} rowKey={(g) => g.key} onRow={pickGroup('customer')} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={{ id: 'deal-profit-customers', locked: ['customer', 'profit'], priority: ['net', 'margin', 'deals', 'units', 'broker'] }} />
+          ) : tab === 'brokers' ? (
+            <Table columns={brokerCols} rows={brokers} rowKey={(g) => g.key} onRow={pickGroup('broker')} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={{ id: 'deal-profit-brokers', locked: ['broker', 'profit'], priority: ['net', 'margin', 'deals', 'commission', 'customers', 'units'] }} />
           ) : (
             <Table columns={flavourCols} rows={flavourRows} rowKey={(g) => g.key} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={{ id: 'deal-profit-flavours', locked: ['flavour', 'profit'], priority: ['net', 'share', 'units', 'margin', 'cost', 'commission'] }} />
           )}
@@ -344,7 +344,7 @@ function DealProfit() {
                   {profit(r.profitCents)}
                 </div>
                 <span className={css.small}>
-                  {t('deal.phoneLine', { number: r.number, agent: r.agentName, date: date(r.paidAt) })}
+                  {t('deal.phoneLine', { number: r.number, broker: r.brokerName, date: date(r.paidAt) })}
                   {r.kind === 'credit_note' && ` · ${t('creditNote')} ${r.documentNumber ?? ''}`}
                 </span>
               </div>

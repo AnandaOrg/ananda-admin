@@ -1,9 +1,9 @@
 {
   "kicker": "{n, plural, one {# unpaid invoice} other {# unpaid invoices}} · {who}",
   "kickerOwn": "{n, plural, one {# unpaid invoice} other {# unpaid invoices}}",
-  "everyAgent": "every agent",
+  "everyBroker": "every broker",
   "nothingUnpaid": "Nothing unpaid",
-  "allAgents": "All agents",
+  "allBrokers": "All brokers",
   "unpaidInvoices": "{n, plural, one {# unpaid invoice} other {# unpaid invoices}}",
   "tiles": {
     "late": "Late",
@@ -33,9 +33,9 @@
   "sentTodayCard": "Reminder sent today. {name} is copied.",
   "sentTodayNoCopy": "Reminder sent today",
   "sentTodayCardNoCopy": "Reminder sent today.",
-  "reminderSent": "Reminder sent to {name}. {agent} is copied.",
+  "reminderSent": "Reminder sent to {name}. {broker} is copied.",
   "reminderSentNoCopy": "Reminder sent to {name}.",
-  "foot": "Reminders are drafted for you to read first. The agent is copied on every one.",
+  "foot": "Reminders are drafted for you to read first. The broker is copied on every one.",
   "footNoCopy": "Reminders are drafted for you to read first.",
   "nothingFor": "Nothing here for {name}.",
   "nothingHere": "Nothing here.",

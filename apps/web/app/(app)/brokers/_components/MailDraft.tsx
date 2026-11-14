@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorText } from '@/lib/api';
 import { Banner, Button, Pill } from '@/components/ui';
-import s from '../agents.module.css';
+import s from '../brokers.module.css';
 
 export type Tone = 'friendly' | 'short' | 'formal';
 
@@ -14,7 +14,7 @@ export type Tone = 'friendly' | 'short' | 'formal';
  * formal, Polished + Undo). The AI rewrite is shown in place for the user to review before sending.
  */
 export function PolishableText({ label, value, onChange, subject, rows = 7, language }: { label: string; value: string; onChange: (v: string) => void; subject?: string; rows?: number; language?: string }) {
-  const t = useTranslations('agents');
+  const t = useTranslations('brokers');
   const locale = useLocale();
   const [tone, setTone] = useState<Tone>('friendly');
   const [orig, setOrig] = useState<string | null>(null);

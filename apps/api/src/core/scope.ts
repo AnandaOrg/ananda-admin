@@ -5,12 +5,12 @@ import type { AuthContext } from '../common/context';
 
 /**
  * Record scope, applied on the server to every list, detail, search, export and notification
- * (FR-AUTH-2). Agents see their own records; Warehouse sees orders to ship only.
+ * (FR-AUTH-2). Brokers see their own records; Warehouse sees orders to ship only.
  */
 export function orderScope(auth: AuthContext): SQL | undefined {
   switch (auth.perms.scope) {
     case 'own':
-      return eq(orders.agentId, auth.user.id);
+      return eq(orders.brokerId, auth.user.id);
     case 'shipping':
       return inArray(orders.status, ['at_warehouse', 'delivered', 'delivered_part', 'invoiced']);
     default:
@@ -18,11 +18,11 @@ export function orderScope(auth: AuthContext): SQL | undefined {
   }
 }
 
-/** Agents also see customers that are free to claim, so they can claim them. */
+/** Brokers also see customers that are free to claim, so they can claim them. */
 export function customerScope(auth: AuthContext): SQL | undefined {
   switch (auth.perms.scope) {
     case 'own':
-      return or(eq(customers.agentId, auth.user.id), and(eq(customers.status, 'active'), lt(customers.ownedUntil, isoDate())));
+      return or(eq(customers.brokerId, auth.user.id), and(eq(customers.status, 'active'), lt(customers.ownedUntil, isoDate())));
     case 'shipping':
       return sql`false`;
     default:
@@ -30,6 +30,6 @@ export function customerScope(auth: AuthContext): SQL | undefined {
   }
 }
 
-export function agentFilter(auth: AuthContext): string | null {
+export function brokerFilter(auth: AuthContext): string | null {
   return auth.perms.scope === 'own' ? auth.user.id : null;
 }

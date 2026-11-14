@@ -101,7 +101,7 @@
   align-items: end;
 }
 
-/* What the agent gets before ownership ends. */
+/* What the broker gets before ownership ends. */
 .example {
   display: grid;
   grid-template-columns: var(--control-sm) minmax(0, 1fr);

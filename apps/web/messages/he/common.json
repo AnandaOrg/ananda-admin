@@ -51,8 +51,8 @@
   "email": "אימייל",
   "directions": "ניווט",
   "everyone": "כולם",
-  "anyAgent": "כל סוכן",
-  "agent": "סוכן",
+  "anyBroker": "כל ברוקר",
+  "broker": "ברוקר",
   "customer": "לקוח",
   "status": "סטטוס",
   "created": "נוצר",
@@ -106,7 +106,7 @@
     "purchasing": "רכש",
     "inventory": "מלאי",
     "warehouse": "מחסן",
-    "agents": "סוכנים ועמלות",
+    "brokers": "סוכנים ועמלות",
     "earnings": "ההכנסות שלי",
     "events": "אירועים ופסטיבלים",
     "deal_profit": "רווחיות עסקה",
@@ -170,8 +170,8 @@
       "price_error": "טעות במחיר",
       "other": "אחר"
     },
-    "change_agent": {
-      "agent_left": "הסוכן עזב",
+    "change_broker": {
+      "broker_left": "הברוקר עזב",
       "customer_request": "בקשת הלקוח",
       "performance": "ביצועים",
       "other": "אחר"
@@ -268,7 +268,7 @@
     "earlier": "קודם",
     "emptyTitle": "עדיין אין התראות",
     "emptyAdmin": "אישורים, העלאות, תשלומים באיחור והתראות מלאי מופיעים כאן.",
-    "emptyAgent": "כאן תקבל/י עדכון כשלקוח מאושר, משלם או מקבל את המשלוח.",
+    "emptyBroker": "כאן תקבל/י עדכון כשלקוח מאושר, משלם או מקבל את המשלוח.",
     "caughtUp": "הכול מעודכן",
     "caughtUpText": "אין התראות שלא נקראו. הישנות נמצאות תחת הכול.",
     "settings": "הגדרות התראות",
@@ -295,23 +295,23 @@
   "searchNone": "אין תוצאות עבור “{q}”",
   "notify": {
     "customer_approval": {
-      "title": "{agent} רוצה להוסיף את {customer}",
+      "title": "{broker} רוצה להוסיף את {customer}",
       "body": "לקוח חדש"
     },
     "special_price": {
-      "title": "{agent} מבקש/ת מחיר מיוחד",
+      "title": "{broker} מבקש/ת מחיר מיוחד",
       "body": "{order} · {customer}"
     },
     "correction": {
-      "title": "{agent} מבקש/ת תיקון",
+      "title": "{broker} מבקש/ת תיקון",
       "body": "{order} · {customer}"
     },
-    "agent_upload": {
-      "title": "{agent} העלה/תה מסמך",
+    "broker_upload": {
+      "title": "{broker} העלה/תה מסמך",
       "body": "{doc} · {order} · {customer}"
     },
-    "agent_signed": {
-      "title": "{agent} חתם/ה על הסכם הסוכן",
+    "broker_signed": {
+      "title": "{broker} חתם/ה על הסכם הברוקר",
       "body": "פרטי החברה והבנק הוזנו. יש לחתום גם כדי להשלים את ההגדרה."
     },
     "delivered": {
@@ -346,9 +346,9 @@
       "title": "העמלה נשלחה לתשלום: {amount}",
       "body": "אצל רואה החשבון. היא תסומן כשולמה כשתצא מהבנק."
     },
-    "agent_setup_done": {
+    "broker_setup_done": {
       "title": "ההגדרה שלך הושלמה",
-      "body": "{admin} חתם/ה גם על הסכם הסוכן שלך."
+      "body": "{admin} חתם/ה גם על הסכם הברוקר שלך."
     },
     "event": {
       "title": "הוזמנת אל {event}",
@@ -358,7 +358,7 @@
   "systemRole": {
     "system_admin": "מנהל מערכת",
     "admin": "מנהל",
-    "agent": "סוכן",
+    "broker": "ברוקר",
     "warehouse": "מחסן",
     "finance": "כספים"
   }

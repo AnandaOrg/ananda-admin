@@ -92,8 +92,8 @@ export class InventoryService {
       this.settings.rules(),
       this.db.select({ number: purchases.number, arrivedOn: purchases.arrivedOn }).from(purchases).where(eq(purchases.status, 'received')).orderBy(desc(purchases.arrivedOn), desc(purchases.number)).limit(1),
     ]);
-    const agentIds = [...new Set(waiting.map((o) => o.agentId))];
-    const agents = agentIds.length ? await this.db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, agentIds)) : [];
+    const brokerIds = [...new Set(waiting.map((o) => o.brokerId))];
+    const brokers = brokerIds.length ? await this.db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, brokerIds)) : [];
     const ids = waiting.map((o) => o.id);
     const times = ids.length ? await this.db.select({ id: orders.id, requestSentAt: orders.requestSentAt, createdAt: orders.createdAt }).from(orders).where(inArray(orders.id, ids)) : [];
     const since = (o: (typeof waiting)[number]) => {
@@ -114,7 +114,7 @@ export class InventoryService {
         paidAt: o.paidAt,
         since: since(o),
         customerName: o.customerName,
-        agentName: agents.find((a) => a.id === o.agentId)?.name ?? null,
+        brokerName: brokers.find((a) => a.id === o.brokerId)?.name ?? null,
         lines: FLAVOURS.flatMap((f) => o.lines.filter((l) => l.flavour === f)),
         units: o.lines.reduce((s, l) => s + l.units, 0),
       })),

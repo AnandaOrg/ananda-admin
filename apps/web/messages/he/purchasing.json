@@ -129,7 +129,7 @@
   },
   "waiting": {
     "order": "הזמנה",
-    "agent": "סוכן",
+    "broker": "ברוקר",
     "since": "ממתין מאז {date}",
     "sinceLower": "מאז {date}",
     "waiting": "ממתין",

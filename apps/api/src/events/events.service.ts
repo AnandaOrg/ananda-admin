@@ -7,7 +7,7 @@ import { AuditService } from '../core/audit.service';
 import { NotifyService } from '../core/notify.service';
 import { SettingsService } from '../core/settings.service';
 import { StockService } from '../core/stock.service';
-import { agentFilter } from '../core/scope';
+import { brokerFilter } from '../core/scope';
 import type { AuthContext } from '../common/context';
 
 type ByFlavour = Record<Flavour, number>;
@@ -24,7 +24,7 @@ const zero = (): ByFlavour => ({ aloha: 0, gaia: 0, santorini: 0, kyoto: 0 });
 /**
  * Events & festivals (PRD §5.9). An event holds its own stock in the ledger (stock_movements with
  * event_id): moving cartons to an event writes −units at the warehouse and +units at the event.
- * Event sales are recorded as event_sale movements whose `by_id` is the agent who sold them.
+ * Event sales are recorded as event_sale movements whose `by_id` is the broker who sold them.
  */
 @Injectable()
 export class EventsService {
@@ -36,10 +36,10 @@ export class EventsService {
     private readonly settings: SettingsService,
   ) {}
 
-  /** Agents see the events they are invited to; everyone else with access sees all. */
+  /** Brokers see the events they are invited to; everyone else with access sees all. */
   private scope(auth: AuthContext): SQL | undefined {
-    const own = agentFilter(auth);
-    return own ? sql`${events.agentIds} @> ${JSON.stringify([own])}::jsonb` : undefined;
+    const own = brokerFilter(auth);
+    return own ? sql`${events.brokerIds} @> ${JSON.stringify([own])}::jsonb` : undefined;
   }
 
   private seesCosts(auth: AuthContext) {
@@ -48,16 +48,16 @@ export class EventsService {
 
   /**
    * Money taken at events, excl. VAT: recorded event sales plus orders linked to the event whose
-   * payment request went out. Agents only count their own.
+   * payment request went out. Brokers only count their own.
    */
   private async salesMoney(auth: AuthContext, ids: string[], since?: Date) {
     if (!ids.length) return new Map<string, number>();
-    const own = agentFilter(auth);
+    const own = brokerFilter(auth);
     const [taken, linked] = await Promise.all([
       this.db
         .select({ eventId: eventSales.eventId, cents: sql<number>`coalesce(sum(${eventSales.netCents}), 0)::int` })
         .from(eventSales)
-        .where(and(inArray(eventSales.eventId, ids), since ? gte(eventSales.createdAt, since) : undefined, own ? eq(eventSales.agentId, own) : undefined))
+        .where(and(inArray(eventSales.eventId, ids), since ? gte(eventSales.createdAt, since) : undefined, own ? eq(eventSales.brokerId, own) : undefined))
         .groupBy(eventSales.eventId),
       this.db
         .select({ eventId: orders.eventId, cents: sql<number>`coalesce(sum(${orders.netCents}), 0)::int` })
@@ -68,7 +68,7 @@ export class EventsService {
             isNotNull(orders.requestSentAt),
             ne(orders.status, 'cancelled'),
             since ? gte(orders.requestSentAt, since) : undefined,
-            own ? eq(orders.agentId, own) : undefined,
+            own ? eq(orders.brokerId, own) : undefined,
           ),
         )
         .groupBy(orders.eventId),
@@ -99,7 +99,7 @@ export class EventsService {
                 .where(inArray(expenses.eventId, ids))
                 .groupBy(expenses.eventId)
             : Promise.resolve([] as { eventId: string | null; netCents: number; yearCents: number }[]),
-          this.agentNames(rows.flatMap((r) => r.agentIds)),
+          this.brokerNames(rows.flatMap((r) => r.brokerIds)),
         ])
       : [[], new Map<string, number>(), new Map<string, number>(), [], new Map<string, string>()];
     const today = isoDate();
@@ -114,7 +114,7 @@ export class EventsService {
         place: r.place,
         kind: r.kind,
         status: statusOf(r, today),
-        agents: r.agentIds.map((id) => ({ id, name: names.get(id) ?? '' })),
+        brokers: r.brokerIds.map((id) => ({ id, name: names.get(id) ?? '' })),
         stockUnits: Number(l?.units ?? 0),
         soldUnits: Number(l?.sold ?? 0),
         salesCents: sales.get(r.id) ?? 0,
@@ -133,7 +133,7 @@ export class EventsService {
     };
   }
 
-  private async agentNames(ids: string[]) {
+  private async brokerNames(ids: string[]) {
     const unique = [...new Set(ids)];
     if (!unique.length) return new Map<string, string>();
     const rows = await this.db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, unique));
@@ -150,8 +150,8 @@ export class EventsService {
   async detail(auth: AuthContext, id: string) {
     const e = await this.load(auth, id);
     const costs = this.seesCosts(auth);
-    const edit = canEdit(auth.perms.areas, 'events') && !agentFilter(auth);
-    const own = agentFilter(auth);
+    const edit = canEdit(auth.perms.areas, 'events') && !brokerFilter(auth);
+    const own = brokerFilter(auth);
     const [atEvent, available, moves, names, spend, rules, taken] = await Promise.all([
       this.stock.inStock(this.db, id),
       edit ? this.stock.available(this.db) : Promise.resolve(null),
@@ -161,7 +161,7 @@ export class EventsService {
         .leftJoin(users, eq(users.id, stockMovements.byId))
         .where(eq(stockMovements.eventId, id))
         .orderBy(desc(stockMovements.createdAt)),
-      this.agentNames(e.agentIds),
+      this.brokerNames(e.brokerIds),
       costs
         ? this.db
             .select({ id: expenses.id, spentOn: expenses.spentOn, category: expenses.category, description: expenses.description, netCents: expenses.netCents, totalCents: expenses.totalCents, paid: expenses.paid })
@@ -171,36 +171,36 @@ export class EventsService {
         : Promise.resolve(null),
       this.settings.rules(),
       this.db
-        .select({ agentId: eventSales.agentId, cents: sql<number>`coalesce(sum(${eventSales.netCents}), 0)::int` })
+        .select({ brokerId: eventSales.brokerId, cents: sql<number>`coalesce(sum(${eventSales.netCents}), 0)::int` })
         .from(eventSales)
-        .where(and(eq(eventSales.eventId, id), own ? eq(eventSales.agentId, own) : undefined))
-        .groupBy(eventSales.agentId),
+        .where(and(eq(eventSales.eventId, id), own ? eq(eventSales.brokerId, own) : undefined))
+        .groupBy(eventSales.brokerId),
     ]);
     const linked = (await this.salesMoney(auth, [id])).get(id) ?? 0;
-    const takenBy = new Map(taken.map((r) => [r.agentId, Number(r.cents)]));
+    const takenBy = new Map(taken.map((r) => [r.brokerId, Number(r.cents)]));
     const moved = zero();
     const sold = zero();
-    const bySeller = new Map<string, { agentId: string; name: string; units: ByFlavour }>();
+    const bySeller = new Map<string, { brokerId: string; name: string; units: ByFlavour }>();
     for (const m of moves) {
       if (m.kind === 'event_out' || m.kind === 'event_in') moved[m.flavour] += m.units;
       if (m.kind === 'event_sale') {
         sold[m.flavour] -= m.units;
         const key = m.byId ?? 'unknown';
-        const s = bySeller.get(key) ?? { agentId: key, name: m.byName ?? '', units: zero() };
+        const s = bySeller.get(key) ?? { brokerId: key, name: m.byName ?? '', units: zero() };
         s.units[m.flavour] -= m.units;
         bySeller.set(key, s);
       }
     }
     const sales = [...bySeller.values()]
-      .filter((s) => !own || s.agentId === own)
+      .filter((s) => !own || s.brokerId === own)
       .map((s) => {
         const units = sumOf(s.units);
         // A13: event sales earn the normal commission; each sale also writes a Ready to pay entry.
-        return { agentId: s.agentId, name: s.name, units, cartons: Math.floor(units / UNITS_PER_CARTON), byFlavour: s.units, commissionCents: units * rules.commissionPerUnitCents, salesCents: takenBy.get(s.agentId) ?? 0 };
+        return { brokerId: s.brokerId, name: s.name, units, cartons: Math.floor(units / UNITS_PER_CARTON), byFlavour: s.units, commissionCents: units * rules.commissionPerUnitCents, salesCents: takenBy.get(s.brokerId) ?? 0 };
       });
     return {
       event: { id: e.id, name: e.name, startsOn: e.startsOn, endsOn: e.endsOn, place: e.place, kind: e.kind, status: statusOf(e), createdAt: e.createdAt },
-      agents: e.agentIds.map((a) => ({ id: a, name: names.get(a) ?? '' })),
+      brokers: e.brokerIds.map((a) => ({ id: a, name: names.get(a) ?? '' })),
       stock: FLAVOURS.map((f) => ({ flavour: f, units: atEvent[f], cartons: Math.floor(atEvent[f] / UNITS_PER_CARTON), movedUnits: moved[f], soldUnits: sold[f] })),
       totals: { stockUnits: sumOf(atEvent), soldUnits: sumOf(sold), movedUnits: sumOf(moved), salesCents: linked },
       warehouseAvailableCartons: available ? Object.fromEntries(FLAVOURS.map((f) => [f, Math.max(0, Math.floor(available[f] / UNITS_PER_CARTON))])) : null,
@@ -213,24 +213,24 @@ export class EventsService {
     };
   }
 
-  private async assertAgents(ids: string[]) {
+  private async assertBrokers(ids: string[]) {
     if (!ids.length) return;
     const rows = await this.db
       .select({ id: users.id })
       .from(users)
       .innerJoin(roles, eq(roles.id, users.roleId))
-      .where(and(inArray(users.id, ids), eq(roles.baseRole, 'agent')));
-    if (rows.length !== new Set(ids).size) throw new BadRequestException({ message: 'Choose agents from the list', fields: { agentIds: 'Choose agents from the list' } });
+      .where(and(inArray(users.id, ids), eq(roles.baseRole, 'broker')));
+    if (rows.length !== new Set(ids).size) throw new BadRequestException({ message: 'Choose brokers from the list', fields: { brokerIds: 'Choose brokers from the list' } });
   }
 
   async create(auth: AuthContext, input: EventInput) {
     if (input.endsOn < input.startsOn) throw new BadRequestException({ message: 'Check the highlighted fields', fields: { endsOn: 'The end date is before the start date' } });
-    const agentIds = [...new Set(input.agentIds)];
-    await this.assertAgents(agentIds);
+    const brokerIds = [...new Set(input.brokerIds)];
+    await this.assertBrokers(brokerIds);
     return this.db.transaction(async (tx) => {
-      const [row] = await tx.insert(events).values({ name: input.name, startsOn: input.startsOn, endsOn: input.endsOn, place: input.place, kind: input.kind, agentIds, createdById: auth.user.id }).returning();
-      await this.audit.log(auth, { category: 'events', action: 'event_created', recordType: 'event', recordId: row.id, recordLabel: row.name, meta: { startsOn: row.startsOn, endsOn: row.endsOn, place: row.place, kind: row.kind, agentIds } }, tx);
-      await this.notify.send('event', { users: agentIds }, { event: row.name, startsOn: row.startsOn, endsOn: row.endsOn, place: row.place }, `/events/${row.id}`, tx);
+      const [row] = await tx.insert(events).values({ name: input.name, startsOn: input.startsOn, endsOn: input.endsOn, place: input.place, kind: input.kind, brokerIds, createdById: auth.user.id }).returning();
+      await this.audit.log(auth, { category: 'events', action: 'event_created', recordType: 'event', recordId: row.id, recordLabel: row.name, meta: { startsOn: row.startsOn, endsOn: row.endsOn, place: row.place, kind: row.kind, brokerIds } }, tx);
+      await this.notify.send('event', { users: brokerIds }, { event: row.name, startsOn: row.startsOn, endsOn: row.endsOn, place: row.place }, `/events/${row.id}`, tx);
       return { id: row.id };
     });
   }
@@ -264,23 +264,23 @@ export class EventsService {
     });
   }
 
-  /** Cartons sold at the event by an invited agent (FR-EVT-3). */
-  async recordSale(auth: AuthContext, id: string, agentId: string, cartons: CartonsByFlavour, amountNetCents: number) {
+  /** Cartons sold at the event by an invited broker (FR-EVT-3). */
+  async recordSale(auth: AuthContext, id: string, brokerId: string, cartons: CartonsByFlavour, amountNetCents: number) {
     const units = this.units(cartons);
     if (sumOf(units) === 0) throw new BadRequestException({ message: 'Enter the cartons sold', fields: { cartons: 'Enter the cartons sold' } });
     return this.db.transaction(async (tx) => {
       const e = await this.load(auth, id, tx, true);
-      if (!e.agentIds.includes(agentId)) throw new BadRequestException({ message: 'Choose an agent invited to this event', fields: { agentId: 'Choose an agent invited to this event' } });
+      if (!e.brokerIds.includes(brokerId)) throw new BadRequestException({ message: 'Choose a broker invited to this event', fields: { brokerId: 'Choose a broker invited to this event' } });
       const atEvent = await this.stock.inStock(tx, id);
       const fields: Record<string, string> = {};
       for (const f of FLAVOURS) if (units[f] > atEvent[f]) fields[`cartons.${f}`] = `Only ${Math.floor(atEvent[f] / UNITS_PER_CARTON)} cartons at the event`;
       if (Object.keys(fields).length) throw new BadRequestException({ message: 'Not that much stock at the event', fields });
       for (const f of FLAVOURS) {
-        if (units[f]) await this.stock.move(tx, { flavour: f, units: -units[f], kind: 'event_sale', reason: 'event_sale', eventId: id, byId: agentId });
+        if (units[f]) await this.stock.move(tx, { flavour: f, units: -units[f], kind: 'event_sale', reason: 'event_sale', eventId: id, byId: brokerId });
       }
-      const [agent] = await tx.select({ name: users.name }).from(users).where(eq(users.id, agentId));
+      const [broker] = await tx.select({ name: users.name }).from(users).where(eq(users.id, brokerId));
       const sold = Object.fromEntries(FLAVOURS.filter((f) => units[f]).map((f) => [f, units[f] / UNITS_PER_CARTON]));
-      const [sale] = await tx.insert(eventSales).values({ eventId: id, agentId, units: sumOf(units), netCents: amountNetCents, recordedById: auth.user.id }).returning({ id: eventSales.id });
+      const [sale] = await tx.insert(eventSales).values({ eventId: id, brokerId, units: sumOf(units), netCents: amountNetCents, recordedById: auth.user.id }).returning({ id: eventSales.id });
       await this.audit.log(
         auth,
         {
@@ -291,17 +291,17 @@ export class EventsService {
           recordLabel: e.name,
           money: true,
           changes: { netCents: { from: null, to: amountNetCents } },
-          meta: { saleId: sale.id, agentId, agentName: agent?.name, cartons: sold },
+          meta: { saleId: sale.id, brokerId, brokerName: broker?.name, cartons: sold },
         },
         tx,
       );
-      // A13: agents sell at events with the normal commission, payable straight away (no customer payment to wait for).
+      // A13: brokers sell at events with the normal commission, payable straight away (no customer payment to wait for).
       const rules = await this.settings.rules(tx);
       const total = sumOf(units);
       const amountCents = total * rules.commissionPerUnitCents;
       const [entry] = await tx
         .insert(commissionEntries)
-        .values({ agentId, eventId: id, orderId: null, units: total, amountCents, status: 'ready', readyAt: new Date() })
+        .values({ brokerId, eventId: id, orderId: null, units: total, amountCents, status: 'ready', readyAt: new Date() })
         .returning({ id: commissionEntries.id });
       await this.audit.log(
         auth,
@@ -309,8 +309,8 @@ export class EventsService {
           category: 'commission',
           action: 'event_commission_ready',
           recordType: 'user',
-          recordId: agentId,
-          recordLabel: agent?.name,
+          recordId: brokerId,
+          recordLabel: broker?.name,
           money: true,
           changes: { amountCents: { from: null, to: amountCents } },
           meta: { entryId: entry.id, eventId: id, eventName: e.name, units: total, perUnitCents: rules.commissionPerUnitCents },

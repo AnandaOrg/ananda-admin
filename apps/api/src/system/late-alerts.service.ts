@@ -57,16 +57,16 @@ export class LateAlertsService {
         sent++;
       }
     }
-    // Customers past their payment due date: to their agent.
+    // Customers past their payment due date: to their broker.
     const owed = await this.db
-      .select({ id: orders.id, number: orders.number, agentId: orders.agentId, dueOn: orders.paymentDueOn, customer: customers.companyName, cents: sql<number>`${outstandingSql}::int` })
+      .select({ id: orders.id, number: orders.number, brokerId: orders.brokerId, dueOn: orders.paymentDueOn, customer: customers.companyName, cents: sql<number>`${outstandingSql}::int` })
       .from(orders)
       .innerJoin(customers, eq(customers.id, orders.customerId))
       .where(and(inArray(orders.status, [...OWED_STATUSES]), lt(orders.paymentDueOn, today), sql`${outstandingSql} > 0`));
     for (const o of owed) {
       const link = `/sales/${o.id}`;
       if (!o.dueOn || (await this.recentlySent('payment_late', link))) continue;
-      await this.notify.send('payment_late', { users: [o.agentId] }, { customer: o.customer, days: days(o.dueOn), order: o.number, amountCents: Number(o.cents) }, link);
+      await this.notify.send('payment_late', { users: [o.brokerId] }, { customer: o.customer, days: days(o.dueOn), order: o.number, amountCents: Number(o.cents) }, link);
       sent++;
     }
     return { sent };

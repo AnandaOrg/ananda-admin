@@ -129,7 +129,7 @@
   },
   "waiting": {
     "order": "Поръчка",
-    "agent": "Агент",
+    "broker": "Брокер",
     "since": "Чака от {date}",
     "sinceLower": "от {date}",
     "waiting": "Чака",

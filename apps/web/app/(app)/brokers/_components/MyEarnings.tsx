@@ -25,13 +25,13 @@ interface MyRequest {
 
 const REQUEST_TONE = { pending: 'warn', approved: 'good', declined: 'bad', withdrawn: 'mute' } as const;
 
-/** The agent's own view (FR-AGT-5): same words and figures as the admin view, own data only. */
+/** The broker's own view (FR-AGT-5): same words and figures as the admin view, own data only. */
 export function MyEarnings() {
-  const t = useTranslations('agents');
+  const t = useTranslations('brokers');
   const tc = useTranslations('common');
   const router = useRouter();
   const { money, date, dateShort, num } = useFmt();
-  const q = useQuery({ queryKey: ['agents', 'me'], queryFn: () => api.get<Earnings>('/agents/me/earnings') });
+  const q = useQuery({ queryKey: ['brokers', 'me'], queryFn: () => api.get<Earnings>('/brokers/me/earnings') });
   const reqs = useQuery({ queryKey: ['approvals', 'mine'], queryFn: () => api.get<MyRequest[]>('/approvals/mine') });
 
   if (q.isLoading) return <PageSkeleton />;

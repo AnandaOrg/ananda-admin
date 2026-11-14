@@ -23,8 +23,8 @@ interface DealRow {
   documentNumber: string | null;
   customerId: string | null;
   customerName: string | null;
-  agentId: string;
-  agentName: string;
+  brokerId: string;
+  brokerName: string;
   paidAt: string;
   units: number;
   netCents: number;
@@ -92,8 +92,8 @@ export class MoneyService {
         number: orders.number,
         customerId: orders.customerId,
         customerName: customers.companyName,
-        agentId: orders.agentId,
-        agentName: users.name,
+        brokerId: orders.brokerId,
+        brokerName: users.name,
         paidAt: orders.paidAt,
         units: orders.totalUnits,
         netCents: orders.netCents,
@@ -102,7 +102,7 @@ export class MoneyService {
       })
       .from(orders)
       .leftJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(countedOrders(p))
       .orderBy(desc(orders.paidAt));
     const credits = await this.db
@@ -115,13 +115,13 @@ export class MoneyService {
         orderNumber: orders.number,
         customerId: orders.customerId,
         customerName: customers.companyName,
-        agentId: orders.agentId,
-        agentName: users.name,
+        brokerId: orders.brokerId,
+        brokerName: users.name,
       })
       .from(documents)
       .innerJoin(orders, eq(orders.id, documents.orderId))
       .leftJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(creditNotesIn(p))
       .orderBy(desc(documents.createdAt));
 
@@ -135,8 +135,8 @@ export class MoneyService {
         documentNumber: null,
         customerId: o.customerId,
         customerName: o.customerName,
-        agentId: o.agentId,
-        agentName: o.agentName,
+        brokerId: o.brokerId,
+        brokerName: o.brokerName,
         paidAt: (o.paidAt as Date).toISOString(),
         units: o.units,
         netCents: o.netCents,
@@ -160,8 +160,8 @@ export class MoneyService {
         documentNumber: c.number,
         customerId: c.customerId,
         customerName: c.customerName,
-        agentId: c.agentId,
-        agentName: c.agentName,
+        brokerId: c.brokerId,
+        brokerName: c.brokerName,
         paidAt: c.createdAt.toISOString(),
         units: -Number(d.units ?? 0),
         netCents: net,
@@ -243,9 +243,9 @@ export class MoneyService {
         (r) => r.customerId ?? 'none',
         (r) => r.customerName ?? '',
       ),
-      byAgent: group(
-        (r) => r.agentId,
-        (r) => r.agentName,
+      byBroker: group(
+        (r) => r.brokerId,
+        (r) => r.brokerName,
       ),
       byFlavour: [...byFlavour.values()],
     };

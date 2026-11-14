@@ -7,7 +7,7 @@ import { FiguresService, OWED_STATUSES, outstandingSql, periodOf, type Period } 
 import { asOfNow } from '../core/as-of';
 import { StockService } from '../core/stock.service';
 import { SettingsService } from '../core/settings.service';
-import { agentFilter, orderScope } from '../core/scope';
+import { brokerFilter, orderScope } from '../core/scope';
 import { ApprovalsService } from '../approvals/approvals.service';
 import { can, type AuthContext } from '../common/context';
 
@@ -43,22 +43,22 @@ export class HomeService {
   ) {}
 
   async get(auth: AuthContext) {
-    const agentId = agentFilter(auth);
+    const brokerId = brokerFilter(auth);
     const month = periodOf('this_month');
     const year = periodOf('this_year');
     const lastYearMonth = { from: new Date(month.from.getFullYear() - 1, month.from.getMonth(), 1), to: new Date(month.to.getFullYear() - 1, month.to.getMonth(), 1) };
     const [salesMonth, couldClose, owed, salesYear, salesLastYear, salesMonthLastYear] = await Promise.all([
-      this.figures.netSales(month, agentId),
-      this.figures.couldCloseWithDrafts(month, agentId),
-      this.figures.owed(agentId),
-      this.figures.netSales(year, agentId),
-      this.figures.netSales(lastYearToDate(year), agentId),
-      this.figures.netSales(lastYearMonth, agentId),
+      this.figures.netSales(month, brokerId),
+      this.figures.couldCloseWithDrafts(month, brokerId),
+      this.figures.owed(brokerId),
+      this.figures.netSales(year, brokerId),
+      this.figures.netSales(lastYearToDate(year), brokerId),
+      this.figures.netSales(lastYearMonth, brokerId),
     ]);
     const showProfit = canView(auth.perms.areas, 'deal_profit');
     const profit = showProfit ? await this.figures.dealProfit(year, null) : null;
     const awaiting = showProfit ? await this.awaitingPayment(year) : 0;
-    const commission = auth.perms.scope === 'own' ? await this.agentCommission(auth.user.id) : null;
+    const commission = auth.perms.scope === 'own' ? await this.brokerCommission(auth.user.id) : null;
 
     const [needsYourOk, attention, stock, onboarding, whatToDo] = await Promise.all([
       this.needsYourOk(auth),
@@ -116,14 +116,14 @@ export class HomeService {
     return Number(r.n);
   }
 
-  private async agentCommission(agentId: string) {
+  private async brokerCommission(brokerId: string) {
     const [r] = await this.db
       .select({
         readyCents: sql<number>`coalesce(sum(${commissionEntries.amountCents}) filter (where ${commissionEntries.status} = 'ready'), 0)::int`,
         comingCents: sql<number>`coalesce(sum(${commissionEntries.amountCents}) filter (where ${commissionEntries.status} = 'coming'), 0)::int`,
       })
       .from(commissionEntries)
-      .where(eq(commissionEntries.agentId, agentId));
+      .where(eq(commissionEntries.brokerId, brokerId));
     return r;
   }
 
@@ -140,7 +140,7 @@ export class HomeService {
           decidedAt: a.decidedAt,
           customerId: a.customerId,
           customerName: a.customerName,
-          agentName: a.agentName,
+          brokerName: a.brokerName,
           orderId: a.orderId,
           orderNumber: a.orderNumber,
           reason: a.reason,
@@ -152,13 +152,13 @@ export class HomeService {
     }
     if (can(auth, 'confirm_payment')) {
       const pays = await this.db
-        .select({ id: orders.id, number: orders.number, totalCents: orders.totalCents, paidCents: orders.paidCents, creditedCents: orders.creditedCents, customerName: customers.companyName, agentName: users.name, requestSentAt: orders.requestSentAt, paymentDueOn: orders.paymentDueOn })
+        .select({ id: orders.id, number: orders.number, totalCents: orders.totalCents, paidCents: orders.paidCents, creditedCents: orders.creditedCents, customerName: customers.companyName, brokerName: users.name, requestSentAt: orders.requestSentAt, paymentDueOn: orders.paymentDueOn })
         .from(orders)
         .innerJoin(customers, eq(customers.id, orders.customerId))
-        .innerJoin(users, eq(users.id, orders.agentId))
+        .innerJoin(users, eq(users.id, orders.brokerId))
         .where(eq(orders.status, 'payment_to_confirm'))
         .orderBy(asc(orders.requestSentAt));
-      for (const p of pays) rows.push({ kind: 'payment', id: p.id, status: 'pending', orderId: p.id, orderNumber: p.number, customerName: p.customerName, agentName: p.agentName, totalCents: Math.max(0, p.totalCents - p.paidCents - p.creditedCents), createdAt: p.requestSentAt, paymentDueOn: p.paymentDueOn });
+      for (const p of pays) rows.push({ kind: 'payment', id: p.id, status: 'pending', orderId: p.id, orderNumber: p.number, customerName: p.customerName, brokerName: p.brokerName, totalCents: Math.max(0, p.totalCents - p.paidCents - p.creditedCents), createdAt: p.requestSentAt, paymentDueOn: p.paymentDueOn });
     }
     return rows;
   }
@@ -170,14 +170,14 @@ export class HomeService {
 
     // Overdue invoices: oldest first, with what to call or remind about.
     const overdue = await this.db
-      .select({ orderId: orders.id, number: orders.number, customerId: customers.id, customerName: customers.companyName, phone: customers.phone, agentName: users.name, dueOn: orders.paymentDueOn, outstandingCents: outstandingSql })
+      .select({ orderId: orders.id, number: orders.number, customerId: customers.id, customerName: customers.companyName, phone: customers.phone, brokerName: users.name, dueOn: orders.paymentDueOn, outstandingCents: outstandingSql })
       .from(orders)
       .innerJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(and(inArray(orders.status, [...OWED_STATUSES]), sql`${outstandingSql} > 0`, lt(orders.paymentDueOn, today), scope))
       .orderBy(asc(orders.paymentDueOn));
     if (overdue.length) {
-      const owed = await this.figures.owed(agentFilter(auth));
+      const owed = await this.figures.owed(brokerFilter(auth));
       out.push({
         kind: 'overdue',
         count: overdue.length,
@@ -302,42 +302,42 @@ export class HomeService {
   private async whatToDo(auth: AuthContext) {
     if (auth.perms.scope === 'shipping') return { lastSaleAt: null, steps: [] };
     const own = auth.perms.scope === 'own';
-    const steps: Array<{ kind: string; cents: number; id: string; label: string; agentId?: string | null; agentName?: string | null; agentEmail?: string | null; since?: string | Date | null; number?: string; link: string }> = [];
+    const steps: Array<{ kind: string; cents: number; id: string; label: string; brokerId?: string | null; brokerName?: string | null; brokerEmail?: string | null; since?: string | Date | null; number?: string; link: string }> = [];
     if (can(auth, 'approve')) {
       for (const a of await this.approvals.pending()) {
         if (a.type !== 'new_customer') continue;
         const [d] = await this.db.select({ cents: sql<number>`coalesce(sum(${orders.netCents}),0)::int` }).from(orders).where(and(eq(orders.customerId, a.customerId!), eq(orders.status, 'draft')));
-        steps.push({ kind: 'approve_customer', cents: Number(d.cents), id: a.id, label: a.customerName ?? '', agentName: a.agentName, link: `/home?review=${a.id}` });
+        steps.push({ kind: 'approve_customer', cents: Number(d.cents), id: a.id, label: a.customerName ?? '', brokerName: a.brokerName, link: `/home?review=${a.id}` });
       }
     }
     const since = new Date(Date.now() - 2 * DAY);
     const drafts = await this.db
-      .select({ id: orders.id, number: orders.number, cents: orders.netCents, createdAt: orders.createdAt, agentId: orders.agentId, agentName: users.name, agentEmail: users.email, customerName: customers.companyName })
+      .select({ id: orders.id, number: orders.number, cents: orders.netCents, createdAt: orders.createdAt, brokerId: orders.brokerId, brokerName: users.name, brokerEmail: users.email, customerName: customers.companyName })
       .from(orders)
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .leftJoin(customers, eq(customers.id, orders.customerId))
       .where(and(eq(orders.status, 'draft'), lt(orders.createdAt, since), orderScope(auth)))
       .orderBy(desc(orders.netCents))
       .limit(5);
-    for (const d of drafts) steps.push({ kind: own ? 'send_draft' : 'draft', cents: d.cents, id: d.id, number: d.number, label: d.customerName ?? d.number, agentId: d.agentId, agentName: d.agentName, agentEmail: d.agentEmail, since: d.createdAt, link: `/sales/${d.id}` });
+    for (const d of drafts) steps.push({ kind: own ? 'send_draft' : 'draft', cents: d.cents, id: d.id, number: d.number, label: d.customerName ?? d.number, brokerId: d.brokerId, brokerName: d.brokerName, brokerEmail: d.brokerEmail, since: d.createdAt, link: `/sales/${d.id}` });
 
     // Due to reorder: customers with at least two orders whose usual gap since the last one has passed.
-    const due = await this.db.execute<{ id: string; name: string; agent_id: string | null; agent_name: string | null; agent_email: string | null; last: string; avg_cents: number }>(sql`
+    const due = await this.db.execute<{ id: string; name: string; broker_id: string | null; broker_name: string | null; broker_email: string | null; last: string; avg_cents: number }>(sql`
       with o as (
         select ${orders.customerId} as cid, ${orders.requestSentAt} as at, ${orders.netCents} as net
         from ${orders}
-        where ${orders.requestSentAt} is not null and ${orders.status} not in ('draft','cancelled') ${own ? sql`and ${orders.agentId} = ${auth.user.id}` : sql``}
+        where ${orders.requestSentAt} is not null and ${orders.status} not in ('draft','cancelled') ${own ? sql`and ${orders.brokerId} = ${auth.user.id}` : sql``}
       ), s as (
         select cid, max(at) as last, count(*) as n, avg(net)::int as avg_cents,
                extract(epoch from (max(at) - min(at))) / nullif(count(*) - 1, 0) / 86400 as gap
         from o group by cid having count(*) >= 2
       )
-      select c.id, c.company_name as name, c.agent_id, u.name as agent_name, u.email as agent_email, s.last::text as last, s.avg_cents
-      from s join ${customers} c on c.id = s.cid left join ${users} u on u.id = c.agent_id
+      select c.id, c.company_name as name, c.broker_id, u.name as broker_name, u.email as broker_email, s.last::text as last, s.avg_cents
+      from s join ${customers} c on c.id = s.cid left join ${users} u on u.id = c.broker_id
       where c.status = 'active' and s.gap is not null and s.last + make_interval(days => greatest(ceil(s.gap)::int, 14)) < now()
         and not exists (select 1 from ${orders} x where x.customer_id = c.id and x.status in ('draft','payment_to_confirm'))
       order by s.avg_cents desc limit 3`);
-    for (const r of due.rows) steps.push({ kind: 'reorder', cents: Number(r.avg_cents), id: r.id, label: r.name, agentId: r.agent_id, agentName: r.agent_name, agentEmail: r.agent_email, since: r.last, link: `/customers/${r.id}` });
+    for (const r of due.rows) steps.push({ kind: 'reorder', cents: Number(r.avg_cents), id: r.id, label: r.name, brokerId: r.broker_id, brokerName: r.broker_name, brokerEmail: r.broker_email, since: r.last, link: `/customers/${r.id}` });
 
     const [last] = await this.db
       .select({ at: sql<string | null>`max(${orders.requestSentAt})::text` })
@@ -352,10 +352,10 @@ export class HomeService {
   async onboarding() {
     const s = await this.settings.all();
     if (s.onboarding.dismissed) return null;
-    const [[sup], [pur], [agents], [cust]] = await Promise.all([
+    const [[sup], [pur], [brokers], [cust]] = await Promise.all([
       this.db.select({ n: sql<number>`count(*)::int` }).from(suppliers).where(eq(suppliers.status, 'approved')),
       this.db.select({ n: sql<number>`count(*)::int` }).from(purchases),
-      this.db.select({ n: sql<number>`count(*)::int` }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).where(eq(roles.baseRole, 'agent')),
+      this.db.select({ n: sql<number>`count(*)::int` }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).where(eq(roles.baseRole, 'broker')),
       this.db.select({ n: sql<number>`count(*)::int` }).from(customers).where(eq(customers.status, 'active')),
     ]);
     const steps = [
@@ -363,7 +363,7 @@ export class HomeService {
       { key: 'bank', done: !!s.bank.iban, link: '/settings/bank' },
       { key: 'supplier', done: sup.n > 0, link: '/purchasing/suppliers?new=1' },
       { key: 'purchase', done: pur.n > 0, link: '/purchasing?new=1' },
-      { key: 'agents', done: agents.n > 0, link: '/agents?invite=1' },
+      { key: 'brokers', done: brokers.n > 0, link: '/brokers?invite=1' },
       { key: 'customer', done: cust.n > 0, link: '/customers?new=1' },
     ];
     if (steps.every((x) => x.done)) return null;

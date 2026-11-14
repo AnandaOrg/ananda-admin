@@ -13,22 +13,22 @@ import { NewEventSheet } from './_components/NewEventSheet';
 import { eventDates } from './_components/dates';
 import type { EventItem, EventsList } from './_components/types';
 
-/** Events & festivals (FR-EVT-1). Agents see the events they are invited to. */
+/** Events & festivals (FR-EVT-1). Brokers see the events they are invited to. */
 export default function EventsPage() {
   const t = useTranslations('events');
   const tc = useTranslations('common');
   const router = useRouter();
-  const { canEdit, readOnly, isAgent } = useSession();
+  const { canEdit, readOnly, isBroker } = useSession();
   const { money, num, locale } = useFmt();
   const [open, setOpen] = useState(false);
   const q = useQuery({ queryKey: ['events'], queryFn: () => api.get<EventsList>('/events') });
-  const mayEdit = canEdit('events') && !readOnly && !isAgent;
+  const mayEdit = canEdit('events') && !readOnly && !isBroker;
 
   if (q.isLoading) return <PageSkeleton />;
   if (q.error || !q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
   const { tiles, items } = q.data;
   const showCosts = tiles.expensesThisYearCents != null;
-  const agents = (e: EventItem) => e.agents.map((a) => a.name).join(', ');
+  const brokers = (e: EventItem) => e.brokers.map((a) => a.name).join(', ');
   const newButton = (block = false) =>
     mayEdit ? (
       <Button size={block ? 'lg' : 'sm'} block={block} variant="primary" icon={Plus} onClick={() => setOpen(true)}>
@@ -49,7 +49,7 @@ export default function EventsPage() {
     },
     { key: 'when', header: t('cols.when'), render: (e) => <bdi className="nowrap">{eventDates(e.startsOn, e.endsOn, locale)}</bdi> },
     { key: 'type', header: t('cols.type'), render: (e) => t(`kind.${e.kind}`) },
-    { key: 'invited', header: t('cols.invited'), render: (e) => agents(e) || t('noneYet') },
+    { key: 'invited', header: t('cols.invited'), render: (e) => brokers(e) || t('noneYet') },
     {
       key: 'stock',
       header: t('cols.stock'),
@@ -111,7 +111,7 @@ export default function EventsPage() {
                 href={`/events/${e.id}`}
                 title={e.name}
                 amount={eventDates(e.startsOn, e.endsOn, locale, true)}
-                sub={`${e.place} · ${agents(e) || t('noAgentsYet')}`}
+                sub={`${e.place} · ${brokers(e) || t('noBrokersYet')}`}
                 status={<Pill tone="info">{t(`kind.${e.kind}`)}</Pill>}
               />
             ))}

@@ -46,10 +46,10 @@ const KIND: Record<string, [PhosphorIcon, Tone]> = {
   sent_for_approval: [UserPlus, 'blue'],
   special_price: [Tag, 'warn'],
   correction: [NotePencil, 'warn'],
-  agent_upload: [FileText, 'hl'],
-  agent_signed: [Signature, 'good'],
-  agent_agreement: [Signature, 'good'],
-  agent_setup_done: [CheckCircle, 'good'],
+  broker_upload: [FileText, 'hl'],
+  broker_signed: [Signature, 'good'],
+  broker_agreement: [Signature, 'good'],
+  broker_setup_done: [CheckCircle, 'good'],
   upload_opened: [Eye, 'blue'],
   delivered: [Truck, ''],
   to_ship: [Package, ''],
@@ -172,7 +172,7 @@ export function NotificationsBody({
               <Icon as={Bell} size="lg" />
             </span>
             <b>{t('notifications.emptyTitle')}</b>
-            <span>{t(isAdmin ? 'notifications.emptyAdmin' : 'notifications.emptyAgent')}</span>
+            <span>{t(isAdmin ? 'notifications.emptyAdmin' : 'notifications.emptyBroker')}</span>
           </div>
         ) : !list.length ? (
           <div className="nt-empty">

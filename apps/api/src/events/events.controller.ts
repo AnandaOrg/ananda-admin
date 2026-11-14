@@ -8,7 +8,7 @@ import { eventSaleSchema, type EventSaleInput } from './events.schemas';
 
 const uuid = new ParseUUIDPipe();
 
-/** Events & festivals (PRD §5.9). Admins edit; Agents see the events they are invited to. */
+/** Events & festivals (PRD §5.9). Admins edit; Brokers see the events they are invited to. */
 @Controller('events')
 export class EventsController {
   constructor(private readonly events: EventsService) {}
@@ -42,6 +42,6 @@ export class EventsController {
   @Post(':id/sales')
   @HttpCode(200)
   sale(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(eventSaleSchema)) body: EventSaleInput) {
-    return this.events.recordSale(auth, id, body.agentId, body.cartons, body.amountNetCents);
+    return this.events.recordSale(auth, id, body.brokerId, body.cartons, body.amountNetCents);
   }
 }

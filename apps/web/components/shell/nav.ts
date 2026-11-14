@@ -52,7 +52,7 @@ export const NAV: NavGroup[] = [
   {
     key: 'people',
     items: [
-      { key: 'agents', href: '/agents', area: 'agents', icon: Briefcase },
+      { key: 'brokers', href: '/brokers', area: 'brokers', icon: Briefcase },
       { key: 'events', href: '/events', area: 'events', icon: CalendarBlank },
     ],
   },

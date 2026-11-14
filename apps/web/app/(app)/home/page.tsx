@@ -45,8 +45,8 @@ import { AllocateSheet } from '../inventory/_components/AllocateSheet';
 import { AddCustomerSheet } from '../customers/AddCustomerSheet';
 import { NewSaleSheet } from '../sales/NewSaleSheet';
 import { ReviewPanel } from './ReviewPanel';
-import { SetupBanner } from '../agents/_components/SetupBanner';
-import { AgentEmailSheet, BankSheet, LatePurchaseSheet, NoInvoiceSheet, OverdueSheet } from './HomeSheets';
+import { SetupBanner } from '../brokers/_components/SetupBanner';
+import { BrokerEmailSheet, BankSheet, LatePurchaseSheet, NoInvoiceSheet, OverdueSheet } from './HomeSheets';
 import { useDecision } from './useDecision';
 import type { Attention, HomeData, OkRow, Step } from './types';
 import s from './home.module.css';
@@ -63,13 +63,13 @@ export default function HomePage() {
   const router = useRouter();
   const params = useSearchParams();
   const phone = useMedia('(max-width: 767px)');
-  const { isAgent, can, canView, canEdit, isWarehouse } = useSession();
+  const { isBroker, can, canView, canEdit, isWarehouse } = useSession();
   const { day } = useAsOf();
   const { money, num, dateShort } = useFmt();
   const [panel, setPanel] = useState<Panel>(null);
   const [adding, setAdding] = useState(false);
   const [selling, setSelling] = useState(false);
-  const [mail, setMail] = useState<{ agentId: string; agentName: string; agentEmail?: string | null; subject: string; body: string } | null>(null);
+  const [mail, setMail] = useState<{ brokerId: string; brokerName: string; brokerEmail?: string | null; subject: string; body: string } | null>(null);
   const review = params.get('review');
   const home = useQuery({ queryKey: ['home', day], queryFn: () => api.get<HomeData>('/home') });
   const { approve, undo } = useDecision();
@@ -124,7 +124,7 @@ export default function HomePage() {
         <div style={{ minWidth: 0 }}>
           <div className={s.t1}>
             {title}
-            {decided ? <Pill tone={r.status === 'approved' ? 'good' : 'bad'}>{r.status === 'approved' ? t('ok.approved') : t('ok.declined')}</Pill> : <Pill tone="blue">{r.agentName}</Pill>}
+            {decided ? <Pill tone={r.status === 'approved' ? 'good' : 'bad'}>{r.status === 'approved' ? t('ok.approved') : t('ok.declined')}</Pill> : <Pill tone="blue">{r.brokerName}</Pill>}
           </div>
           <div className={s.t2}>
             <bdi>{okLine(r)}</bdi>
@@ -309,7 +309,7 @@ export default function HomePage() {
             </span>
             <span className={s.s}>{tm.owed.lateCents > 0 ? <><span className="bad">{t('tiles.late', { amount: money(tm.owed.lateCents, true) })}</span> ›</> : t('tiles.nothingLate')}</span>
           </button>
-          {isAgent && tm.commission ? (
+          {isBroker && tm.commission ? (
             <>
               <div className={s.pbox}>
                 <span className={s.k}>{t('tiles.readyToPay')}</span>
@@ -367,9 +367,9 @@ export default function HomePage() {
           link={canView('collections') ? { href: '/collections', label: t('tiles.openCollections') } : undefined}
           onClick={canView('collections') ? () => router.push('/collections') : undefined}
         />
-        {isAgent && tm.commission ? (
+        {isBroker && tm.commission ? (
           <>
-            <KpiTile label={t('tiles.readyToPay')} value={money(tm.commission.readyCents, true)} sub={t('tiles.readyToPaySub')} link={{ href: '/agents', label: tc('nav.earnings') }} />
+            <KpiTile label={t('tiles.readyToPay')} value={money(tm.commission.readyCents, true)} sub={t('tiles.readyToPaySub')} link={{ href: '/brokers', label: tc('nav.earnings') }} />
             <KpiTile label={t('tiles.coming')} value={money(tm.commission.comingCents, true)} sub={t('tiles.comingSub')} />
           </>
         ) : (
@@ -591,7 +591,7 @@ export default function HomePage() {
     .filter(Boolean)
     .join(' ');
   const stepRow = (st: Step) => {
-    const name = first(st.agentName);
+    const name = first(st.brokerName);
     let icon = NotePencil;
     let tone = 'warn';
     let title: ReactNode = st.label;
@@ -619,14 +619,14 @@ export default function HomePage() {
           <Link href={st.link} className="an-btn secondary sm keep">
             {t('whatToDo.openDraft')}
           </Link>
-        ) : st.agentId ? (
+        ) : st.brokerId ? (
           <Button
             size="sm"
             onClick={() =>
               setMail({
-                agentId: st.agentId!,
-                agentName: st.agentName ?? '',
-                agentEmail: st.agentEmail,
+                brokerId: st.brokerId!,
+                brokerName: st.brokerName ?? '',
+                brokerEmail: st.brokerEmail,
                 subject: t('whatToDo.draftSubject', { customer: st.label }),
                 body: t('whatToDo.draftBody', { name, customer: st.label, number: st.number ?? '', amount: money(st.cents, true), date: dateShort(st.since) }),
               })
@@ -640,14 +640,14 @@ export default function HomePage() {
       tone = 'info';
       sub = t('whatToDo.dueReorder', { date: dateShort(st.since) });
       act =
-        st.agentId && !isAgent ? (
+        st.brokerId && !isBroker ? (
           <Button
             size="sm"
             onClick={() =>
               setMail({
-                agentId: st.agentId!,
-                agentName: st.agentName ?? '',
-                agentEmail: st.agentEmail,
+                brokerId: st.brokerId!,
+                brokerName: st.brokerName ?? '',
+                brokerEmail: st.brokerEmail,
                 subject: st.label,
                 body: t('whatToDo.reorderBody', { name, customer: st.label, date: dateShort(st.since) }),
               })
@@ -676,7 +676,7 @@ export default function HomePage() {
 
   return (
     <div className="page">
-      {isAgent && <SetupBanner />}
+      {isBroker && <SetupBanner />}
       {header}
       {phone ? (
         phoneBody
@@ -719,7 +719,7 @@ export default function HomePage() {
       <LatePurchaseSheet row={panel === 'late_purchases' ? attention('late_purchases') : null} onClose={() => setPanel(null)} />
       <AllocateSheet open={panel === 'alloc'} onClose={() => setPanel(null)} />
       <BankSheet open={panel === 'bank'} onClose={() => setPanel(null)} />
-      <AgentEmailSheet mail={mail} onClose={() => setMail(null)} />
+      <BrokerEmailSheet mail={mail} onClose={() => setMail(null)} />
       <AddCustomerSheet open={adding} onClose={() => setAdding(false)} />
       <NewSaleSheet open={selling} onClose={() => setSelling(false)} onDone={(r) => (setSelling(false), router.push(`/sales/${r.id}`))} />
       <ReviewPanel id={review} onClose={() => setReview(null)} />

@@ -33,7 +33,7 @@ import {
   Table,
   TextField,
 } from '@/components/ui';
-import { ChangeAgentSheet } from '../ChangeAgentSheet';
+import { ChangeBrokerSheet } from '../ChangeBrokerSheet';
 import { NewSaleSheet } from '../../sales/NewSaleSheet';
 import { useCountryName } from '../AddCustomerSheet';
 import { STATUS_TONE } from '../status';
@@ -61,10 +61,10 @@ interface CustomerCard {
     note: string | null;
     status: string;
     displayStatus: string;
-    agentId: string | null;
+    brokerId: string | null;
   };
-  agent?: { id: string; name: string; email: string } | null;
-  previousAgent?: { id: string; name: string } | null;
+  broker?: { id: string; name: string; email: string } | null;
+  previousBroker?: { id: string; name: string } | null;
   tiles?: { owesCents: number; lateCents: number; lastOrder: { id: string; number: string; createdAt: string } | null; deliveredSalesCents: number; vatRegime: 'domestic' | 'eu_reverse_charge' | 'eu_vat' | 'export' };
   orders?: { id: string; number: string; status: OrderStatus; createdAt: string; requestSentAt: string | null; totalCents: number; totalCartons: number; outstandingCents: number; paymentDueOn: string | null; commissionCents: number }[];
   payments?: { id: string; receivedOn: string; amountCents: number; method: string; bankReference: string | null; orderNumber: string; orderId: string }[];
@@ -84,7 +84,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
   const tc = useTranslations('common');
   const router = useRouter();
   const phone = useMedia('(max-width: 767px)');
-  const { isAgent, isAdmin, canEdit } = useSession();
+  const { isBroker, isAdmin, canEdit } = useSession();
   const { money, unit, date, dateShort, num } = useFmt();
   const country = useCountryName();
   const [tab, setTab] = useState<Tab>('orders');
@@ -140,7 +140,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
   const tiles = d.tiles!;
   const orders = d.orders ?? [];
   const minCartons = d.rules?.minOrderCartons ?? 42;
-  const canSell = canEdit('sales') && cu.status === 'active' && (!isAgent || cu.agentId);
+  const canSell = canEdit('sales') && cu.status === 'active' && (!isBroker || cu.brokerId);
   const free = cu.displayStatus === 'free_to_claim';
   const docHref = (doc: { id: string; type: string }) => (doc.type === 'delivery_note' || doc.type === 'upload' ? `/api/documents/${doc.id}/file` : `/api/documents/${doc.id}/print`);
   const vatLabel = t(`vatRegime.${tiles.vatRegime}`);
@@ -154,9 +154,9 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
 
   const kicker = free ? (
     t('kickerFree')
-  ) : d.agent ? (
+  ) : d.broker ? (
     <span className={s.head}>
-      {tc('agent')} <Pill tone="blue">{d.agent.name}</Pill> · {cu.ownedUntil ? t('keepsUntil', { date: date(cu.ownedUntil) }) : t('keepsNotSet')}
+      {tc('broker')} <Pill tone="blue">{d.broker.name}</Pill> · {cu.ownedUntil ? t('keepsUntil', { date: date(cu.ownedUntil) }) : t('keepsNotSet')}
     </span>
   ) : (
     t('kickerHouse')
@@ -168,7 +168,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
         <Banner
           tone={cu.status === 'declined' ? 'bad' : 'info'}
           sub={cu.status === 'declined' ? [d.approval?.declineReason && (tc.has(`reasons.decline.${d.approval.declineReason}`) ? tc(`reasons.decline.${d.approval.declineReason}`) : d.approval.declineReason), d.approval?.declineMessage].filter(Boolean).join(' · ') : undefined}
-          action={isAgent ? { label: t('new.sendForApproval'), onClick: () => submit.mutate(undefined) } : undefined}
+          action={isBroker ? { label: t('new.sendForApproval'), onClick: () => submit.mutate(undefined) } : undefined}
         >
           {cu.status === 'declined' ? t('declinedBanner') : t('draftBanner')}
         </Banner>
@@ -214,7 +214,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
             )}
           </>
         ),
-        sub: cm != null && d.agent ? t('money.commission', { name: d.agent.name.split(' ')[0], amount: money(cm) }) : undefined,
+        sub: cm != null && d.broker ? t('money.commission', { name: d.broker.name.split(' ')[0], amount: money(cm) }) : undefined,
         cents: p.amountCents,
       };
     }),
@@ -354,7 +354,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
   const sheets = (
     <>
       <NewSaleSheet open={selling} onClose={() => setSelling(false)} customerId={id} onDone={(r) => (setSelling(false), router.push(`/sales/${r.id}`))} />
-      {moving && <ChangeAgentSheet customer={{ id: cu.id, companyName: cu.companyName, agentId: free ? null : cu.agentId, agentName: free ? null : (d.agent?.name ?? null), months: d.rules?.ownershipMonths }} onClose={() => setMoving(false)} />}
+      {moving && <ChangeBrokerSheet customer={{ id: cu.id, companyName: cu.companyName, brokerId: free ? null : cu.brokerId, brokerName: free ? null : (d.broker?.name ?? null), months: d.rules?.ownershipMonths }} onClose={() => setMoving(false)} />}
       <Sheet
         open={contact}
         onClose={() => setContact(false)}
@@ -384,7 +384,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
       <div className="page">
         <PageHeader crumbs={[{ label: tc('nav.customers'), href: '/customers' }, { label: cu.companyName }]} title={cu.companyName} />
         <div className={s.head}>
-          <span className={s.note}>{free ? t('kickerFree') : d.agent ? `${d.agent.name} · ${cu.ownedUntil ? t('keepsItUntil', { date: date(cu.ownedUntil) }) : t('keepsNotSet')}` : t('kickerHouse')}</span>
+          <span className={s.note}>{free ? t('kickerFree') : d.broker ? `${d.broker.name} · ${cu.ownedUntil ? t('keepsItUntil', { date: date(cu.ownedUntil) }) : t('keepsNotSet')}` : t('kickerHouse')}</span>
           <Pill tone={STATUS_TONE[cu.displayStatus] ?? 'info'}>{tc(`customerStatus.${cu.displayStatus}`)}</Pill>
         </div>
         {banners}
@@ -406,7 +406,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
           <div className={s.btns}>
             {isAdmin && (
               <Button onClick={() => setMoving(true)}>
-                {t('changeAgent')}
+                {t('changeBroker')}
               </Button>
             )}
             {canSell && (
@@ -494,7 +494,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
             </a>
             {isAdmin && (
               <Button size="sm" onClick={() => setMoving(true)}>
-                {t('changeAgent')}
+                {t('changeBroker')}
               </Button>
             )}
             {canSell && (

@@ -13,7 +13,7 @@ export interface BusinessRules {
   stockHoldDays: number;
   proformaValidityDays: number;
   commissionPerUnitCents: number;
-  ownership: { months: number; countedFrom: 'each_order' | 'first_order'; warningDays: number; atEnd: 'free_to_claim' | 'stay_with_agent' };
+  ownership: { months: number; countedFrom: 'each_order' | 'first_order'; warningDays: number; atEnd: 'free_to_claim' | 'stay_with_broker' };
   paymentBeforeShippingPercent: number;
   supplierFollowUpDays: number;
 }
@@ -51,7 +51,7 @@ export interface EmailSettings {
   accounting: string;
   sender: string;
   replyTo: string;
-  copyAgent: boolean;
+  copyBroker: boolean;
 }
 
 export interface DocumentSettings {

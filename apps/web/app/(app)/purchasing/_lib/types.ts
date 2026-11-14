@@ -153,7 +153,7 @@ export interface PurchaseDetail {
   shipments: Shipment[];
   documents: { id: string; type: string; number: string | null; label: string | null; fileName: string | null; hasFile: boolean; totalCents: number | null; createdAt: string; by: string | null }[];
   messages: { id: string; topic: string; to: string; subject: string; body: string; followUpOn: string | null; resolvedAt: string | null; createdAt: string; by: string | null }[];
-  waiting: { id: string; number: string; paidAt: string | null; since: string | null; agentName: string | null; customerName: string | null; cartons: number; units: number; lines: { flavour: Flavour; cartons: number; units: number }[] }[];
+  waiting: { id: string; number: string; paidAt: string | null; since: string | null; brokerName: string | null; customerName: string | null; cartons: number; units: number; lines: { flavour: Flavour; cartons: number; units: number }[] }[];
   files: PurchaseFile[];
   steps: Record<'ordered' | 'on_the_way' | 'supplier_invoice' | 'paid_supplier' | 'landed_cost', { done: boolean; on: string | null; number?: string | null }>;
   actions: string[];

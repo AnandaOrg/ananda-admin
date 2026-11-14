@@ -43,17 +43,17 @@ interface Row {
   customerName: string;
   phone: string;
   email: string;
-  agentId: string;
-  agentName: string;
+  brokerId: string;
+  brokerName: string;
   daysLate: number;
   lastReminderAt: string | null;
   remindedToday: boolean;
 }
 interface Data {
   tiles: { lateCents: number; lateCount: number; dueWeekCents: number; dueWeekCount: number; allCents: number; allCount: number; oldestLateDays: number; everyCents: number | null };
-  agents: { id: string; name: string; unpaid: number }[] | null;
-  /** Settings › E-mail "Copy the agent on reminders". */
-  copyAgent: boolean;
+  brokers: { id: string; name: string; unpaid: number }[] | null;
+  /** Settings › E-mail "Copy the broker on reminders". */
+  copyBroker: boolean;
   items: Row[];
 }
 type Filter = 'late' | 'week' | 'all';
@@ -84,8 +84,8 @@ function Tile({ label, value, sub, bad, onClick }: { label: string; value: React
   );
 }
 
-/** The reminder draft, read (and edited) before it goes out. The agent is copied (FR-COLL-3). */
-function useReminder(row: Row, copyAgent: boolean, onDone: () => void) {
+/** The reminder draft, read (and edited) before it goes out. The broker is copied (FR-COLL-3). */
+function useReminder(row: Row, copyBroker: boolean, onDone: () => void) {
   const t = useTranslations('collections');
   const draft = useQuery({ queryKey: ['collections', 'draft', row.orderId], queryFn: () => api.get<{ to: string; subject: string; message: string }>(`/collections/${row.orderId}/reminder`), staleTime: Infinity });
   const [text, setText] = useState<string | null>(null);
@@ -93,16 +93,16 @@ function useReminder(row: Row, copyAgent: boolean, onDone: () => void) {
     if (draft.data && text === null) setText(draft.data.message);
   }, [draft.data, text]);
   const send = useAction(() => api.post(`/collections/${row.orderId}/reminder`, { subject: draft.data!.subject, message: text ?? '' }), {
-    success: copyAgent ? t('reminderSent', { name: row.customerName, agent: first(row.agentName) }) : t('reminderSentNoCopy', { name: row.customerName }),
+    success: copyBroker ? t('reminderSent', { name: row.customerName, broker: first(row.brokerName) }) : t('reminderSentNoCopy', { name: row.customerName }),
     onDone,
   });
   return { draft, text, setText, send };
 }
 
-function DraftBox({ row, copyAgent, onDone, phone }: { row: Row; copyAgent: boolean; onDone: () => void; phone?: boolean }) {
+function DraftBox({ row, copyBroker, onDone, phone }: { row: Row; copyBroker: boolean; onDone: () => void; phone?: boolean }) {
   const t = useTranslations('collections');
   const tc = useTranslations('common');
-  const { draft, text, setText, send } = useReminder(row, copyAgent, onDone);
+  const { draft, text, setText, send } = useReminder(row, copyBroker, onDone);
   if (draft.error) return <ErrorState error={draft.error} retry={() => draft.refetch()} />;
   const box =
     text === null ? (
@@ -150,38 +150,38 @@ export default function CollectionsPage() {
   const t = useTranslations('collections');
   const tc = useTranslations('common');
   const params = useSearchParams();
-  const { isAgent } = useSession();
+  const { isBroker } = useSession();
   const { money, num, dateShort } = useFmt();
   const initial = params.get('filter');
   const [filter, setFilter] = useState<Filter>(initial === 'week' || initial === 'all' ? initial : 'late');
-  const [agentId, setAgentId] = useState<string | null>(params.get('agentId'));
+  const [brokerId, setBrokerId] = useState<string | null>(params.get('brokerId'));
   const [open, setOpen] = useState<string | null>(null);
-  const query = qs({ filter, agentId });
+  const query = qs({ filter, brokerId });
   const q = useQuery({ queryKey: ['collections', query], queryFn: () => api.get<Data>(`/collections${query}`) });
 
   if (q.isLoading) return <PageSkeleton />;
   if (!q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
-  const { tiles, items, agents, copyAgent } = q.data;
-  const agent = agents?.find((a) => a.id === agentId) ?? null;
-  const showAgent = !isAgent;
-  const empty = tiles.allCount === 0 && !agentId;
+  const { tiles, items, brokers, copyBroker } = q.data;
+  const broker = brokers?.find((a) => a.id === brokerId) ?? null;
+  const showBroker = !isBroker;
+  const empty = tiles.allCount === 0 && !brokerId;
 
   const pick = (v: Filter) => {
     setOpen(null);
     setFilter(v);
   };
-  const agentItems: MenuItem[] = [
-    { key: 'all', label: t('allAgents'), detail: t('unpaidInvoices', { n: (agents ?? []).reduce((s, a) => s + a.unpaid, 0) }), selected: !agentId, onSelect: () => setAgentId(null) },
-    ...(agents ?? []).map((a) => ({ key: a.id, label: a.name, detail: t('unpaidInvoices', { n: a.unpaid }), selected: a.id === agentId, onSelect: () => setAgentId(a.id) })),
+  const brokerItems: MenuItem[] = [
+    { key: 'all', label: t('allBrokers'), detail: t('unpaidInvoices', { n: (brokers ?? []).reduce((s, a) => s + a.unpaid, 0) }), selected: !brokerId, onSelect: () => setBrokerId(null) },
+    ...(brokers ?? []).map((a) => ({ key: a.id, label: a.name, detail: t('unpaidInvoices', { n: a.unpaid }), selected: a.id === brokerId, onSelect: () => setBrokerId(a.id) })),
   ];
-  const agentLabel = agent?.name ?? t('allAgents');
+  const brokerLabel = broker?.name ?? t('allBrokers');
 
   const when = (r: Row) =>
     r.daysLate > 0 ? <Pill tone="bad">{tc('daysLate', { n: r.daysLate })}</Pill> : r.paymentDueOn ? <Pill tone="warn">{t('dueOn', { date: dateShort(r.paymentDueOn) })}</Pill> : null;
   const toggle = (r: Row) => setOpen(open === r.orderId ? null : r.orderId);
 
-  const kicker = empty ? t('nothingUnpaid') : isAgent ? t('kickerOwn', { n: tiles.allCount }) : t('kicker', { n: tiles.allCount, who: agent?.name ?? t('everyAgent') });
-  const allSub = agent && tiles.everyCents != null ? t('tiles.share', { name: first(agent.name), total: money(tiles.everyCents, true) }) : t('tiles.sameAsOverview');
+  const kicker = empty ? t('nothingUnpaid') : isBroker ? t('kickerOwn', { n: tiles.allCount }) : t('kicker', { n: tiles.allCount, who: broker?.name ?? t('everyBroker') });
+  const allSub = broker && tiles.everyCents != null ? t('tiles.share', { name: first(broker.name), total: money(tiles.everyCents, true) }) : t('tiles.sameAsOverview');
 
   return (
     <div className="page">
@@ -192,7 +192,7 @@ export default function CollectionsPage() {
         actions={
           empty ? undefined : (
             <span className="row only-wide">
-              {showAgent && <SelectPill label={tc('agent')} value={agentLabel} items={agentItems} />}
+              {showBroker && <SelectPill label={tc('broker')} value={brokerLabel} items={brokerItems} />}
               <a className="an-btn secondary sm" href={`/api/collections/export.csv${query}`}>
                 <DownloadSimple className="an-ic sm" aria-hidden /> {tc('exportCsv')}
               </a>
@@ -213,7 +213,7 @@ export default function CollectionsPage() {
           <>
             <Tile label={t('tiles.late')} value={money(tiles.lateCents, true)} bad={tiles.lateCents > 0} sub={t('tiles.invoices', { n: tiles.lateCount })} onClick={() => pick('late')} />
             <Tile label={t('tiles.week')} value={money(tiles.dueWeekCents, true)} sub={t('tiles.invoices', { n: tiles.dueWeekCount })} />
-            <Tile label={t('tiles.all')} value={money(tiles.allCents, true)} sub={isAgent ? undefined : allSub} />
+            <Tile label={t('tiles.all')} value={money(tiles.allCents, true)} sub={isBroker ? undefined : allSub} />
           </>
         )}
       </div>
@@ -250,14 +250,14 @@ export default function CollectionsPage() {
               { value: 'all', label: t('filters.all'), count: tiles.allCount },
             ]}
           />
-          {showAgent && (
+          {showBroker && (
             <div className="only-phone" style={{ display: 'grid' }}>
               <MenuButton
                 align="start"
-                items={agentItems}
+                items={brokerItems}
                 trigger={({ open: o, toggle: tg, ref }) => (
-                  <button ref={ref} type="button" className="an-input an-dd" aria-expanded={o} aria-haspopup="menu" aria-label={`${tc('agent')}: ${agentLabel}`} onClick={tg} style={{ minHeight: 44 }}>
-                    <span>{agentLabel}</span>
+                  <button ref={ref} type="button" className="an-input an-dd" aria-expanded={o} aria-haspopup="menu" aria-label={`${tc('broker')}: ${brokerLabel}`} onClick={tg} style={{ minHeight: 44 }}>
+                    <span>{brokerLabel}</span>
                     <Icon as={CaretDown} size="sm" />
                   </button>
                 )}
@@ -271,7 +271,7 @@ export default function CollectionsPage() {
                 <thead>
                   <tr>
                     <th>{t('cols.customer')}</th>
-                    {showAgent && <th>{tc('agent')}</th>}
+                    {showBroker && <th>{tc('broker')}</th>}
                     <th className="amt">{tc('amount')}</th>
                     <th>{t('cols.when')}</th>
                     <th className="amt">
@@ -282,8 +282,8 @@ export default function CollectionsPage() {
                 <tbody>
                   {items.length === 0 && (
                     <tr>
-                      <td colSpan={showAgent ? 5 : 4} className="muted">
-                        {agent ? t('nothingFor', { name: agent.name }) : t('nothingHere')}
+                      <td colSpan={showBroker ? 5 : 4} className="muted">
+                        {broker ? t('nothingFor', { name: broker.name }) : t('nothingHere')}
                       </td>
                     </tr>
                   )}
@@ -300,7 +300,7 @@ export default function CollectionsPage() {
                             </Link>
                           </span>
                         </td>
-                        {showAgent && <td>{r.agentName}</td>}
+                        {showBroker && <td>{r.brokerName}</td>}
                         <td className="amt">
                           <bdi>{money(r.outstandingCents)}</bdi>
                         </td>
@@ -310,7 +310,7 @@ export default function CollectionsPage() {
                             <span className="body-sm muted">{t('draftBelow')}</span>
                           ) : r.remindedToday ? (
                             <span className="body-sm" style={{ color: 'var(--good)' }}>
-                              {copyAgent ? t('sentToday', { name: first(r.agentName) }) : t('sentTodayNoCopy')}
+                              {copyBroker ? t('sentToday', { name: first(r.brokerName) }) : t('sentTodayNoCopy')}
                             </span>
                           ) : (
                             <span className="row end">
@@ -326,8 +326,8 @@ export default function CollectionsPage() {
                       </tr>
                       {open === r.orderId && (
                         <tr>
-                          <td colSpan={showAgent ? 5 : 4}>
-                            <DraftBox row={r} copyAgent={copyAgent} onDone={() => setOpen(null)} />
+                          <td colSpan={showBroker ? 5 : 4}>
+                            <DraftBox row={r} copyBroker={copyBroker} onDone={() => setOpen(null)} />
                           </td>
                         </tr>
                       )}
@@ -337,12 +337,12 @@ export default function CollectionsPage() {
               </table>
             </div>
             <div className="caption muted" style={{ padding: 'var(--space-4) var(--card-padding)', borderBlockStart: '1px solid var(--line)' }}>
-              {copyAgent ? t('foot') : t('footNoCopy')}
+              {copyBroker ? t('foot') : t('footNoCopy')}
             </div>
           </Card>
 
           <div className="list-cards only-phone">
-            {items.length === 0 && <span className="body-sm muted">{agent ? t('nothingFor', { name: agent.name }) : t('nothingHere')}</span>}
+            {items.length === 0 && <span className="body-sm muted">{broker ? t('nothingFor', { name: broker.name }) : t('nothingHere')}</span>}
             {items.map((r) => (
               <div key={r.orderId} className="an-card" style={{ gap: 'var(--space-1)' }}>
                 <div className="row between">
@@ -354,15 +354,15 @@ export default function CollectionsPage() {
                 <div className="row between body-sm muted">
                   <span>
                     <bdi>{r.number}</bdi>
-                    {showAgent && ` · ${r.agentName}`}
+                    {showBroker && ` · ${r.brokerName}`}
                   </span>
                   {when(r)}
                 </div>
                 {open === r.orderId ? (
-                  <DraftBox row={r} copyAgent={copyAgent} phone onDone={() => setOpen(null)} />
+                  <DraftBox row={r} copyBroker={copyBroker} phone onDone={() => setOpen(null)} />
                 ) : r.remindedToday ? (
                   <span className="body-sm" style={{ color: 'var(--good)' }}>
-                    {copyAgent ? t('sentTodayCard', { name: first(r.agentName) }) : t('sentTodayCardNoCopy')}
+                    {copyBroker ? t('sentTodayCard', { name: first(r.brokerName) }) : t('sentTodayCardNoCopy')}
                   </span>
                 ) : (
                   <div className="row" style={{ marginBlockStart: 'var(--space-1)' }}>

@@ -17,13 +17,13 @@ import s from './home.module.css';
 
 const first = (name?: string | null) => (name ?? '').split(' ')[0];
 
-/** Overdue invoices: oldest first; Call, or read a drafted reminder and send it. The agent is copied. */
+/** Overdue invoices: oldest first; Call, or read a drafted reminder and send it. The broker is copied. */
 export function OverdueSheet({ row, onClose }: { row: Attention | null; onClose: () => void }) {
   const t = useTranslations('home');
   const tc = useTranslations('common');
   const { money, num } = useFmt();
   const [drafts, setDrafts] = useState<Record<string, { subject: string; message: string } | 'sent'>>({});
-  const items = (row?.items ?? []) as { orderId: string; number: string; customerName: string; phone: string | null; agentName: string; outstandingCents: number; daysLate: number }[];
+  const items = (row?.items ?? []) as { orderId: string; number: string; customerName: string; phone: string | null; brokerName: string; outstandingCents: number; daysLate: number }[];
   const load = useAction((orderId: string) => api.get<{ subject: string; message: string }>(`/collections/${orderId}/reminder`).then((d) => ({ d, orderId })), {
     onDone: ({ d, orderId }) => setDrafts((x) => ({ ...x, [orderId]: d })),
     errorToast: true,
@@ -56,12 +56,12 @@ export function OverdueSheet({ row, onClose }: { row: Attention | null; onClose:
               </div>
               <div className={s.tot}>
                 <span className={s.m}>
-                  <bdi>{o.number}</bdi> · {o.agentName}
+                  <bdi>{o.number}</bdi> · {o.brokerName}
                 </span>
                 <Pill tone="bad">{t('daysLate', { n: num(o.daysLate) })}</Pill>
               </div>
               {d === 'sent' ? (
-                <span className={s.good}>{t('overdue.sent', { name: first(o.agentName) })}</span>
+                <span className={s.good}>{t('overdue.sent', { name: first(o.brokerName) })}</span>
               ) : d ? (
                 <>
                   <div className={s.draft}>{d.message}</div>
@@ -232,15 +232,15 @@ export function BankSheet({ open, onClose }: { open: boolean; onClose: () => voi
   return <BankBalanceSheet open={open} onClose={onClose} cash={q.data?.cash} />;
 }
 
-/** A note to an agent from What to do (a draft left unsent, a customer due to reorder). */
-export function AgentEmailSheet({ mail, onClose }: { mail: { agentId: string; agentName: string; agentEmail?: string | null; subject: string; body: string } | null; onClose: () => void }) {
+/** A note to a broker from What to do (a draft left unsent, a customer due to reorder). */
+export function BrokerEmailSheet({ mail, onClose }: { mail: { brokerId: string; brokerName: string; brokerEmail?: string | null; subject: string; body: string } | null; onClose: () => void }) {
   const t = useTranslations('home');
   const tc = useTranslations('common');
   const [draft, setDraft] = useState<Draft>({ subject: '', body: '' });
   useEffect(() => {
     if (mail) setDraft({ subject: mail.subject, body: mail.body });
   }, [mail]);
-  const send = useAction(() => api.post(`/agents/${mail!.agentId}/nudge`, { subject: draft.subject, message: draft.body }), { success: t('mail.sent', { name: mail?.agentName ?? '' }), onDone: onClose });
+  const send = useAction(() => api.post(`/brokers/${mail!.brokerId}/nudge`, { subject: draft.subject, message: draft.body }), { success: t('mail.sent', { name: mail?.brokerName ?? '' }), onDone: onClose });
   return (
     <Sheet
       open={!!mail}
@@ -256,7 +256,7 @@ export function AgentEmailSheet({ mail, onClose }: { mail: { agentId: string; ag
         </>
       }
     >
-      {mail && <EmailDraft value={draft} onChange={setDraft} to={mail.agentEmail ?? mail.agentName} />}
+      {mail && <EmailDraft value={draft} onChange={setDraft} to={mail.brokerEmail ?? mail.brokerName} />}
       <span className={s.caption} style={{ textAlign: 'start' }}>
         {t('mail.note')}
       </span>

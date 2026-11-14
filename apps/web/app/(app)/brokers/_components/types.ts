@@ -1,4 +1,4 @@
-export interface AgentRow {
+export interface BrokerRow {
   id: string;
   name: string;
   email: string;
@@ -13,7 +13,7 @@ export interface AgentRow {
   sentCents: number;
   paidThisYearCents: number;
   paidTodayCents: number;
-  /** Agent onboarding: invited → company → bank → sign → countersign (by an Admin) → done. */
+  /** Broker onboarding: invited → company → bank → sign → countersign (by an Admin) → done. */
   setup: SetupStatus;
   signedAt: string | null;
   bank: { accountHolder: string | null; bankName: string | null; iban: string; bic: string | null } | null;
@@ -24,8 +24,8 @@ export interface AgentRow {
 
 export type SetupStatus = 'invited' | 'company' | 'bank' | 'sign' | 'countersign' | 'done';
 
-export interface AgentDetail {
-  agent: { id: string; name: string; email: string };
+export interface BrokerDetail {
+  broker: { id: string; name: string; email: string };
   customers: { id: string; name: string; lastOrderAt: string | null; owedCents: number }[];
 }
 
@@ -52,8 +52,8 @@ export interface SetupDetails {
   bankConfirmation: string | null;
 }
 
-export interface AgentSetup {
-  agent: { id: string; name: string; email: string };
+export interface BrokerSetup {
+  broker: { id: string; name: string; email: string };
   status: SetupStatus;
   details: SetupDetails | null;
   signMethod: 'app' | 'paper' | null;
@@ -72,11 +72,11 @@ export interface AgentSetup {
   terms: { commissionPerUnitCents: number; ownershipMonths: number };
 }
 
-export interface AgentsOverview {
+export interface BrokersOverview {
   range: { from: string; to: string };
-  tiles: { readyCents: number; readyAgents: number; comingCents: number; sentCents: number; didntSell: number; activeAgents: number; newCustomersThisMonth: number };
+  tiles: { readyCents: number; readyBrokers: number; comingCents: number; sentCents: number; didntSell: number; activeBrokers: number; newCustomersThisMonth: number };
   didntSellIds: string[];
-  agents: AgentRow[];
+  brokers: BrokerRow[];
   terms: { commissionPerUnitCents: number; vatRate: number; inviteValidityDays: number };
   accountingEmail: string | null;
 }
@@ -102,7 +102,7 @@ export interface CommissionEntry {
 }
 
 export interface Earnings {
-  agent: { id: string; name: string };
+  broker: { id: string; name: string };
   totals: { readyCents: number; comingCents: number; sentCents: number; paidThisYearCents: number };
   entries: CommissionEntry[];
 }
@@ -111,9 +111,9 @@ export const COMMISSION_TONE: Record<CommissionStatus, 'mute' | 'good' | 'info'>
 
 /**
  * The pay actions possible right now (FR-AGT-3, A4): Send to pay when something is ready, Mark as
- * paid once a statement was sent. `all` (agent panel) also allows marking Ready entries paid directly.
+ * paid once a statement was sent. `all` (broker panel) also allows marking Ready entries paid directly.
  */
-export function payActions(a: Pick<AgentRow, 'readyCents' | 'sentCents'>, all = false): ('send' | 'paid')[] {
+export function payActions(a: Pick<BrokerRow, 'readyCents' | 'sentCents'>, all = false): ('send' | 'paid')[] {
   const out: ('send' | 'paid')[] = [];
   if (a.readyCents > 0) out.push('send');
   if (a.sentCents > 0 || (all && a.readyCents > 0)) out.push('paid');

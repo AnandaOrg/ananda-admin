@@ -362,7 +362,7 @@ export function paperPage(d: PaperSpec, opts: { title: string; autoPrint?: boole
 <body><main>${paperHtml(d)}</main>${opts.autoPrint ? '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},200)})</script>' : ''}</body></html>`;
 }
 
-/** What an agent can upload to their own order (10 Nov feedback). A proof of payment never confirms the payment. */
+/** What a broker can upload to their own order (10 Nov feedback). A proof of payment never confirms the payment. */
 export const ORDER_UPLOAD_KINDS = ['purchase_order', 'signed_order', 'payment_proof', 'delivery', 'other'] as const;
 export type OrderUploadKind = (typeof ORDER_UPLOAD_KINDS)[number];
 export const ORDER_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;

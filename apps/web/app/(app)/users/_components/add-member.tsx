@@ -14,7 +14,7 @@ import css from '../users.module.css';
 
 type Tone = 'friendly' | 'short' | 'formal';
 const TONES: Tone[] = ['friendly', 'short', 'formal'];
-const ORDER = ['agent', 'admin', 'warehouse', 'finance', 'system_admin'];
+const ORDER = ['broker', 'admin', 'warehouse', 'finance', 'system_admin'];
 
 /**
  * Add member: name, e-mail, role and the invitation e-mail itself, pre-written for the role and
@@ -44,11 +44,11 @@ export function AddMemberSheet({ open, onClose, roles, validityDays }: { open: b
   const role = roles.find((r) => r.id === roleId);
   const first = name.trim().split(/\s+/)[0] ?? '';
 
-  /** The pre-written e-mail for the chosen role (an agent's when none is chosen yet, as an example). */
+  /** The pre-written e-mail for the chosen role (a broker's when none is chosen yet, as an example). */
   const template = useMemo(() => {
-    const r = role ?? roles.find((x) => x.key === 'agent');
-    const base = r?.baseRole ?? 'agent';
-    const as = r && !r.isSystem ? t('users.add.roleAs.custom', { role: r.name }) : t(`users.add.roleAs.${(SYSTEM_ROLES as readonly string[]).includes(base) ? base : 'agent'}`);
+    const r = role ?? roles.find((x) => x.key === 'broker');
+    const base = r?.baseRole ?? 'broker';
+    const as = r && !r.isSystem ? t('users.add.roleAs.custom', { role: r.name }) : t(`users.add.roleAs.${(SYSTEM_ROLES as readonly string[]).includes(base) ? base : 'broker'}`);
     return t('users.add.body', {
       name: first || t('users.add.namePlaceholder'),
       role: as,

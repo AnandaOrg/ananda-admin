@@ -26,7 +26,7 @@ export interface OkRow {
   decidedAt?: string | null;
   customerId?: string | null;
   customerName: string | null;
-  agentName: string;
+  brokerName: string;
   orderId?: string | null;
   orderNumber?: string | null;
   reason?: string | null;
@@ -40,9 +40,9 @@ export interface Step {
   id: string;
   label: string;
   number?: string;
-  agentId?: string | null;
-  agentName?: string | null;
-  agentEmail?: string | null;
+  brokerId?: string | null;
+  brokerName?: string | null;
+  brokerEmail?: string | null;
   since?: string | null;
   link: string;
 }

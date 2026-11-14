@@ -194,9 +194,9 @@ export interface SearchSuggestion {
   key: string;
   /** Main line (customer, order number…). */
   title: string;
-  /** Second line (order · agent · amount). */
+  /** Second line (order · broker · amount). */
   sub?: string;
-  /** Extra words that should match but aren't shown (VAT number, agent). */
+  /** Extra words that should match but aren't shown (VAT number, broker). */
   extra?: string;
   href?: string;
   onPick?: () => void;

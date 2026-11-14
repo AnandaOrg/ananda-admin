@@ -18,13 +18,13 @@ interface Review {
   reason: string | null;
   createdAt: string;
   decidedAt: string | null;
-  agent: { id: string; name: string };
+  broker: { id: string; name: string };
   declineReason: string | null;
   declineReasons: string[];
   canUndo: boolean;
   ownershipMonths: number;
   customer?: { id: string; companyName: string; vatNumber?: string; vatValid?: boolean | null; country?: string; registeredAddress?: string; postcode?: string | null; city?: string | null; contactName?: string; phone?: string; invoiceEmail?: string };
-  duplicates?: { id: string; companyName: string; vatNumber: string; status: string; agentName: string | null }[];
+  duplicates?: { id: string; companyName: string; vatNumber: string; status: string; brokerName: string | null }[];
   order?: { id: string; number: string; status: string; totalCartons: number; totalUnits: number; paidCents: number };
   tier?: { minCartons: number; maxCartons: number; unitPriceCents: number };
   asked?: { unitPriceCents: number; normally: { minCartons: number; maxCartons: number } | null };
@@ -42,7 +42,7 @@ interface Review {
 
 /**
  * Review in a side panel (bottom sheet on phone): what was asked, by whom and what it changes.
- * Decline asks for a reason first, then a red Decline confirms it; the agent gets it as a notification.
+ * Decline asks for a reason first, then a red Decline confirms it; the broker gets it as a notification.
  */
 export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () => void }) {
   const t = useTranslations('home');
@@ -61,7 +61,7 @@ export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () =>
   };
   const { approve, decline, undo } = useDecision(close);
   const r = q.data && q.data.id === id ? q.data : undefined;
-  const first = r?.agent.name.split(' ')[0] ?? '';
+  const first = r?.broker.name.split(' ')[0] ?? '';
   const today = new Date().toISOString().slice(0, 10);
 
   const rows: [ReactNode, ReactNode, ('good' | 'bad' | 'warn')?][] = [];
@@ -78,7 +78,7 @@ export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () =>
     rows.push([t('review.contact'), [c.contactName, c.phone].filter(Boolean).join(' · ')]);
     rows.push([
       t('review.alreadyIn'),
-      r.duplicates && r.duplicates.length ? r.duplicates.map((d) => `${d.companyName}${d.agentName ? ` · ${d.agentName}` : ''}`).join(', ') : t('review.noMatch'),
+      r.duplicates && r.duplicates.length ? r.duplicates.map((d) => `${d.companyName}${d.brokerName ? ` · ${d.brokerName}` : ''}`).join(', ') : t('review.noMatch'),
       r.duplicates && r.duplicates.length ? 'bad' : undefined,
     ]);
     note = (
@@ -127,7 +127,7 @@ export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () =>
   const title = r ? (
     <span className={s.revTitle}>
       {t(`review.title.${r.type}`)}
-      <Pill tone="blue">{r.agent.name}</Pill>
+      <Pill tone="blue">{r.broker.name}</Pill>
     </span>
   ) : (
     tc('review')

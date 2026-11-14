@@ -36,8 +36,8 @@ export const orderDraftSchema = z.object({
   cartons: cartonsSchema,
   note: text().optional(),
   eventId: id.nullable().optional(),
-  /** Admin only: the agent who gets the commission, or 'none' for a house sale (no commission). */
-  agentId: z.union([id, z.literal('none')]).optional(),
+  /** Admin only: the broker who gets the commission, or 'none' for a house sale (no commission). */
+  brokerId: z.union([id, z.literal('none')]).optional(),
 });
 export const specialPriceSchema = z.object({ unitPriceCents: z.number().int().min(1).max(10_000), reason: required(1000) });
 export const confirmPaymentSchema = z.object({
@@ -69,7 +69,7 @@ export const customerSchema = z.object({
   note: text().optional(),
   submit: z.boolean().default(true),
 });
-export const changeAgentSchema = z.object({ agentId: id, reason: required(60), note: text().optional() });
+export const changeBrokerSchema = z.object({ brokerId: id, reason: required(60), note: text().optional() });
 export const vatCheckSchema = z.object({ country: z.string().length(2), vatNumber: required(20) });
 
 export const reminderSchema = z.object({ subject: required(300), message: required(5000) });
@@ -139,7 +139,7 @@ export const eventSchema = z.object({
   endsOn: isoDay,
   place: required(),
   kind: z.enum(['event', 'festival']),
-  agentIds: z.array(id).default([]),
+  brokerIds: z.array(id).default([]),
 });
 export const eventStockSchema = z.object({ direction: z.enum(['to_event', 'back']), cartons: cartonsSchema });
 

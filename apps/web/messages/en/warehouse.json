@@ -65,7 +65,7 @@
     "subPart": "{customer} · {n, plural, one {# carton} other {# cartons}} (part)"
   },
   "note": {
-    "done": "{number} delivered. The Admin and agent are told.",
+    "done": "{number} delivered. The Admin and broker are told.",
     "view": "Signed delivery note",
     "open": "Open"
   },

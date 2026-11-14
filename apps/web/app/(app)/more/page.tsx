@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui';
 export default function MorePage() {
   const t = useTranslations('common');
   const router = useRouter();
-  const { canView, isAgent, isWarehouse } = useSession();
+  const { canView, isBroker, isWarehouse } = useSession();
   const logout = useMutation({ mutationFn: () => api.post('/auth/logout'), onSuccess: () => router.replace('/login') });
   const onTabs = new Set(isWarehouse ? ['warehouse'] : ['home', 'sales', 'customers', 'collections']);
   const groups = visibleNav(canView)
@@ -23,7 +23,7 @@ export default function MorePage() {
     <div className="page">
       <PageHeader title={t('more.title')} />
       <section className="an-card more-card">
-        <MoreList groups={groups} label={(k) => t(isAgent && k === 'agents' ? 'nav.earnings' : `nav.${k}`)} onSignOut={() => logout.mutate()} />
+        <MoreList groups={groups} label={(k) => t(isBroker && k === 'brokers' ? 'nav.earnings' : `nav.${k}`)} onSignOut={() => logout.mutate()} />
       </section>
     </div>
   );

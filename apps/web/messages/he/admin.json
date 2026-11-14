@@ -69,7 +69,7 @@
       "roleAs": {
         "system_admin": "מנהל/ת מערכת",
         "admin": "מנהל/ת",
-        "agent": "סוכן/ת",
+        "broker": "ברוקר/ת",
         "warehouse": "חלק מצוות המחסן",
         "finance": "חלק מצוות הכספים",
         "custom": "{role}"
@@ -77,7 +77,7 @@
       "roleLine": {
         "system_admin": "תהיה גישה לכל דבר, כולל משתמשים, תפקידים והגדרות.",
         "admin": "תהיה גישה לאישור לקוחות חדשים, מחירים מיוחדים ותיקונים, לאישור תשלומים ולכל הדוחות.",
-        "agent": "תהיה גישה ללקוחות ולהזמנות שלך, ליצירת מכירות חדשות ולמעקב אחר העמלה שלך ({commission} ליחידה, משולמת לאחר שהלקוח שילם במלואו).",
+        "broker": "תהיה גישה ללקוחות ולהזמנות שלך, ליצירת מכירות חדשות ולמעקב אחר העמלה שלך ({commission} ליחידה, משולמת לאחר שהלקוח שילם במלואו).",
         "warehouse": "תהיה גישה להזמנות למשלוח, להעלאת תעודות משלוח חתומות מהטלפון ולשליחת ספירות מלאי.",
         "finance": "תהיה גישה לתשלומים, חשבוניות, הוצאות ודוחות, ולתשלום עמלות לסוכנים."
       },
@@ -126,7 +126,7 @@
       "phoneDevice": "טלפון",
       "desktopDevice": "מחשב",
       "roleGroup": "תפקיד",
-      "agentFixed": "חשבון של סוכן נשאר חשבון סוכן. אם נדרשת גם גישת מנהל, מחסן או כספים, יש להזמין אותו שוב עם מייל אחר.",
+      "brokerFixed": "חשבון של ברוקר נשאר חשבון ברוקר. אם נדרשת גם גישת מנהל, מחסן או כספים, יש להזמין אותו שוב עם מייל אחר.",
       "fixed": "קבוע",
       "suspend": "השעיית גישה",
       "restore": "שחזור גישה",
@@ -149,7 +149,7 @@
     "seesBy": {
       "system_admin": "הכול",
       "admin": "כל הלקוחות וההזמנות",
-      "agent": "לקוחות שלו בלבד",
+      "broker": "לקוחות שלו בלבד",
       "warehouse": "הזמנות למשלוח, בלי מחירים",
       "finance": "כספים ודוחות",
       "custom": "מותאם"
@@ -231,7 +231,7 @@
     "previewAs": "תצוגה מקדימה בתור {name}",
     "delete": "מחיקת תפקיד",
     "deleted": "התפקיד נמחק",
-    "agentNote": "תפקיד הסוכן קבוע: סוכנים רואים תמיד רק את הלקוחות וההזמנות שלהם.",
+    "brokerNote": "תפקיד הברוקר קבוע: סוכנים רואים תמיד רק את הלקוחות וההזמנות שלהם.",
     "matrixTitle": "מה התפקיד הזה רואה ועורך",
     "matrixSub": "אזורים מוסתרים לא מופיעים בתפריט. צפייה מאפשרת לפתוח ולייצא; עריכה מאפשרת גם לשנות.",
     "records": "אילו רשומות",
@@ -250,14 +250,14 @@
     "names": {
       "system_admin": "מנהל מערכת",
       "admin": "מנהל",
-      "agent": "סוכן",
+      "broker": "ברוקר",
       "warehouse": "מחסן",
       "finance": "כספים"
     },
     "descriptions": {
       "system_admin": "הכול, כולל משתמשים, הרשאות והגדרות.",
       "admin": "אישורים, תשלומים, מחסן, חשבוניות, כל הדוחות.",
-      "agent": "הלקוחות וההזמנות שלו, מכירה חדשה, העמלה שלו.",
+      "broker": "הלקוחות וההזמנות שלו, מכירה חדשה, העמלה שלו.",
       "warehouse": "הזמנות למשלוח, תעודות חתומות, ספירות מלאי. אף פעם לא מחירים.",
       "finance": "תשלומים, חשבוניות, הוצאות ודוחות."
     },
@@ -347,7 +347,7 @@
     "fields": {
       "status": "סטטוס",
       "role": "תפקיד",
-      "agentId": "סוכן",
+      "brokerId": "ברוקר",
       "netCents": "נטו",
       "totalCents": "סה״כ",
       "paidCents": "שולם",
@@ -379,7 +379,7 @@
       "phoneSessionDays": "ימי חיבור בטלפון",
       "inviteValidityDays": "ימי תוקף להזמנה",
       "passwordMinLength": "אורך סיסמה",
-      "copyAgent": "העתק לסוכן",
+      "copyBroker": "העתק לברוקר",
       "replyTo": "כתובת למענה",
       "scope": "אילו רשומות"
     },
@@ -419,7 +419,7 @@
       "customer_declined": "דחיית לקוח",
       "customer_updated": "עדכון לקוח",
       "customer_claimed": "תפיסת לקוח",
-      "agent_changed": "החלפת סוכן",
+      "broker_changed": "החלפת ברוקר",
       "commission_sent_to_pay": "שליחת עמלה לתשלום",
       "commission_paid": "תשלום עמלה",
       "stock_adjusted": "התאמת מלאי",
@@ -510,8 +510,8 @@
       "customer_updated": "עודכן הלקוח {rec}",
       "customer_claimed": "נלקח הלקוח {rec}",
       "contact_added": "נוסף איש קשר ל-{rec}",
-      "agent_changed": "הוחלף הסוכן של {rec}",
-      "agent_nudged": "נשלחה תזכורת ל-{rec}",
+      "broker_changed": "הוחלף הברוקר של {rec}",
+      "broker_nudged": "נשלחה תזכורת ל-{rec}",
       "commission_sent_to_pay": "העמלה של {rec} הועברה לרואה החשבון לתשלום",
       "commission_paid": "העמלה של {rec} סומנה כשולמה",
       "event_commission_ready": "העמלה לאירוע {rec} מוכנה",
@@ -537,9 +537,9 @@
       "vat_rechecked": "מספר המע״מ של {rec} נבדק שוב",
       "numbering_changed": "שינוי במספור המסמכים",
       "two_step_policy_changed": "שינוי בכלל האימות הדו-שלבי",
-      "agent_bank_confirmation_uploaded": "הועלה אישור הבנק עבור {rec}",
-      "agent_agreement_signed": "נחתם הסכם הסוכן {rec}",
-      "agent_agreement_countersigned": "נחתם נגדית הסכם הסוכן {rec}",
+      "broker_bank_confirmation_uploaded": "הועלה אישור הבנק עבור {rec}",
+      "broker_agreement_signed": "נחתם הסכם הברוקר {rec}",
+      "broker_agreement_countersigned": "נחתם נגדית הסכם הברוקר {rec}",
       "document_emailed": "{rec} נשלח בדוא״ל",
       "correction_sent": "נשלחה הפרופורמה המתוקנת עבור {rec}",
       "cancel_undone": "בוטל הביטול של {rec}",
@@ -547,7 +547,7 @@
       "part_delivered": "{rec} סומנה כנמסרה חלקית",
       "special_price_undone": "בוטל המחיר המיוחד ב-{rec}",
       "correction_undone": "בוטל התיקון ב-{rec}",
-      "agent_details_added": "נוספו פרטי סוכן עבור {rec}"
+      "broker_details_added": "נוספו פרטי ברוקר עבור {rec}"
     }
   },
   "settings": {
@@ -569,7 +569,7 @@
     "rule": {
       "ownership": {
         "title": "שיוך לקוחות",
-        "text": "סוכן שומר על לקוח {months, plural, one {חודש אחד} other {# חודשים}} לאחר ההזמנה {from, select, first_order {הראשונה} other {האחרונה}} שלו. אם לא מגיעה הזמנה חדשה, הסוכן מקבל התראה {days, plural, =0 {ביום האחרון} one {יום אחד לפני הסיום} other {# ימים לפני הסיום}}, ואז {end, select, stay_with_agent {הלקוח נשאר אצל הסוכן עד שמנהל יעביר אותו} other {כל סוכן יכול לשייך אותו}}.",
+        "text": "ברוקר שומר על לקוח {months, plural, one {חודש אחד} other {# חודשים}} לאחר ההזמנה {from, select, first_order {הראשונה} other {האחרונה}} שלו. אם לא מגיעה הזמנה חדשה, הברוקר מקבל התראה {days, plural, =0 {ביום האחרון} one {יום אחד לפני הסיום} other {# ימים לפני הסיום}}, ואז {end, select, stay_with_broker {הלקוח נשאר אצל הברוקר עד שמנהל יעביר אותו} other {כל ברוקר יכול לשייך אותו}}.",
         "value": "{months, plural, one {חודש אחד} other {# חודשים}} אחרי ההזמנה {from, select, first_order {הראשונה} other {האחרונה}} · התראה {days, plural, one {יום אחד} other {# ימים}} לפני"
       },
       "payment": {
@@ -588,7 +588,7 @@
         "value": "{high} עד {low} ליחידה · מינימום {min} קרטונים"
       },
       "commission": {
-        "title": "עמלת סוכן",
+        "title": "עמלת ברוקר",
         "text": "{amount} ליחידה + מע״מ. מחירים מיוחדים יורדים ממנה.",
         "value": "{amount} ליחידה + מע״מ"
       },
@@ -625,7 +625,7 @@
         "accounting": "מייל הנהלת חשבונות",
         "sender": "נשלח מ-",
         "replyTo": "תשובות נשלחות אל",
-        "agentCopied": "הסוכן בהעתק"
+        "brokerCopied": "הברוקר בהעתק"
       },
       "bank": {
         "title": "בנק וכניסה",
@@ -660,15 +660,15 @@
       "commission": "עמלה ליחידה, ללא מע״מ",
       "appliesNote": "חל על הזמנות חדשות בלבד. נרשם ביומן הפעולות.",
       "fixedNote": "הכלל הזה הוא חלק מאופן הפעולה של ההזמנות, ולכן אי אפשר לשנות אותו כאן.",
-      "warnTitle": "התראה לסוכן",
+      "warnTitle": "התראה לברוקר",
       "warnChip": "{n} ימים לפני",
       "warnNote": "רק אם עד אז אין הזמנה חדשה.",
-      "getsTitle": "מה הסוכן מקבל",
+      "getsTitle": "מה הברוקר מקבל",
       "getsLine": "נותרו {n, plural, one {יום אחד} other {# ימים}} עם {customer}",
       "aCustomer": "לקוח",
       "noOrderSince": "אין הזמנה מאז {date}.",
-      "getsText": "אם {customer} לא יזמין עד {date}, {end, select, stay_with_agent {הוא יישאר אצל הסוכן עד שמנהל יעביר אותו} other {הוא יהיה פנוי לשיוך לכל סוכן}}. התראת פוש ואימייל.",
-      "getsTextNone": "אם הלקוח לא יזמין עד אז, {end, select, stay_with_agent {הוא יישאר אצל הסוכן עד שמנהל יעביר אותו} other {הוא יהיה פנוי לשיוך לכל סוכן}}. התראת פוש ואימייל."
+      "getsText": "אם {customer} לא יזמין עד {date}, {end, select, stay_with_broker {הוא יישאר אצל הברוקר עד שמנהל יעביר אותו} other {הוא יהיה פנוי לשיוך לכל ברוקר}}. התראת פוש ואימייל.",
+      "getsTextNone": "אם הלקוח לא יזמין עד אז, {end, select, stay_with_broker {הוא יישאר אצל הברוקר עד שמנהל יעביר אותו} other {הוא יהיה פנוי לשיוך לכל ברוקר}}. התראת פוש ואימייל."
     },
     "cardPanel": {
       "saved": "הגדרות {card} נשמרו.",
@@ -686,7 +686,7 @@
       "logoRemoved": "הלוגו הוסר.",
       "footer": "כותרת תחתונה בכל מסמך",
       "companyTitle": "החברה על המסמכים",
-      "copyAgent": "העתק לסוכן בתזכורות",
+      "copyBroker": "העתק לברוקר בתזכורות",
       "bic": "BIC / SWIFT",
       "accounts": "חשבונות",
       "accountsHelp": "החשבונות שעבורם רושמים יתרות, למשל UniCredit Bulbank · EUR.",

@@ -36,8 +36,8 @@
     "same": "Same as last {month} ({amount}), so it may just be the season.",
     "up": "Up on last {month} ({amount}).",
     "down": "Down on last {month} ({amount}).",
-    "noSaleReach": "But no agent has sold since {date}, and {amount} is within reach.",
-    "noSale": "But no agent has sold since {date}.",
+    "noSaleReach": "But no broker has sold since {date}, and {amount} is within reach.",
+    "noSale": "But no broker has sold since {date}.",
     "reach": "{amount} is within reach.",
     "first": "Do these first",
     "newFrom": "New customer from {name} · click to review",
@@ -64,14 +64,14 @@
     "confirm": "Confirm",
     "approved": "Approved",
     "declined": "Declined",
-    "withdrawn": "Withdrawn by the agent",
+    "withdrawn": "Withdrawn by the broker",
     "vat": { "valid": "VAT valid", "invalid": "VAT not valid", "unchecked": "VAT not checked yet", "none": "No VAT number" },
     "instead": "{price} instead of {list}",
     "fewer": "fewer {f} cartons",
     "more": "more {f} cartons",
     "changed": "cartons changed",
     "emptyTitle": "All decided",
-    "emptyText": "New requests from agents and payments to confirm appear here."
+    "emptyText": "New requests from brokers and payments to confirm appear here."
   },
   "attention": {
     "title": "Needs attention",
@@ -176,8 +176,8 @@
     "done": "Done",
     "start": "Start",
     "open": "Open",
-    "steps": { "company": "Company details and logo", "bank": "Bank account", "supplier": "Approved supplier", "purchase": "First purchase", "agents": "Invite your agents", "customer": "First customer" },
-    "desc": { "company": "Name, address and logo on proformas", "bank": "The IBAN customers pay into", "supplier": "Who you buy the cocktails from", "purchase": "Stock comes in; landed cost is worked out", "agents": "They get an e-mail and set their own password", "customer": "Start with the VAT number" }
+    "steps": { "company": "Company details and logo", "bank": "Bank account", "supplier": "Approved supplier", "purchase": "First purchase", "brokers": "Invite your brokers", "customer": "First customer" },
+    "desc": { "company": "Name, address and logo on proformas", "bank": "The IBAN customers pay into", "supplier": "Who you buy the cocktails from", "purchase": "Stock comes in; landed cost is worked out", "brokers": "They get an e-mail and set their own password", "customer": "Start with the VAT number" }
   },
   "review": {
     "title": { "new_customer": "New customer", "special_price": "Special price", "correction": "Correction" },

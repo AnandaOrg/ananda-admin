@@ -68,9 +68,9 @@
     "usedOf": "{used} of {of}",
     "left": "{n} left",
     "short": "Not enough {flavours} for every ticked order. Untick one to continue.",
-    "consequence": "After allocating, paid orders become Ready to send to the warehouse. Unpaid ones hold their stock for {days} days. The agent is told either way.",
+    "consequence": "After allocating, paid orders become Ready to send to the warehouse. Unpaid ones hold their stock for {days} days. The broker is told either way.",
     "cta": "{n, plural, =0 {Allocate} one {Allocate to # order} other {Allocate to # orders}}",
-    "done": "{n, plural, =0 {Nothing allocated} one {# order allocated. Its agent is told.} other {# orders allocated. Their agents are told.}}",
+    "done": "{n, plural, =0 {Nothing allocated} one {# order allocated. Its broker is told.} other {# orders allocated. Their brokers are told.}}",
     "emptyTitle": "Nothing is waiting",
     "emptyText": "Every paid order has its stock."
   },

@@ -51,8 +51,8 @@
   "email": "Имейл",
   "directions": "Упътване",
   "everyone": "Всички",
-  "anyAgent": "Всеки агент",
-  "agent": "Агент",
+  "anyBroker": "Всеки брокер",
+  "broker": "Брокер",
   "customer": "Клиент",
   "status": "Статус",
   "created": "Създадена",
@@ -106,7 +106,7 @@
     "purchasing": "Снабдяване",
     "inventory": "Наличност",
     "warehouse": "Склад",
-    "agents": "Агенти и комисионни",
+    "brokers": "Брокери и комисионни",
     "earnings": "Моите приходи",
     "events": "Събития и фестивали",
     "deal_profit": "Печалба по сделка",
@@ -170,8 +170,8 @@
       "price_error": "Грешна цена",
       "other": "Друго"
     },
-    "change_agent": {
-      "agent_left": "Агентът напусна",
+    "change_broker": {
+      "broker_left": "Брокерът напусна",
       "customer_request": "Заявка на клиента",
       "performance": "Резултати",
       "other": "Друго"
@@ -268,7 +268,7 @@
     "earlier": "По-рано",
     "emptyTitle": "Още няма известия",
     "emptyAdmin": "Тук се появяват одобрения, качени документи, закъснели плащания и сигнали за наличност.",
-    "emptyAgent": "Тук ще научите, когато клиент бъде одобрен, плати или получи доставката си.",
+    "emptyBroker": "Тук ще научите, когато клиент бъде одобрен, плати или получи доставката си.",
     "caughtUp": "Нямате нищо ново",
     "caughtUpText": "Няма непрочетени. По-старите са в Всички.",
     "settings": "Настройки за известия",
@@ -295,23 +295,23 @@
   "searchNone": "Няма съвпадения за „{q}“",
   "notify": {
     "customer_approval": {
-      "title": "{agent} иска да добави {customer}",
+      "title": "{broker} иска да добави {customer}",
       "body": "Нов клиент"
     },
     "special_price": {
-      "title": "{agent} иска специална цена",
+      "title": "{broker} иска специална цена",
       "body": "{order} · {customer}"
     },
     "correction": {
-      "title": "{agent} иска корекция",
+      "title": "{broker} иска корекция",
       "body": "{order} · {customer}"
     },
-    "agent_upload": {
-      "title": "{agent} качи документ",
+    "broker_upload": {
+      "title": "{broker} качи документ",
       "body": "{doc} · {order} · {customer}"
     },
-    "agent_signed": {
-      "title": "{agent} подписа договора за агент",
+    "broker_signed": {
+      "title": "{broker} подписа договора за брокер",
       "body": "Данните за фирмата и банката са попълнени. Подпишете и вие, за да завършите настройката."
     },
     "delivered": {
@@ -346,9 +346,9 @@
       "title": "Комисионата е изпратена за плащане: {amount}",
       "body": "При счетоводителя е. Ще я видите като платена, щом излезе от банката."
     },
-    "agent_setup_done": {
+    "broker_setup_done": {
       "title": "Настройката ви е завършена",
-      "body": "{admin} подписа и вашия договор за агент."
+      "body": "{admin} подписа и вашия договор за брокер."
     },
     "event": {
       "title": "Поканени сте на {event}",
@@ -358,7 +358,7 @@
   "systemRole": {
     "system_admin": "Системен администратор",
     "admin": "Администратор",
-    "agent": "Агент",
+    "broker": "Брокер",
     "warehouse": "Склад",
     "finance": "Финанси"
   }

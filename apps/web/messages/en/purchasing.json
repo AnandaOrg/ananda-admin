@@ -129,7 +129,7 @@
   },
   "waiting": {
     "order": "Order",
-    "agent": "Agent",
+    "broker": "Broker",
     "since": "Waiting since {date}",
     "sinceLower": "since {date}",
     "waiting": "Waiting",

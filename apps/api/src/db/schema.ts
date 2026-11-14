@@ -38,7 +38,7 @@ export const purchaseStatusEnum = pgEnum('purchase_status', ['ordered', 'on_the_
 export const approvalTypeEnum = pgEnum('approval_type', ['new_customer', 'special_price', 'correction']);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'declined', 'withdrawn']);
 export const commissionStatusEnum = pgEnum('commission_status', ['coming', 'ready', 'sent', 'paid', 'void']);
-export const documentTypeEnum = pgEnum('document_type', ['proforma', 'invoice', 'credit_note', 'purchase_order', 'delivery_note', 'upload', 'agent_agreement']);
+export const documentTypeEnum = pgEnum('document_type', ['proforma', 'invoice', 'credit_note', 'purchase_order', 'delivery_note', 'upload', 'broker_agreement']);
 export const payableKindEnum = pgEnum('payable_kind', ['supplier_invoice', 'freight', 'excise']);
 export const userStatusEnum = pgEnum('user_status', ['invited', 'active', 'deactivated']);
 export const movementKindEnum = pgEnum('movement_kind', [
@@ -129,7 +129,7 @@ export const customers = pgTable(
     paymentTerms: text('payment_terms').$type<'before_shipping' | 'half_before_shipping' | 'after_delivery_30'>().notNull().default('before_shipping'),
     postcode: text('postcode'),
     note: text('note'),
-    agentId: uuid('agent_id').references(() => users.id),
+    brokerId: uuid('broker_id').references(() => users.id),
     ownedUntil: date('owned_until'),
     ownershipWarnedAt: ts('ownership_warned_at'),
     status: customerStatusEnum('status').notNull().default('draft'),
@@ -138,7 +138,7 @@ export const customers = pgTable(
     createdById: uuid('created_by_id'),
     createdAt: createdAt(),
   },
-  (t) => [index('customers_agent_idx').on(t.agentId), index('customers_vat_idx').on(t.vatNumber)],
+  (t) => [index('customers_broker_idx').on(t.brokerId), index('customers_vat_idx').on(t.vatNumber)],
 );
 
 export const customerContacts = pgTable('customer_contacts', {
@@ -158,7 +158,7 @@ export const events = pgTable('events', {
   endsOn: date('ends_on').notNull(),
   place: text('place').notNull(),
   kind: text('kind').$type<'event' | 'festival'>().notNull(),
-  agentIds: jsonb('agent_ids').$type<string[]>().notNull().default([]),
+  brokerIds: jsonb('broker_ids').$type<string[]>().notNull().default([]),
   createdById: uuid('created_by_id'),
   createdAt: createdAt(),
 });
@@ -169,7 +169,7 @@ export const orders = pgTable(
     id: pk(),
     number: text('number').notNull().unique(),
     customerId: uuid('customer_id').references(() => customers.id),
-    agentId: uuid('agent_id').notNull().references(() => users.id),
+    brokerId: uuid('broker_id').notNull().references(() => users.id),
     eventId: uuid('event_id').references(() => events.id),
     status: orderStatusEnum('status').notNull().default('draft'),
     totalCartons: integer('total_cartons').notNull().default(0),
@@ -205,7 +205,7 @@ export const orders = pgTable(
     cancelledAt: ts('cancelled_at'),
     cancelReason: text('cancel_reason'),
   },
-  (t) => [index('orders_customer_idx').on(t.customerId), index('orders_agent_idx').on(t.agentId), index('orders_status_idx').on(t.status)],
+  (t) => [index('orders_customer_idx').on(t.customerId), index('orders_broker_idx').on(t.brokerId), index('orders_status_idx').on(t.status)],
 );
 
 export const orderLines = pgTable(
@@ -428,14 +428,14 @@ export const stockCounts = pgTable('stock_counts', {
   createdAt: createdAt(),
 });
 
-// ---------- Agents, money ----------
+// ---------- Brokers, money ----------
 
 export const commissionEntries = pgTable(
   'commission_entries',
   {
     id: pk(),
-    agentId: uuid('agent_id').notNull().references(() => users.id),
-    // Either an order, or an event sale (decision A13: agents sell at events with normal commission).
+    brokerId: uuid('broker_id').notNull().references(() => users.id),
+    // Either an order, or an event sale (decision A13: brokers sell at events with normal commission).
     orderId: uuid('order_id').references(() => orders.id),
     eventId: uuid('event_id').references(() => events.id),
     units: integer('units').notNull(),
@@ -447,15 +447,15 @@ export const commissionEntries = pgTable(
     note: text('note'),
     createdAt: createdAt(),
   },
-  (t) => [index('commission_agent_idx').on(t.agentId), index('commission_order_idx').on(t.orderId)],
+  (t) => [index('commission_broker_idx').on(t.brokerId), index('commission_order_idx').on(t.orderId)],
 );
 
 /**
- * Agent onboarding: company and bank details the agent fills in after accepting the invitation, and
- * the agent agreement (a documents row, type agent_agreement) the agent signs and an Admin countersigns.
+ * Broker onboarding: company and bank details the broker fills in after accepting the invitation, and
+ * the broker agreement (a documents row, type broker_agreement) the broker signs and an Admin countersigns.
  * Set-up is finished only once countersigned.
  */
-export const agentProfiles = pgTable('agent_profiles', {
+export const brokerProfiles = pgTable('broker_profiles', {
   userId: uuid('user_id').primaryKey().references(() => users.id),
   /** bg = Bulgaria, eu = another EU country, other = outside the EU. */
   registeredIn: text('registered_in').$type<'bg' | 'eu' | 'other'>().notNull().default('bg'),
@@ -492,9 +492,9 @@ export const agentProfiles = pgTable('agent_profiles', {
   createdAt: createdAt(),
 });
 
-export const agentNudges = pgTable('agent_nudges', {
+export const brokerNudges = pgTable('broker_nudges', {
   id: pk(),
-  agentId: uuid('agent_id').notNull().references(() => users.id),
+  brokerId: uuid('broker_id').notNull().references(() => users.id),
   sentById: uuid('sent_by_id').notNull(),
   subject: text('subject').notNull(),
   message: text('message').notNull(),
@@ -591,7 +591,7 @@ export const eventSales = pgTable(
   {
     id: pk(),
     eventId: uuid('event_id').notNull().references(() => events.id),
-    agentId: uuid('agent_id').notNull().references(() => users.id),
+    brokerId: uuid('broker_id').notNull().references(() => users.id),
     units: integer('units').notNull(),
     netCents: integer('net_cents').notNull(),
     recordedById: uuid('recorded_by_id'),
@@ -604,14 +604,14 @@ export const eventSales = pgTable(
 
 export const usersRelations = relations(users, ({ one }) => ({ role: one(roles, { fields: [users.roleId], references: [roles.id] }) }));
 export const customersRelations = relations(customers, ({ one, many }) => ({
-  agent: one(users, { fields: [customers.agentId], references: [users.id] }),
+  broker: one(users, { fields: [customers.brokerId], references: [users.id] }),
   orders: many(orders),
   contacts: many(customerContacts),
 }));
 export const customerContactsRelations = relations(customerContacts, ({ one }) => ({ customer: one(customers, { fields: [customerContacts.customerId], references: [customers.id] }) }));
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   customer: one(customers, { fields: [orders.customerId], references: [customers.id] }),
-  agent: one(users, { fields: [orders.agentId], references: [users.id] }),
+  broker: one(users, { fields: [orders.brokerId], references: [users.id] }),
   event: one(events, { fields: [orders.eventId], references: [events.id] }),
   lines: many(orderLines),
   payments: many(payments),
@@ -643,7 +643,7 @@ export const payablesRelations = relations(payables, ({ one, many }) => ({
 export const payablePaymentsRelations = relations(payablePayments, ({ one }) => ({ payable: one(payables, { fields: [payablePayments.payableId], references: [payables.id] }) }));
 export const supplierMessagesRelations = relations(supplierMessages, ({ one }) => ({ purchase: one(purchases, { fields: [supplierMessages.purchaseId], references: [purchases.id] }) }));
 export const commissionEntriesRelations = relations(commissionEntries, ({ one }) => ({
-  agent: one(users, { fields: [commissionEntries.agentId], references: [users.id] }),
+  broker: one(users, { fields: [commissionEntries.brokerId], references: [users.id] }),
   order: one(orders, { fields: [commissionEntries.orderId], references: [orders.id] }),
 }));
 

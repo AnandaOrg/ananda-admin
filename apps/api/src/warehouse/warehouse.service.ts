@@ -293,7 +293,7 @@ export class WarehouseService {
       await this.audit.log(auth, { category: 'orders', action: 'part_delivered', recordType: 'order', recordId: id, recordLabel: order.number, meta: { cartons: byFlavour, stays } }, tx);
       const title = `${order.number} part delivered · ${stays} cartons still to ship`;
       await this.notify.toRoles(['system_admin', 'admin'], { type: 'delivered', title, link: `/sales/${id}` }, tx);
-      await this.notify.toUsers([order.agentId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
+      await this.notify.toUsers([order.brokerId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
       return { status: order.status, deliveredCartons: done, stayCartons: stays };
     });
   }

@@ -93,12 +93,12 @@ export type SignInput = z.infer<typeof signSchema>;
 /** Signed on paper: the scan comes as a multipart file; the form fields arrive as strings. */
 export const paperSignSchema = z.object({ agree: z.union([z.literal(true), z.literal('true')], { message: 'Tick the box first' }) });
 
-/** Invite new agent with the full invitation e-mail as written (and polished) in the panel. */
-export const agentInviteSchema = z.object({
+/** Invite new broker with the full invitation e-mail as written (and polished) in the panel. */
+export const brokerInviteSchema = z.object({
   name: required(),
   email: z.string().trim().toLowerCase().email({ message: 'Enter a valid e-mail' }),
   language: z.enum(['en', 'bg', 'he']).default('en'),
   subject: required(300),
   letter: required(5000),
 });
-export type AgentInviteInput = z.infer<typeof agentInviteSchema>;
+export type BrokerInviteInput = z.infer<typeof brokerInviteSchema>;

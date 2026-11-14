@@ -11,7 +11,7 @@ const TONES = {
 const LANGUAGES = { en: 'English', bg: 'Bulgarian', he: 'Hebrew' } as const;
 
 /**
- * Optional "Polish with AI" for drafted e-mails (Ask supplier, Nudge, Invite agent).
+ * Optional "Polish with AI" for drafted e-mails (Ask supplier, Nudge, Invite broker).
  * Available only when ANTHROPIC_API_KEY (or another SDK credential) is configured.
  */
 @Injectable()

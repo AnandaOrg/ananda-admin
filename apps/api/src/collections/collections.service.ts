@@ -8,7 +8,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { FiguresService, OWED_STATUSES, outstandingSql } from '../core/figures.service';
 import { MailService } from '../core/mail.service';
 import { SettingsService } from '../core/settings.service';
-import { agentFilter, orderScope } from '../core/scope';
+import { brokerFilter, orderScope } from '../core/scope';
 import { lateDays } from '../orders/orders.service';
 import type { AuthContext } from '../common/context';
 
@@ -24,16 +24,16 @@ export class CollectionsService {
     private readonly docs: DocumentsService,
   ) {}
 
-  async list(auth: AuthContext, q: { filter?: string; agentId?: string }) {
+  async list(auth: AuthContext, q: { filter?: string; brokerId?: string }) {
     const today = isoDate();
     const week = isoDate(new Date(Date.now() + 7 * 86_400_000));
-    const own = agentFilter(auth);
-    // An agent only ever sees their own customers; the agent filter is for everyone else.
-    const agentId = own ?? (q.agentId || null);
+    const own = brokerFilter(auth);
+    // A broker only ever sees their own customers; the broker filter is for everyone else.
+    const brokerId = own ?? (q.brokerId || null);
     const conds: SQL[] = [inArray(orders.status, [...OWED_STATUSES]), sql`${outstandingSql} > 0`];
     const scope = orderScope(auth);
     if (scope) conds.push(scope);
-    if (agentId) conds.push(eq(orders.agentId, agentId));
+    if (brokerId) conds.push(eq(orders.brokerId, brokerId));
     if (q.filter === 'late') conds.push(lt(orders.paymentDueOn, today));
     if (q.filter === 'week') conds.push(gte(orders.paymentDueOn, today), lte(orders.paymentDueOn, week));
     const rows = await this.db
@@ -49,21 +49,21 @@ export class CollectionsService {
         phone: customers.phone,
         email: customers.invoiceEmail,
         contactName: customers.contactName,
-        agentId: users.id,
-        agentName: users.name,
+        brokerId: users.id,
+        brokerName: users.name,
         lastReminderAt: sql<string | null>`(select max(${collectionReminders.createdAt}) from ${collectionReminders} where ${collectionReminders.orderId} = ${orders.id})`,
         remindedToday: sql<boolean>`exists (select 1 from ${collectionReminders} where ${collectionReminders.orderId} = ${orders.id} and ${collectionReminders.createdAt} >= date_trunc('day', now()))`,
       })
       .from(orders)
       .innerJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(and(...conds))
       .orderBy(asc(orders.paymentDueOn));
-    const [owed, every, agents, email] = await Promise.all([
-      this.figures.owed(agentId),
-      // "{First}'s share of €X": the all-agents figure, only for people who may see every agent.
-      !own && agentId ? this.figures.owed(null) : Promise.resolve(null),
-      own ? Promise.resolve(null) : this.agentCounts(),
+    const [owed, every, brokers, email] = await Promise.all([
+      this.figures.owed(brokerId),
+      // "{First}'s share of €X": the all-brokers figure, only for people who may see every broker.
+      !own && brokerId ? this.figures.owed(null) : Promise.resolve(null),
+      own ? Promise.resolve(null) : this.brokerCounts(),
       this.settings.get('email'),
     ]);
     return {
@@ -77,10 +77,10 @@ export class CollectionsService {
         oldestLateDays: owed.oldestLateDays,
         everyCents: every?.totalCents ?? null,
       },
-      // Settings › E-mail "Copy the agent on reminders".
-      copyAgent: email.copyAgent !== false,
-      // One agent filter shared by phone and desktop: each agent with their unpaid invoices.
-      agents,
+      // Settings › E-mail "Copy the broker on reminders".
+      copyBroker: email.copyBroker !== false,
+      // One broker filter shared by phone and desktop: each broker with their unpaid invoices.
+      brokers,
       items: rows.map((r) => ({
         ...r,
         outstandingCents: Number(r.outstandingCents),
@@ -91,20 +91,20 @@ export class CollectionsService {
     };
   }
 
-  private async agentCounts() {
+  private async brokerCounts() {
     const [people, counts] = await Promise.all([
       this.db
         .select({ id: users.id, name: users.name })
         .from(users)
-        .where(and(inArray(users.roleId, sql`(select id from roles where base_role = 'agent')`), eq(users.status, 'active')))
+        .where(and(inArray(users.roleId, sql`(select id from roles where base_role = 'broker')`), eq(users.status, 'active')))
         .orderBy(asc(users.name)),
       this.db
-        .select({ agentId: orders.agentId, n: sql<number>`count(*)::int` })
+        .select({ brokerId: orders.brokerId, n: sql<number>`count(*)::int` })
         .from(orders)
         .where(and(inArray(orders.status, [...OWED_STATUSES]), sql`${outstandingSql} > 0`))
-        .groupBy(orders.agentId),
+        .groupBy(orders.brokerId),
     ]);
-    return people.map((p) => ({ ...p, unpaid: Number(counts.find((c) => c.agentId === p.id)?.n ?? 0) }));
+    return people.map((p) => ({ ...p, unpaid: Number(counts.find((c) => c.brokerId === p.id)?.n ?? 0) }));
   }
 
   /** The latest proforma of the order, if one was issued: it carries the payment details. */
@@ -124,10 +124,10 @@ export class CollectionsService {
    */
   async draft(auth: AuthContext, orderId: string) {
     const [row] = await this.db
-      .select({ o: orders, c: customers, agentName: users.name })
+      .select({ o: orders, c: customers, brokerName: users.name })
       .from(orders)
       .innerJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(and(eq(orders.id, orderId), orderScope(auth)));
     if (!row) throw new NotFoundException({ message: 'Order not found' });
     const proforma = await this.proforma(orderId);
@@ -148,29 +148,29 @@ export class CollectionsService {
     return { to: row.c.invoiceEmail, subject: `Payment reminder · ${doc}`, message: `${about} ${pay} Thank you, ${sign}`, attached: !!proforma };
   }
 
-  /** The agent is copied on every reminder when Settings › E-mail says so (FR-COLL-3). */
+  /** The broker is copied on every reminder when Settings › E-mail says so (FR-COLL-3). */
   async send(auth: AuthContext, orderId: string, subject: string, message: string) {
     const [row] = await this.db
-      .select({ o: orders, c: customers, agentEmail: users.email })
+      .select({ o: orders, c: customers, brokerEmail: users.email })
       .from(orders)
       .innerJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(and(eq(orders.id, orderId), orderScope(auth)));
     if (!row) throw new NotFoundException({ message: 'Order not found' });
     const [proforma, email] = await Promise.all([this.proforma(orderId), this.settings.get('email')]);
-    const copyAgent = email.copyAgent !== false;
+    const copyBroker = email.copyBroker !== false;
     await this.db.insert(collectionReminders).values({ orderId, sentById: auth.user.id, subject, message });
     await this.mail.send({
       kind: 'payment_reminder',
       to: [row.c.invoiceEmail],
-      cc: copyAgent ? [row.agentEmail] : [],
+      cc: copyBroker ? [row.brokerEmail] : [],
       subject,
       body: message,
       recordType: 'order',
       recordId: orderId,
       attachments: proforma ? [{ filename: `${proforma.number ?? row.o.number}.html`, content: this.docs.renderHtml('proforma', proforma.data as never), contentType: 'text/html' }] : undefined,
     });
-    await this.audit.log(auth, { category: 'payments', action: 'reminder_sent', recordType: 'order', recordId: orderId, recordLabel: row.o.number, meta: { to: row.c.invoiceEmail, cc: copyAgent ? row.agentEmail : null, subject } });
-    return { ok: true, copyAgent };
+    await this.audit.log(auth, { category: 'payments', action: 'reminder_sent', recordType: 'order', recordId: orderId, recordLabel: row.o.number, meta: { to: row.c.invoiceEmail, cc: copyBroker ? row.brokerEmail : null, subject } });
+    return { ok: true, copyBroker };
   }
 }

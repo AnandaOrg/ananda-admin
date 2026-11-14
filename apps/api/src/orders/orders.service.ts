@@ -50,7 +50,7 @@ type LineRow = typeof orderLines.$inferSelect;
 export interface OrderListQuery {
   filter?: string;
   q?: string;
-  agentId?: string;
+  brokerId?: string;
   from?: string;
   to?: string;
   flavour?: string;
@@ -100,7 +100,7 @@ export class OrdersService {
     const base: SQL[] = [];
     const scope = orderScope(auth);
     if (scope) base.push(scope);
-    if (q.agentId) base.push(eq(orders.agentId, q.agentId));
+    if (q.brokerId) base.push(eq(orders.brokerId, q.brokerId));
     if (q.from) base.push(gte(orders.createdAt, new Date(q.from)));
     if (q.to) base.push(lt(orders.createdAt, addDays(new Date(q.to), 1)));
     if (q.flavour && (FLAVOURS as readonly string[]).includes(q.flavour)) {
@@ -126,16 +126,16 @@ export class OrdersService {
         customerId: customers.id,
         customerName: customers.companyName,
         city: customers.city,
-        agentId: users.id,
-        agentName: users.name,
-        // House sale: the order is held by someone who is not an agent (house customer, no commission).
-        houseSale: sql<boolean>`coalesce((select base_role from roles where roles.id = ${users.roleId}) <> 'agent', true)`,
+        brokerId: users.id,
+        brokerName: users.name,
+        // House sale: the order is held by someone who is not a broker (house customer, no commission).
+        houseSale: sql<boolean>`coalesce((select base_role from roles where roles.id = ${users.roleId}) <> 'broker', true)`,
         paymentTerms: orders.paymentTerms,
         pendingCorrection: sql<boolean>`exists (select 1 from ${approvalRequests} where ${approvalRequests.orderId} = ${orders.id} and ${approvalRequests.status} = 'pending')`,
       })
       .from(orders)
       .leftJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(and(...base, this.filterCond(q.filter)))
       .orderBy(desc(orders.createdAt))
       .limit(500);
@@ -170,7 +170,7 @@ export class OrdersService {
   async detail(auth: AuthContext, id: string) {
     const { order, lines } = await this.load(auth, id);
     const [customer] = order.customerId ? await this.db.select().from(customers).where(eq(customers.id, order.customerId)) : [null];
-    const [agent] = await this.db.select({ id: users.id, name: users.name, email: users.email, phone: users.phone }).from(users).where(eq(users.id, order.agentId));
+    const [broker] = await this.db.select({ id: users.id, name: users.name, email: users.email, phone: users.phone }).from(users).where(eq(users.id, order.brokerId));
     const [pays, docs, approvals, timeline, commission] = await Promise.all([
       this.db
         .select({
@@ -249,8 +249,8 @@ export class OrdersService {
         paymentTerms: customer.paymentTerms,
         proformaLanguage: customer.proformaLanguage,
       },
-      agent,
-      houseSale: await this.isHouse(this.db, order.agentId),
+      broker,
+      houseSale: await this.isHouse(this.db, order.brokerId),
       payments: pays,
       documents: visibleDocs,
       approvals,
@@ -281,9 +281,9 @@ export class OrdersService {
     if (s === 'delivered_part' && isAdmin && !order.partDeliveryOutcome) a.push('part_outcome');
     if (ORDER_PRE_SHIPPING.includes(s) && canSell && !pending) a.push('correction', 'cancel');
     if (s === 'invoiced' && can(auth, 'issue_invoices')) a.push('credit_note');
-    // A cancelled order can be brought back by whoever could cancel it (agents only while unpaid).
+    // A cancelled order can be brought back by whoever could cancel it (brokers only while unpaid).
     if (s === 'cancelled' && canSell && order.requestSentAt && (auth.perms.scope === 'all' || order.paidCents === 0)) a.push('uncancel');
-    // Agents upload documents to their own orders (purchase order, signed order, proof of payment...).
+    // Brokers upload documents to their own orders (purchase order, signed order, proof of payment...).
     if (auth.perms.scope === 'own' && canSell && s !== 'cancelled') a.push('upload');
     return a;
   }
@@ -309,7 +309,7 @@ export class OrdersService {
   private async assertCustomerForSale(auth: AuthContext, customerId: string, tx: Db | Tx) {
     const [c] = await tx.select().from(customers).where(eq(customers.id, customerId));
     if (!c) throw new BadRequestException({ message: 'Choose a customer', fields: { customerId: 'Choose a customer' } });
-    if (auth.perms.scope === 'own' && c.agentId !== auth.user.id) throw new ForbiddenException({ message: 'This customer belongs to another agent' });
+    if (auth.perms.scope === 'own' && c.brokerId !== auth.user.id) throw new ForbiddenException({ message: 'This customer belongs to another broker' });
     return c;
   }
 
@@ -335,57 +335,57 @@ export class OrdersService {
     };
   }
 
-  /** A house sale: the order is held by someone who is not an agent, so there is no commission. */
+  /** A house sale: the order is held by someone who is not a broker, so there is no commission. */
   private async isHouse(tx: Db | Tx, userId: string) {
     const [u] = await tx.select({ base: sql<string>`(select base_role from roles where roles.id = ${users.roleId})` }).from(users).where(eq(users.id, userId));
-    return u?.base !== 'agent';
+    return u?.base !== 'broker';
   }
 
   /**
-   * Who gets the order (and its commission). Agents always sell for themselves. An Admin keeps the
-   * customer's agent unless they pick another agent or 'none' (house sale, no commission); the
-   * agent who owns the customer is told when the commission goes to someone else.
+   * Who gets the order (and its commission). Brokers always sell for themselves. An Admin keeps the
+   * customer's broker unless they pick another broker or 'none' (house sale, no commission); the
+   * broker who owns the customer is told when the commission goes to someone else.
    */
-  private async agentFor(auth: AuthContext, tx: Db | Tx, customer: { agentId: string | null } | null, picked: string | undefined, fallback: string) {
+  private async brokerFor(auth: AuthContext, tx: Db | Tx, customer: { brokerId: string | null } | null, picked: string | undefined, fallback: string) {
     if (auth.perms.scope !== 'all') return fallback;
     if (picked === 'none') return auth.user.id;
     if (picked) {
-      const [a] = await tx.select({ id: users.id }).from(users).where(and(eq(users.id, picked), sql`${users.roleId} in (select id from roles where base_role = 'agent')`));
-      if (!a) throw new BadRequestException({ message: 'Choose an agent', fields: { agentId: 'Choose an agent' } });
+      const [a] = await tx.select({ id: users.id }).from(users).where(and(eq(users.id, picked), sql`${users.roleId} in (select id from roles where base_role = 'broker')`));
+      if (!a) throw new BadRequestException({ message: 'Choose a broker', fields: { brokerId: 'Choose a broker' } });
       return a.id;
     }
-    return customer?.agentId ?? fallback;
+    return customer?.brokerId ?? fallback;
   }
 
-  async createDraft(auth: AuthContext, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string; eventId?: string | null; agentId?: string }) {
+  async createDraft(auth: AuthContext, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string; eventId?: string | null; brokerId?: string }) {
     const r = await this.db.transaction(async (tx) => {
       let customer: typeof customers.$inferSelect | null = null;
       if (input.customerId) {
         customer = await this.assertCustomerForSale(auth, input.customerId, tx);
         if (customer.status !== 'active') throw new BadRequestException({ message: 'This customer is not approved yet', fields: { customerId: 'Waiting for approval' } });
       }
-      const agentId = await this.agentFor(auth, tx, customer, input.agentId, auth.user.id);
+      const brokerId = await this.brokerFor(auth, tx, customer, input.brokerId, auth.user.id);
       const number = await this.numbering.next(tx, 'order');
       const [order] = await tx
         .insert(orders)
-        .values({ number, customerId: input.customerId ?? null, agentId, eventId: input.eventId ?? null, note: input.note, createdById: auth.user.id })
+        .values({ number, customerId: input.customerId ?? null, brokerId, eventId: input.eventId ?? null, note: input.note, createdById: auth.user.id })
         .returning();
       const calc = await this.writeLines(tx, order.id, input.cartons, null);
-      await tx.update(orders).set(this.totalsFrom(calc, await this.isHouse(tx, agentId))).where(eq(orders.id, order.id));
-      await this.audit.log(auth, { category: 'orders', action: 'draft_created', recordType: 'order', recordId: order.id, recordLabel: number, meta: customer?.agentId && customer.agentId !== agentId ? { agentChangedFrom: customer.agentId } : undefined }, tx);
-      return { id: order.id, number, customer, agentId };
+      await tx.update(orders).set(this.totalsFrom(calc, await this.isHouse(tx, brokerId))).where(eq(orders.id, order.id));
+      await this.audit.log(auth, { category: 'orders', action: 'draft_created', recordType: 'order', recordId: order.id, recordLabel: number, meta: customer?.brokerId && customer.brokerId !== brokerId ? { brokerChangedFrom: customer.brokerId } : undefined }, tx);
+      return { id: order.id, number, customer, brokerId };
     });
-    await this.tellOwnerIfChanged(r.customer, r.agentId, r.number, r.id);
+    await this.tellOwnerIfChanged(r.customer, r.brokerId, r.number, r.id);
     return { id: r.id, number: r.number };
   }
 
-  private async tellOwnerIfChanged(customer: { agentId: string | null; companyName: string } | null, agentId: string, number: string, id: string) {
-    if (!customer?.agentId || customer.agentId === agentId) return;
-    const [u] = await this.db.select({ name: users.name }).from(users).where(eq(users.id, agentId));
-    await this.notify.toUsers([customer.agentId], { type: 'agent_changed', title: `${number} for ${customer.companyName} went to ${u?.name ?? 'another agent'}`, body: 'The commission on this order goes to them.', link: `/sales/${id}` });
+  private async tellOwnerIfChanged(customer: { brokerId: string | null; companyName: string } | null, brokerId: string, number: string, id: string) {
+    if (!customer?.brokerId || customer.brokerId === brokerId) return;
+    const [u] = await this.db.select({ name: users.name }).from(users).where(eq(users.id, brokerId));
+    await this.notify.toUsers([customer.brokerId], { type: 'broker_changed', title: `${number} for ${customer.companyName} went to ${u?.name ?? 'another broker'}`, body: 'The commission on this order goes to them.', link: `/sales/${id}` });
   }
 
-  async updateDraft(auth: AuthContext, id: string, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string; agentId?: string }) {
+  async updateDraft(auth: AuthContext, id: string, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string; brokerId?: string }) {
     const r = await this.db.transaction(async (tx) => {
       const { order } = await this.load(auth, id, tx, true);
       if (order.status !== 'draft') throw new ConflictException({ message: 'Only drafts can be edited. Ask for a correction instead.' });
@@ -394,16 +394,16 @@ export class OrdersService {
         customer = await this.assertCustomerForSale(auth, input.customerId, tx);
         if (customer.status !== 'active') throw new BadRequestException({ message: 'This customer is not approved yet', fields: { customerId: 'Waiting for approval' } });
       }
-      const agentId = input.agentId || customer ? await this.agentFor(auth, tx, customer, input.agentId, order.agentId) : order.agentId;
+      const brokerId = input.brokerId || customer ? await this.brokerFor(auth, tx, customer, input.brokerId, order.brokerId) : order.brokerId;
       const calc = await this.writeLines(tx, id, input.cartons, order.specialUnitPriceCents);
       await tx
         .update(orders)
-        .set({ ...this.totalsFrom(calc, await this.isHouse(tx, agentId)), customerId: input.customerId ?? null, agentId, note: input.note ?? order.note })
+        .set({ ...this.totalsFrom(calc, await this.isHouse(tx, brokerId)), customerId: input.customerId ?? null, brokerId, note: input.note ?? order.note })
         .where(eq(orders.id, id));
       await this.audit.log(auth, { category: 'orders', action: 'draft_updated', recordType: 'order', recordId: id, recordLabel: order.number }, tx);
-      return { customer, agentId, changed: agentId !== order.agentId, number: order.number };
+      return { customer, brokerId, changed: brokerId !== order.brokerId, number: order.number };
     });
-    if (r.changed) await this.tellOwnerIfChanged(r.customer, r.agentId, r.number, id);
+    if (r.changed) await this.tellOwnerIfChanged(r.customer, r.brokerId, r.number, id);
     return { ok: true };
   }
 
@@ -478,16 +478,16 @@ export class OrdersService {
       if (extend && (!customer.ownedUntil || customer.ownedUntil < ownedUntil)) {
         await tx.update(customers).set({ ownedUntil, ownershipWarnedAt: null }).where(eq(customers.id, customer.id));
       }
-      if (!(await this.isHouse(tx, order.agentId))) await tx.insert(commissionEntries).values({ agentId: order.agentId, orderId: id, units: order.totalUnits, amountCents: order.commissionCents, status: 'coming' });
+      if (!(await this.isHouse(tx, order.brokerId))) await tx.insert(commissionEntries).values({ brokerId: order.brokerId, orderId: id, units: order.totalUnits, amountCents: order.commissionCents, status: 'coming' });
       await this.audit.log(auth, { category: 'orders', action: 'payment_request_sent', recordType: 'order', recordId: id, recordLabel: order.number, money: true, meta: { proforma: number, totalCents: order.totalCents, reserved: reserve } }, tx);
       await this.audit.log(auth, { category: 'documents', action: 'proforma_issued', recordType: 'document', recordId: doc.id, recordLabel: number }, tx);
       return { order, customer, data, number };
     });
-    const agentEmail = await this.emailOf(result.order.agentId);
+    const brokerEmail = await this.emailOf(result.order.brokerId);
     await this.mail.send({
       kind: 'payment_request',
       to: [result.customer.invoiceEmail],
-      cc: [agentEmail],
+      cc: [brokerEmail],
       subject: result.data.language === 'bg' ? `Проформа ${result.number} · ${result.order.number}` : `Proforma ${result.number} · ${result.order.number}`,
       body: paymentRequestBody(result.data),
       recordType: 'order',
@@ -523,7 +523,7 @@ export class OrdersService {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
     const lines = await tx.select().from(orderLines).where(eq(orderLines.orderId, orderId));
     const calc = await this.writeLines(tx, orderId, cartonsOf(lines), unitPriceCents);
-    await tx.update(orders).set({ ...this.totalsFrom(calc, await this.isHouse(tx, order.agentId)), specialUnitPriceCents: unitPriceCents }).where(eq(orders.id, orderId));
+    await tx.update(orders).set({ ...this.totalsFrom(calc, await this.isHouse(tx, order.brokerId)), specialUnitPriceCents: unitPriceCents }).where(eq(orders.id, orderId));
     return order;
   }
 
@@ -584,7 +584,7 @@ export class OrdersService {
         tx,
       );
       if (full) {
-        await this.notify.toUsers([order.agentId], { type: 'payment', title: `${order.number} is paid`, body: status === 'waiting_for_stock' ? 'Waiting for stock' : status === 'ready_to_send' ? 'Ready to send' : 'Paid in full', link: `/sales/${id}` }, tx);
+        await this.notify.toUsers([order.brokerId], { type: 'payment', title: `${order.number} is paid`, body: status === 'waiting_for_stock' ? 'Waiting for stock' : status === 'ready_to_send' ? 'Ready to send' : 'Paid in full', link: `/sales/${id}` }, tx);
       }
       return { status, full };
     });
@@ -661,7 +661,7 @@ export class OrdersService {
       await this.audit.log(auth, { category: 'orders', action: status === 'delivered' ? 'delivered' : 'delivered_in_part', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: status } }, meta: part ? { reason: part.reason, returnedCartons: returned } : undefined }, tx);
       const title = status === 'delivered' ? `${order.number} delivered` : `${order.number} delivered in part · ${returned} cartons back`;
       await this.notify.toRoles(['system_admin', 'admin'], { type: 'delivered', title, link: `/sales/${id}` }, tx);
-      await this.notify.toUsers([order.agentId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
+      await this.notify.toUsers([order.brokerId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
       return { status, returnedCartons: returned };
     });
   }
@@ -743,7 +743,7 @@ export class OrdersService {
     await this.mail.send({
       kind: 'invoice',
       to: [data.customer.invoiceEmail],
-      cc: [await this.emailOf(order.agentId), email.accounting, ...(await this.notify.emailsWithRoles(['system_admin', 'admin']))],
+      cc: [await this.emailOf(order.brokerId), email.accounting, ...(await this.notify.emailsWithRoles(['system_admin', 'admin']))],
       subject: data.language === 'bg' ? `Фактура ${number} · ${order.number}` : `Invoice ${number} · ${order.number}`,
       body: invoiceBody(data, 'invoice'),
       recordType: 'order',
@@ -756,7 +756,7 @@ export class OrdersService {
     await this.mail.send({
       kind: 'credit_note',
       to: [data.customer.invoiceEmail],
-      cc: [await this.emailOf(order.agentId)],
+      cc: [await this.emailOf(order.brokerId)],
       subject: data.language === 'bg' ? `Кредитно известие ${number}` : `Credit note ${number}`,
       body: invoiceBody(data, 'credit_note'),
       recordType: 'order',
@@ -807,7 +807,7 @@ export class OrdersService {
     await tx.update(orders).set({ creditedCents: order.creditedCents + data.totalCents }).where(eq(orders.id, order.id));
     // A5: commission already earned on credited units is offset against the next payout.
     if (data.commissionCents) {
-      await tx.insert(commissionEntries).values({ agentId: order.agentId, orderId: order.id, units: -units, amountCents: -(data.commissionCents ?? 0), status: 'ready', readyAt: new Date(), note: `Credit note ${number}` });
+      await tx.insert(commissionEntries).values({ brokerId: order.brokerId, orderId: order.id, units: -units, amountCents: -(data.commissionCents ?? 0), status: 'ready', readyAt: new Date(), note: `Credit note ${number}` });
     }
     await this.audit.log(auth, { category: 'documents', action: 'credit_note_issued', recordType: 'order', recordId: order.id, recordLabel: order.number, money: true, changes: { creditedCents: { from: order.creditedCents, to: order.creditedCents + data.totalCents } }, meta: { creditNote: number, documentId: doc.id, reason: input.reason } }, tx);
     return { number, data };
@@ -867,7 +867,7 @@ export class OrdersService {
         await tx.update(approvalRequests).set({ status: 'withdrawn' }).where(and(eq(approvalRequests.orderId, id), eq(approvalRequests.status, 'pending')));
         const applied = await this.applyCorrection(tx, auth, id, cartons);
         await this.audit.log(auth, { category: 'orders', action: 'correction_sent', recordType: 'order', recordId: id, recordLabel: order.number, meta: { reason, proforma: applied.number } }, tx);
-        if (order.agentId !== auth.user.id) await this.notify.toUsers([order.agentId], { type: 'correction', title: `${order.number} was corrected`, body: reason, link: `/sales/${id}` }, tx);
+        if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'correction', title: `${order.number} was corrected`, body: reason, link: `/sales/${id}` }, tx);
         return applied;
       });
       await this.sendCorrectedProforma(r.order, { ...r.data, note: reason }, r.number);
@@ -917,7 +917,7 @@ export class OrdersService {
     }
     await tx
       .update(orders)
-      .set({ ...this.totalsFrom(calc, await this.isHouse(tx, order.agentId)), status, allocated, paidAt: fullyPaid ? order.paidAt : null, reservedUntil: allocated && !fullyPaid && !after && !(order.paymentTerms === 'half_before_shipping' && order.paidCents >= depositOf(owed)) ? addDays(new Date(), rules.stockHoldDays) : null })
+      .set({ ...this.totalsFrom(calc, await this.isHouse(tx, order.brokerId)), status, allocated, paidAt: fullyPaid ? order.paidAt : null, reservedUntil: allocated && !fullyPaid && !after && !(order.paymentTerms === 'half_before_shipping' && order.paidCents >= depositOf(owed)) ? addDays(new Date(), rules.stockHoldDays) : null })
       .where(eq(orders.id, orderId));
     await tx
       .update(commissionEntries)
@@ -954,7 +954,7 @@ export class OrdersService {
     await this.mail.send({
       kind: 'corrected_proforma',
       to: [data.customer.invoiceEmail],
-      cc: [await this.emailOf(order.agentId)],
+      cc: [await this.emailOf(order.brokerId)],
       subject: data.language === 'bg' ? `Коригирана проформа ${number} · ${order.number}` : `Corrected proforma ${number} · ${order.number}`,
       body: paymentRequestBody(data),
       recordType: 'order',
@@ -963,7 +963,7 @@ export class OrdersService {
     });
   }
 
-  /** Cancel before shipping (FR-SALE-5). The customer, the agent and the warehouse are told; it can be undone. */
+  /** Cancel before shipping (FR-SALE-5). The customer, the broker and the warehouse are told; it can be undone. */
   async cancel(auth: AuthContext, id: string, reason: string, note?: string) {
     const r = await this.cancelTx(auth, id, reason, note);
     const [c] = r.order.customerId ? await this.db.select().from(customers).where(eq(customers.id, r.order.customerId)) : [];
@@ -972,7 +972,7 @@ export class OrdersService {
       await this.mail.send({
         kind: 'order_cancelled',
         to: [c.invoiceEmail],
-        cc: [await this.emailOf(r.order.agentId)],
+        cc: [await this.emailOf(r.order.brokerId)],
         subject: bg ? `Поръчка ${r.order.number} е анулирана` : `Order ${r.order.number} is cancelled`,
         body: bg
           ? [`Здравейте, ${c.contactName},`, '', `Поръчка ${r.order.number} е анулирана.${note ? ` ${note}` : ''}`, 'Проформата към нея вече не е валидна.', '', 'ANANDA'].join('\n')
@@ -993,7 +993,7 @@ export class OrdersService {
       await tx.update(commissionEntries).set({ status: 'void' }).where(and(eq(commissionEntries.orderId, id), inArray(commissionEntries.status, ['coming', 'ready'])));
       await tx.update(approvalRequests).set({ status: 'withdrawn' }).where(and(eq(approvalRequests.orderId, id), eq(approvalRequests.status, 'pending')));
       await this.audit.log(auth, { category: 'orders', action: 'cancelled', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: 'cancelled' } }, meta: { reason, note, paidCents: order.paidCents } }, tx);
-      if (order.agentId !== auth.user.id) await this.notify.toUsers([order.agentId], { type: 'cancelled', title: `${order.number} was cancelled`, body: reason, link: `/sales/${id}` }, tx);
+      if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'cancelled', title: `${order.number} was cancelled`, body: reason, link: `/sales/${id}` }, tx);
       await this.notify.toRoles(['warehouse'], { type: 'cancelled', title: `${order.number} was cancelled`, body: 'Nothing to ship for this order.', link: '/warehouse' }, tx);
       return { order };
     });
@@ -1015,12 +1015,12 @@ export class OrdersService {
         .where(eq(orders.id, id));
       await tx.update(commissionEntries).set({ status: full ? 'ready' : 'coming' }).where(and(eq(commissionEntries.orderId, id), eq(commissionEntries.status, 'void')));
       await this.audit.log(auth, { category: 'orders', action: 'cancel_undone', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: 'cancelled', to: status } } }, tx);
-      if (order.agentId !== auth.user.id) await this.notify.toUsers([order.agentId], { type: 'cancel_undone', title: `${order.number} is open again`, body: 'The cancel was undone.', link: `/sales/${id}` }, tx);
+      if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'cancel_undone', title: `${order.number} is open again`, body: 'The cancel was undone.', link: `/sales/${id}` }, tx);
       return { ok: true, status };
     });
   }
 
-  // ---------- Uploads (agents, on their own orders) ----------
+  // ---------- Uploads (brokers, on their own orders) ----------
 
   async upload(auth: AuthContext, id: string, file: { buffer: Buffer; originalname: string; mimetype: string; size: number } | undefined, input: { kind: string; description?: string }) {
     if (!file) throw new BadRequestException({ message: 'Choose a file', fields: { file: 'Choose a file' } });
@@ -1042,7 +1042,7 @@ export class OrdersService {
       await this.audit.log(auth, { category: 'documents', action: 'document_uploaded', recordType: 'order', recordId: id, recordLabel: order.number, meta: { documentId: doc.id, kind, description, fileName: saved.name } }, tx);
       // Every upload is told to the Admins. A proof of payment never confirms the payment: the bank does.
       const admins = (await this.notify.userIdsWithRoles(['system_admin', 'admin'], tx)).filter((u) => u !== auth.user.id);
-      await this.notify.send('agent_upload', { users: admins }, { agent: auth.user.name, doc: kind === 'other' && description ? description : UPLOAD_DOC[kind], order: order.number, customer: c?.name ?? '' }, `/sales/${id}`, tx);
+      await this.notify.send('broker_upload', { users: admins }, { broker: auth.user.name, doc: kind === 'other' && description ? description : UPLOAD_DOC[kind], order: order.number, customer: c?.name ?? '' }, `/sales/${id}`, tx);
       return { id: doc.id };
     });
   }
@@ -1052,7 +1052,7 @@ export class OrdersService {
   /** Waiting orders, oldest first, for the Allocate panel (FR-INV-3). */
   async waitingForStock() {
     const rows = await this.db
-      .select({ id: orders.id, number: orders.number, paidAt: orders.paidAt, customerName: customers.companyName, agentId: orders.agentId })
+      .select({ id: orders.id, number: orders.number, paidAt: orders.paidAt, customerName: customers.companyName, brokerId: orders.brokerId })
       .from(orders)
       .leftJoin(customers, eq(customers.id, orders.customerId))
       .where(eq(orders.status, 'waiting_for_stock'))
@@ -1071,7 +1071,7 @@ export class OrdersService {
         if (!(await this.canReserve(tx, lines, id))) throw new ConflictException({ message: `Not enough stock for ${order.number}. Untick it and try again.` });
         await tx.update(orders).set({ status: 'ready_to_send', allocated: true }).where(eq(orders.id, id));
         await this.audit.log(auth, { category: 'stock', action: 'allocated', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: 'waiting_for_stock', to: 'ready_to_send' } } }, tx);
-        await this.notify.toUsers([order.agentId], { type: 'allocated', title: `${order.number} has stock`, body: 'Paid · ready to send', link: `/sales/${id}` }, tx);
+        await this.notify.toUsers([order.brokerId], { type: 'allocated', title: `${order.number} has stock`, body: 'Paid · ready to send', link: `/sales/${id}` }, tx);
         done.push(order.number);
       }
       return { allocated: done };
@@ -1080,7 +1080,7 @@ export class OrdersService {
 
   // ---------- Scheduled rules ----------
 
-  /** A8: release the stock hold after N unpaid days and tell the agent; the order stays open. */
+  /** A8: release the stock hold after N unpaid days and tell the broker; the order stays open. */
   async releaseExpiredHolds() {
     const now = new Date();
     const expired = await this.db
@@ -1091,13 +1091,13 @@ export class OrdersService {
       await this.db.transaction(async (tx) => {
         await tx.update(orders).set({ allocated: false, reservedUntil: null, holdReleasedAt: now }).where(eq(orders.id, o.id));
         await this.audit.log(null, { category: 'stock', action: 'stock_hold_released', recordType: 'order', recordId: o.id, recordLabel: o.number }, tx);
-        await this.notify.toUsers([o.agentId], { type: 'hold_released', title: `Stock hold on ${o.number} released`, body: 'The payment did not arrive in time. The order stays open.', link: `/sales/${o.id}` }, tx);
+        await this.notify.toUsers([o.brokerId], { type: 'hold_released', title: `Stock hold on ${o.number} released`, body: 'The payment did not arrive in time. The order stays open.', link: `/sales/${o.id}` }, tx);
       });
     }
     return expired.length;
   }
 
-  /** A12: remind the agent when a proforma expires; the order stays open. */
+  /** A12: remind the broker when a proforma expires; the order stays open. */
   async remindExpiredProformas() {
     const now = new Date();
     const due = await this.db
@@ -1106,7 +1106,7 @@ export class OrdersService {
       .where(and(eq(orders.status, 'payment_to_confirm'), isNotNull(orders.paymentDueOn), lt(orders.proformaExpiresAt, now), sql`${orders.proformaReminderAt} is null`));
     for (const o of due) {
       await this.db.update(orders).set({ proformaReminderAt: now }).where(eq(orders.id, o.id));
-      await this.notify.toUsers([o.agentId], { type: 'proforma_expired', title: `Proforma for ${o.number} expired`, body: 'Follow up with the customer.', link: `/sales/${o.id}` });
+      await this.notify.toUsers([o.brokerId], { type: 'proforma_expired', title: `Proforma for ${o.number} expired`, body: 'Follow up with the customer.', link: `/sales/${o.id}` });
     }
     return due.length;
   }

@@ -8,7 +8,7 @@ const uuid = new ParseUUIDPipe();
 const opt = (max: number) => z.string().trim().max(max).optional();
 const req = (max: number) => z.string().trim().min(1, 'Required').max(max);
 
-/** One form for Admins and agents: VAT number on top (optional), the rest below (FR-CUST-2). */
+/** One form for Admins and brokers: VAT number on top (optional), the rest below (FR-CUST-2). */
 const formSchema = z.object({
   vatNumber: opt(20),
   country: z.string().trim().length(2).toUpperCase(),
@@ -26,10 +26,10 @@ const formSchema = z.object({
   paymentTermsDays: z.number().int().min(0).max(120).optional(),
   note: opt(2000),
   submit: z.boolean().optional(),
-  agentId: z.union([z.literal('none'), z.string().uuid()]).optional(),
+  brokerId: z.union([z.literal('none'), z.string().uuid()]).optional(),
 });
 const vatCheckSchema = z.object({ vatNumber: req(20), country: z.string().trim().max(2).optional() });
-const changeAgentSchema = z.object({ agentId: z.union([z.literal('none'), z.string().uuid()]), reason: req(60), note: opt(2000) });
+const changeBrokerSchema = z.object({ brokerId: z.union([z.literal('none'), z.string().uuid()]), reason: req(60), note: opt(2000) });
 const contactSchema = z.object({ name: z.string().trim().min(1).max(200), role: z.string().max(100).optional(), phone: z.string().max(40).optional(), email: z.string().email().optional() });
 
 @Controller('customers')
@@ -38,14 +38,14 @@ export class CustomersController {
 
   @Access('view', 'customers')
   @Get()
-  list(@Auth() auth: AuthContext, @Query() q: { filter?: string; q?: string; agentId?: string }) {
+  list(@Auth() auth: AuthContext, @Query() q: { filter?: string; q?: string; brokerId?: string }) {
     return this.customers.list(auth, q);
   }
 
-  @Access('view', 'customers', 'sales', 'agents')
-  @Get('agents')
-  agents() {
-    return this.customers.agents();
+  @Access('view', 'customers', 'sales', 'brokers')
+  @Get('brokers')
+  brokers() {
+    return this.customers.brokers();
   }
 
   @Access('edit', 'customers')
@@ -81,11 +81,11 @@ export class CustomersController {
   }
 
   @Access('edit', 'customers')
-  @Post(':id/change-agent')
+  @Post(':id/change-broker')
   @HttpCode(200)
-  changeAgent(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(changeAgentSchema)) body: z.infer<typeof changeAgentSchema>) {
-    if (auth.perms.scope !== 'all') throw new ForbiddenException({ message: 'Only an admin can change the agent' });
-    return this.customers.changeAgent(auth, id, body.agentId === 'none' ? null : body.agentId, body.reason, body.note);
+  changeBroker(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(changeBrokerSchema)) body: z.infer<typeof changeBrokerSchema>) {
+    if (auth.perms.scope !== 'all') throw new ForbiddenException({ message: 'Only an admin can change the broker' });
+    return this.customers.changeBroker(auth, id, body.brokerId === 'none' ? null : body.brokerId, body.reason, body.note);
   }
 
   @Access('edit', 'customers')

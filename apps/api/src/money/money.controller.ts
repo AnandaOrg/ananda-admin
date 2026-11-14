@@ -41,8 +41,8 @@ export class MoneyController {
     sendCsv(
       res,
       'deal-profit.csv',
-      ['Paid on', 'Order', 'Credit note', 'Customer', 'Agent', 'Units', 'Net sales', 'Purchase cost', 'Commission', 'Profit after commission'],
-      d.deals.map((r) => [r.paidAt.slice(0, 10), r.number, r.documentNumber, r.customerName, r.agentName, r.units, euros(r.netCents), euros(r.purchaseCostCents), euros(r.commissionCents), euros(r.profitCents)]),
+      ['Paid on', 'Order', 'Credit note', 'Customer', 'Broker', 'Units', 'Net sales', 'Purchase cost', 'Commission', 'Profit after commission'],
+      d.deals.map((r) => [r.paidAt.slice(0, 10), r.number, r.documentNumber, r.customerName, r.brokerName, r.units, euros(r.netCents), euros(r.purchaseCostCents), euros(r.commissionCents), euros(r.profitCents)]),
     );
   }
 

@@ -1,9 +1,9 @@
 {
   "kicker": "{n, plural, one {חשבונית # שלא שולמה} other {# חשבוניות שלא שולמו}} · {who}",
   "kickerOwn": "{n, plural, one {חשבונית # שלא שולמה} other {# חשבוניות שלא שולמו}}",
-  "everyAgent": "כל הסוכנים",
+  "everyBroker": "כל הסוכנים",
   "nothingUnpaid": "אין חובות פתוחים",
-  "allAgents": "כל הסוכנים",
+  "allBrokers": "כל הסוכנים",
   "unpaidInvoices": "{n, plural, one {חשבונית # שלא שולמה} other {# חשבוניות שלא שולמו}}",
   "tiles": {
     "late": "באיחור",
@@ -33,9 +33,9 @@
   "sentTodayCard": "תזכורת נשלחה היום. {name} בהעתק.",
   "sentTodayNoCopy": "תזכורת נשלחה היום",
   "sentTodayCardNoCopy": "תזכורת נשלחה היום.",
-  "reminderSent": "התזכורת נשלחה אל {name}. {agent} בהעתק.",
+  "reminderSent": "התזכורת נשלחה אל {name}. {broker} בהעתק.",
   "reminderSentNoCopy": "התזכורת נשלחה אל {name}.",
-  "foot": "התזכורות מנוסחות כטיוטה לקריאה מוקדמת. הסוכן מקבל העתק של כל אחת.",
+  "foot": "התזכורות מנוסחות כטיוטה לקריאה מוקדמת. הברוקר מקבל העתק של כל אחת.",
   "footNoCopy": "התזכורות מנוסחות כטיוטה לקריאה מוקדמת.",
   "nothingFor": "אין כאן כלום עבור {name}.",
   "nothingHere": "אין כאן כלום.",

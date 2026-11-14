@@ -94,7 +94,7 @@ export const REASONS = {
   decline: ['already_customer', 'wrong_details', 'not_a_fit', 'other'],
   adjustment: ['breakage', 'samples', 'count_difference', 'other'],
   credit: ['returned', 'damaged', 'price_error', 'other'],
-  change_agent: ['agent_left', 'customer_request', 'performance', 'other'],
+  change_broker: ['broker_left', 'customer_request', 'performance', 'other'],
   part_delivery: ['customer_refused', 'damaged', 'short_on_truck', 'other'],
   cancel: ['customer_cancelled', 'duplicate', 'stock_unavailable', 'not_paid', 'other'],
 } as const;

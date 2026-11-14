@@ -24,8 +24,8 @@ interface Duplicate {
   companyName: string;
   vatNumber: string;
   status: string;
-  agentId: string | null;
-  agentName: string | null;
+  brokerId: string | null;
+  brokerName: string | null;
   ownedUntil: string | null;
   lastOrderAt: string | null;
   freeToClaim: boolean;
@@ -43,8 +43,8 @@ interface VatResult {
   duplicates: Duplicate[];
 }
 type St = 'idle' | 'checking' | 'fmt' | 'nf' | 'down' | 'found';
-type Key = 'name' | 'country' | 'street' | 'pc' | 'city' | 'dstreet' | 'contact' | 'phone' | 'email' | 'agent';
-const EMPTY = { vat: '', name: '', country: 'BG', street: '', pc: '', city: '', dsame: true, dstreet: '', contact: '', phone: '', email: '', terms: 'before_shipping', agent: '' };
+type Key = 'name' | 'country' | 'street' | 'pc' | 'city' | 'dstreet' | 'contact' | 'phone' | 'email' | 'broker';
+const EMPTY = { vat: '', name: '', country: 'BG', street: '', pc: '', city: '', dsame: true, dstreet: '', contact: '', phone: '', email: '', terms: 'before_shipping', broker: '' };
 
 const normVat = (v: string) => v.toUpperCase().replace(/[\s.\-]/g, '');
 const vatFmt = (v: string) => /^[A-Z]{2}[0-9A-Z]{8,12}$/.test(v) && !!PREFIX[v.slice(0, 2)];
@@ -66,13 +66,13 @@ export function useCountryName() {
 /**
  * Add a customer, one form (10 Nov): VAT number on top, every detail below. Check (or pasting a full
  * number) fills the company, country and address from the EU register. An Admin's customer is active
- * at once; an agent's goes to an Admin for approval.
+ * at once; a broker's goes to an Admin for approval.
  */
 export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations('customers');
   const tc = useTranslations('common');
   const router = useRouter();
-  const { isAgent } = useSession();
+  const { isBroker } = useSession();
   const { date } = useFmt();
   const country = useCountryName();
   const [f, setF] = useState(EMPTY);
@@ -82,7 +82,7 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
   const [existing, setExisting] = useState<Duplicate | null>(null);
   const [checked, setChecked] = useState<VatResult | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
-  const agents = useQuery({ queryKey: ['agents-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/agents'), enabled: open && !isAgent });
+  const brokers = useQuery({ queryKey: ['brokers-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/brokers'), enabled: open && !isBroker });
 
   const reset = () => {
     setF(EMPTY);
@@ -160,7 +160,7 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
         phone: f.phone || undefined,
         invoiceEmail: f.email,
         paymentTerms: f.terms,
-        agentId: isAgent ? undefined : f.agent,
+        brokerId: isBroker ? undefined : f.broker,
         submit: true,
       }),
     {
@@ -183,8 +183,8 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
   function submit() {
     const e: Partial<Record<Key, string>> = {};
     const req: Key[] = ['name', 'country', 'street', 'city', 'contact', 'email'];
-    if (!isAgent) req.push('agent');
-    const val: Record<Key, string> = { name: f.name, country: f.country, street: f.street, pc: f.pc, city: f.city, dstreet: f.dstreet, contact: f.contact, phone: f.phone, email: f.email, agent: f.agent };
+    if (!isBroker) req.push('broker');
+    const val: Record<Key, string> = { name: f.name, country: f.country, street: f.street, pc: f.pc, city: f.city, dstreet: f.dstreet, contact: f.contact, phone: f.phone, email: f.email, broker: f.broker };
     for (const k of req) if (!val[k].trim()) e[k] = t('add.required');
     if (f.email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) e.email = t('add.emailIncomplete');
     if (!f.dsame && !f.dstreet.trim()) e.dstreet = t('add.required');
@@ -294,9 +294,9 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
     </div>
   );
 
-  const agentOptions = [
-    ...(agents.data ?? []).map((a) => ({ value: a.id, label: a.name })),
-    { value: 'none', label: t('add.noAgent'), detail: t('add.noAgentDetail') },
+  const brokerOptions = [
+    ...(brokers.data ?? []).map((a) => ({ value: a.id, label: a.name })),
+    { value: 'none', label: t('add.noBroker'), detail: t('add.noBrokerDetail') },
   ];
 
   return (
@@ -310,7 +310,7 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
           <>
             <Button onClick={close}>{tc('cancel')}</Button>
             <Button variant="primary" busy={save.busy} onClick={submit}>
-              {isAgent ? t('add.sendForApproval') : t('add.submit')}
+              {isBroker ? t('add.sendForApproval') : t('add.submit')}
             </Button>
           </>
         )
@@ -339,18 +339,18 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
                 </Pill>
               </div>
               <div className={s.kv}>
-                <span>{tc('agent')}</span>
-                <span>{existing.freeToClaim || !existing.agentName ? t('add.none') : existing.agentName}</span>
+                <span>{tc('broker')}</span>
+                <span>{existing.freeToClaim || !existing.brokerName ? t('add.none') : existing.brokerName}</span>
               </div>
               <div className={s.kv}>
                 <span>{existing.freeToClaim || !existing.ownedUntil ? t('cols.lastOrder') : t('cols.ownsUntil')}</span>
                 <span>{existing.freeToClaim || !existing.ownedUntil ? (existing.lastOrderAt ? date(existing.lastOrderAt) : '—') : date(existing.ownedUntil)}</span>
               </div>
               <span className={s.help}>
-                {existing.freeToClaim ? t('add.claimHelp') : existing.agentName ? t('add.takenHelp', { agent: existing.agentName }) : t('add.takenHouse')}
+                {existing.freeToClaim ? t('add.claimHelp') : existing.brokerName ? t('add.takenHelp', { broker: existing.brokerName }) : t('add.takenHouse')}
               </span>
             </div>
-            {isAgent && existing.freeToClaim ? (
+            {isBroker && existing.freeToClaim ? (
               <>
                 <Button variant="primary" icon={Check} busy={claim.busy} onClick={() => claim.mutate(existing.id)}>
                   {t('add.claim')}
@@ -360,7 +360,7 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
                 </span>
                 <ActionError action={claim} />
               </>
-            ) : !isAgent ? (
+            ) : !isBroker ? (
               <Link href={`/customers/${existing.id}`} className="an-btn primary keep" onClick={close}>
                 {t('add.openCustomer')}
               </Link>
@@ -408,15 +408,15 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
               options={PAYMENT_TERMS.map((k) => ({ value: k, label: t(`terms.${k}`), detail: t(`termsDetail.${k}`) }))}
               onChange={(v) => set('terms', v)}
             />
-            {!isAgent && (
+            {!isBroker && (
               <DropdownField
-                label={tc('agent')}
-                value={f.agent}
-                placeholder={t('add.chooseAgent')}
-                options={agentOptions}
-                onChange={(v) => set('agent', v)}
-                error={fieldErr('agent', fe.agentId)}
-                help={f.agent === 'none' ? t('add.houseHelp') : t('add.agentHelp')}
+                label={tc('broker')}
+                value={f.broker}
+                placeholder={t('add.chooseBroker')}
+                options={brokerOptions}
+                onChange={(v) => set('broker', v)}
+                error={fieldErr('broker', fe.brokerId)}
+                help={f.broker === 'none' ? t('add.houseHelp') : t('add.brokerHelp')}
               />
             )}
             {nErr > 0 && (
@@ -426,7 +426,7 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
               </div>
             )}
             <div className={s.foot}>
-              {isAgent && <span className={s.help}>{found ? t('add.agentFootFound') : t('add.agentFoot')}</span>}
+              {isBroker && <span className={s.help}>{found ? t('add.brokerFootFound') : t('add.brokerFoot')}</span>}
               <ActionError action={save} message={save.error instanceof ApiError && save.error.fields ? save.error.message : t('add.notAdded')} />
             </div>
           </>

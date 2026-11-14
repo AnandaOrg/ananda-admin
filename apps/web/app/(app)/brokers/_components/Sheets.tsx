@@ -11,34 +11,34 @@ import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { ActionError, Bank, Button, CaretRight, EnvelopeSimple, FileText, Icon, Pill, Sheet, Signature, Skeleton, TextField, TwoStepField, Users } from '@/components/ui';
 import { PolishableText } from './MailDraft';
-import type { AgentDetail, AgentRow, AgentSetup, AgentsOverview, Earnings } from './types';
-import s from '../agents.module.css';
+import type { BrokerDetail, BrokerRow, BrokerSetup, BrokersOverview, Earnings } from './types';
+import s from '../brokers.module.css';
 
 const first = (name: string) => name.trim().split(/\s+/)[0];
 
-/** Send to pay (A4): what the accountant gets, with the agent's bank details (two-step code). */
-export function SendToPaySheet({ agent, accountingEmail, perUnitCents, onClose }: { agent: AgentRow | null; accountingEmail: string | null; perUnitCents: number; onClose: () => void }) {
-  const t = useTranslations('agents');
+/** Send to pay (A4): what the accountant gets, with the broker's bank details (two-step code). */
+export function SendToPaySheet({ broker, accountingEmail, perUnitCents, onClose }: { broker: BrokerRow | null; accountingEmail: string | null; perUnitCents: number; onClose: () => void }) {
+  const t = useTranslations('brokers');
   const { money, unit } = useFmt();
   const [code, setCode] = useState('');
   const [note, setNote] = useState('');
   useEffect(() => {
     setCode('');
     setNote('');
-  }, [agent?.id]);
-  const act = useAction(() => api.post<{ amountCents: number }>(`/agents/${agent!.id}/send-to-pay`, { note: note.trim() || undefined }, { code }), {
-    success: () => t('pay.sent', { name: first(agent?.name ?? '') }),
+  }, [broker?.id]);
+  const act = useAction(() => api.post<{ amountCents: number }>(`/brokers/${broker!.id}/send-to-pay`, { note: note.trim() || undefined }, { code }), {
+    success: () => t('pay.sent', { name: first(broker?.name ?? '') }),
     onDone: onClose,
   });
-  if (!agent) return null;
-  const sum = agent.readyCents;
+  if (!broker) return null;
+  const sum = broker.readyCents;
   const vat = vatOf(sum);
   return (
     <Sheet
       open
       onClose={onClose}
-      title={t('pay.sendTitle', { name: first(agent.name) })}
-      sub={t('pay.sendSub', { name: first(agent.name) })}
+      title={t('pay.sendTitle', { name: first(broker.name) })}
+      sub={t('pay.sendSub', { name: first(broker.name) })}
       footer={
         <Button variant="primary" block icon={EnvelopeSimple} busy={act.busy} disabled={code.length !== 6 || !accountingEmail || sum <= 0} onClick={() => act.mutate(undefined)}>
           {t('pay.send')}
@@ -48,8 +48,8 @@ export function SendToPaySheet({ agent, accountingEmail, perUnitCents, onClose }
       <TextField label={t('pay.to')} value={accountingEmail ?? t('pay.noEmail')} readOnly />
       <div className={s.box}>
         <div className={s.tot}>
-          <span>{t('pay.agent')}</span>
-          <span>{agent.name}</span>
+          <span>{t('pay.broker')}</span>
+          <span>{broker.name}</span>
         </div>
         <div className={s.tot}>
           <span>{t('pay.commission')}</span>
@@ -72,7 +72,7 @@ export function SendToPaySheet({ agent, accountingEmail, perUnitCents, onClose }
             <Icon as={FileText} />
           </span>
           <span>
-            <b>{t('pay.statement', { name: agent.name })}</b>
+            <b>{t('pay.statement', { name: broker.name })}</b>
             <span>{t('pay.statementSub', { perUnit: unit(perUnitCents) })}</span>
           </span>
         </div>
@@ -82,7 +82,7 @@ export function SendToPaySheet({ agent, accountingEmail, perUnitCents, onClose }
           </span>
           <span>
             <b>{t('pay.bank')}</b>
-            <span>{agent.bank ? <bdi>{t('pay.bankSub', { holder: agent.bank.accountHolder ?? agent.name, iban: agent.bank.iban })}</bdi> : t('pay.noBank')}</span>
+            <span>{broker.bank ? <bdi>{t('pay.bankSub', { holder: broker.bank.accountHolder ?? broker.name, iban: broker.bank.iban })}</bdi> : t('pay.noBank')}</span>
           </span>
         </div>
       </div>
@@ -94,27 +94,27 @@ export function SendToPaySheet({ agent, accountingEmail, perUnitCents, onClose }
 }
 
 /** Mark as paid: closes Sent (or Ready) entries once the money has left the bank (two-step code). */
-export function MarkPaidSheet({ agent, onClose }: { agent: AgentRow | null; onClose: () => void }) {
-  const t = useTranslations('agents');
+export function MarkPaidSheet({ broker, onClose }: { broker: BrokerRow | null; onClose: () => void }) {
+  const t = useTranslations('brokers');
   const tc = useTranslations('common');
   const { money, num } = useFmt();
   const [code, setCode] = useState('');
-  useEffect(() => setCode(''), [agent?.id]);
-  const detail = useQuery({ queryKey: ['agents', 'earnings', agent?.id], queryFn: () => api.get<Earnings>(`/agents/${agent!.id}/earnings`), enabled: !!agent });
-  const act = useAction(() => api.post<{ amountCents: number }>(`/agents/${agent!.id}/mark-paid`, {}, { code }), {
-    success: (r) => t('pay.paid', { name: agent?.name ?? '', amount: money(r.amountCents) }),
+  useEffect(() => setCode(''), [broker?.id]);
+  const detail = useQuery({ queryKey: ['brokers', 'earnings', broker?.id], queryFn: () => api.get<Earnings>(`/brokers/${broker!.id}/earnings`), enabled: !!broker });
+  const act = useAction(() => api.post<{ amountCents: number }>(`/brokers/${broker!.id}/mark-paid`, {}, { code }), {
+    success: (r) => t('pay.paid', { name: broker?.name ?? '', amount: money(r.amountCents) }),
     onDone: onClose,
   });
-  if (!agent) return null;
-  const status = agent.sentCents > 0 ? 'sent' : 'ready';
+  if (!broker) return null;
+  const status = broker.sentCents > 0 ? 'sent' : 'ready';
   const entries = (detail.data?.entries ?? []).filter((e) => e.status === status);
-  const sum = status === 'sent' ? agent.sentCents : agent.readyCents;
+  const sum = status === 'sent' ? broker.sentCents : broker.readyCents;
   return (
     <Sheet
       open
       onClose={onClose}
-      title={t('pay.paidTitle', { name: first(agent.name) })}
-      sub={t('pay.paidText', { name: first(agent.name) })}
+      title={t('pay.paidTitle', { name: first(broker.name) })}
+      sub={t('pay.paidText', { name: first(broker.name) })}
       footer={
         <Button variant="primary" block busy={act.busy} disabled={code.length !== 6 || sum <= 0} onClick={() => act.mutate(undefined)}>
           {t('markPaid')}
@@ -159,24 +159,24 @@ export function MarkPaidSheet({ agent, onClose }: { agent: AgentRow | null; onCl
   );
 }
 
-/** New e-mail to an agent: the nudge (FR-AGT-2) or a plain e-mail from the agent panel. */
-export function MailSheet({ agent, kind, onClose }: { agent: AgentRow | null; kind: 'nudge' | 'email'; onClose: () => void }) {
-  const t = useTranslations('agents');
+/** New e-mail to a broker: the nudge (FR-AGT-2) or a plain e-mail from the broker panel. */
+export function MailSheet({ broker, kind, onClose }: { broker: BrokerRow | null; kind: 'nudge' | 'email'; onClose: () => void }) {
+  const t = useTranslations('brokers');
   const { me } = useSession();
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   useEffect(() => {
-    if (!agent) return;
-    const v = { name: first(agent.name), sender: first(me.user.name) };
+    if (!broker) return;
+    const v = { name: first(broker.name), sender: first(me.user.name) };
     setSubject(kind === 'nudge' ? t('mail.nudgeSubject') : t('mail.emailSubject'));
     setBody(kind === 'nudge' ? t('mail.nudgeBody', v) : t('mail.emailBody', v));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agent?.id, kind]);
-  const act = useAction(() => api.post(`/agents/${agent!.id}/${kind === 'nudge' ? 'nudge' : 'email'}`, { subject, message: body }), {
-    success: () => t('mail.sent', { name: agent?.name ?? '' }),
+  }, [broker?.id, kind]);
+  const act = useAction(() => api.post(`/brokers/${broker!.id}/${kind === 'nudge' ? 'nudge' : 'email'}`, { subject, message: body }), {
+    success: () => t('mail.sent', { name: broker?.name ?? '' }),
     onDone: onClose,
   });
-  if (!agent) return null;
+  if (!broker) return null;
   return (
     <Sheet
       open
@@ -192,7 +192,7 @@ export function MailSheet({ agent, kind, onClose }: { agent: AgentRow | null; ki
         </div>
       }
     >
-      <TextField label={t('mail.to')} value={`${agent.name} · ${agent.email}`} readOnly />
+      <TextField label={t('mail.to')} value={`${broker.name} · ${broker.email}`} readOnly />
       <TextField label={t('mail.subject')} value={subject} onChange={(e) => setSubject(e.target.value)} error={act.fields.subject} />
       <PolishableText label={t('mail.message')} value={body} onChange={setBody} rows={6} />
       <span className="caption muted">{t('mail.aiHelp')}</span>
@@ -204,11 +204,11 @@ export function MailSheet({ agent, kind, onClose }: { agent: AgentRow | null; ki
 }
 
 /**
- * Invite new agent (FR-AGT-4): name, e-mail and the whole invitation e-mail with AI polish. The
- * set-password link is added at the end; after it the agent fills in the set-up and signs.
+ * Invite new broker (FR-AGT-4): name, e-mail and the whole invitation e-mail with AI polish. The
+ * set-password link is added at the end; after it the broker fills in the set-up and signs.
  */
-export function InviteSheet({ open, terms, onClose }: { open: boolean; terms: AgentsOverview['terms'] | undefined; onClose: () => void }) {
-  const t = useTranslations('agents');
+export function InviteSheet({ open, terms, onClose }: { open: boolean; terms: BrokersOverview['terms'] | undefined; onClose: () => void }) {
+  const t = useTranslations('brokers');
   const locale = useLocale();
   const { unit } = useFmt();
   const { me } = useSession();
@@ -225,7 +225,7 @@ export function InviteSheet({ open, terms, onClose }: { open: boolean; terms: Ag
   }, [open]);
   const shown = letter.replace(/\[Name\]/g, name.trim() ? first(name) : '[Name]');
   const act = useAction(
-    () => api.post<{ id: string }>('/agents/invite', { name: name.trim(), email: email.trim(), language: locale, subject: t('inviteSheet.subject'), letter: letter }),
+    () => api.post<{ id: string }>('/brokers/invite', { name: name.trim(), email: email.trim(), language: locale, subject: t('inviteSheet.subject'), letter: letter }),
     { success: () => t('inviteSheet.sent'), onDone: onClose },
   );
   if (!open) return null;
@@ -251,31 +251,31 @@ export function InviteSheet({ open, terms, onClose }: { open: boolean; terms: Ag
   );
 }
 
-/** One agent: figures, their customers with what each owes, set-up and an e-mail button. */
-export function AgentSheet({ agent, onClose, onEmail, onCountersign }: { agent: AgentRow | null; onClose: () => void; onEmail: (a: AgentRow) => void; onCountersign: (a: AgentRow) => void }) {
-  const t = useTranslations('agents');
+/** One broker: figures, their customers with what each owes, set-up and an e-mail button. */
+export function BrokerSheet({ broker, onClose, onEmail, onCountersign }: { broker: BrokerRow | null; onClose: () => void; onEmail: (a: BrokerRow) => void; onCountersign: (a: BrokerRow) => void }) {
+  const t = useTranslations('brokers');
   const { money, date, dateShort } = useFmt();
   const { canEdit, readOnly } = useSession();
-  const q = useQuery({ queryKey: ['agents', 'detail', agent?.id], queryFn: () => api.get<AgentDetail>(`/agents/${agent!.id}`), enabled: !!agent });
-  if (!agent) return null;
+  const q = useQuery({ queryKey: ['brokers', 'detail', broker?.id], queryFn: () => api.get<BrokerDetail>(`/brokers/${broker!.id}`), enabled: !!broker });
+  if (!broker) return null;
   const custs = q.data?.customers ?? [];
   return (
-    <Sheet open onClose={onClose} title={agent.name} sub={agent.lastOrderAt ? t('panel.sub', { date: date(agent.lastOrderAt) }) : t('panel.subNone')}>
+    <Sheet open onClose={onClose} title={broker.name} sub={broker.lastOrderAt ? t('panel.sub', { date: date(broker.lastOrderAt) }) : t('panel.subNone')}>
       <div className={s.box}>
         <div className={s.tot}>
           <span>{t('table.ready')}</span>
-          {agent.paidTodayCents > 0 && agent.readyCents === 0 ? <Pill tone="good">{t('table.paidToday')}</Pill> : <bdi>{money(agent.readyCents)}</bdi>}
+          {broker.paidTodayCents > 0 && broker.readyCents === 0 ? <Pill tone="good">{t('table.paidToday')}</Pill> : <bdi>{money(broker.readyCents)}</bdi>}
         </div>
         <div className={s.tot}>
           <span>{t('table.coming')}</span>
-          <bdi>{money(agent.comingCents)}</bdi>
+          <bdi>{money(broker.comingCents)}</bdi>
         </div>
         <div className={s.tot}>
           <span>{t('table.ordersThisMonth')}</span>
-          <span className={agent.ordersThisMonth === 0 ? s.zero : ''}>{agent.ordersThisMonth}</span>
+          <span className={broker.ordersThisMonth === 0 ? s.zero : ''}>{broker.ordersThisMonth}</span>
         </div>
       </div>
-      <div className={s.sgrp}>{t('panel.customers', { n: q.data ? custs.length : agent.customers })}</div>
+      <div className={s.sgrp}>{t('panel.customers', { n: q.data ? custs.length : broker.customers })}</div>
       {q.isLoading ? (
         <Skeleton h={56} />
       ) : custs.length === 0 ? (
@@ -299,23 +299,23 @@ export function AgentSheet({ agent, onClose, onEmail, onCountersign }: { agent: 
           ))}
         </div>
       )}
-      {agent.setup === 'countersign' && canEdit('agents') && !readOnly && (
-        <Button variant="primary" block icon={Signature} onClick={() => onCountersign(agent)}>
+      {broker.setup === 'countersign' && canEdit('brokers') && !readOnly && (
+        <Button variant="primary" block icon={Signature} onClick={() => onCountersign(broker)}>
           {t('table.countersign')}
         </Button>
       )}
-      {agent.status === 'active' && (
-        <Button block icon={EnvelopeSimple} onClick={() => onEmail(agent)}>
-          {t('panel.email', { name: first(agent.name) })}
+      {broker.status === 'active' && (
+        <Button block icon={EnvelopeSimple} onClick={() => onEmail(broker)}>
+          {t('panel.email', { name: first(broker.name) })}
         </Button>
       )}
     </Sheet>
   );
 }
 
-/** The Admin countersigns the agent agreement with their e-signature (finishes the agent's set-up). */
-export function CountersignSheet({ agentId, onClose }: { agentId: string | null; onClose: () => void }) {
-  const t = useTranslations('agents');
+/** The Admin countersigns the broker agreement with their e-signature (finishes the broker's set-up). */
+export function CountersignSheet({ brokerId, onClose }: { brokerId: string | null; onClose: () => void }) {
+  const t = useTranslations('brokers');
   const { date, dateTime } = useFmt();
   const { me } = useSession();
   const [name, setName] = useState('');
@@ -323,13 +323,13 @@ export function CountersignSheet({ agentId, onClose }: { agentId: string | null;
   useEffect(() => {
     setName('');
     setAgree(false);
-  }, [agentId]);
-  const q = useQuery({ queryKey: ['agents', 'setup', agentId], queryFn: () => api.get<AgentSetup>(`/agents/${agentId}/setup`), enabled: !!agentId });
-  const act = useAction(() => api.post(`/agents/${agentId}/countersign`, { name: name.trim(), agree }), {
-    success: () => t('countersign.done', { name: q.data?.agent.name ?? '' }),
+  }, [brokerId]);
+  const q = useQuery({ queryKey: ['brokers', 'setup', brokerId], queryFn: () => api.get<BrokerSetup>(`/brokers/${brokerId}/setup`), enabled: !!brokerId });
+  const act = useAction(() => api.post(`/brokers/${brokerId}/countersign`, { name: name.trim(), agree }), {
+    success: () => t('countersign.done', { name: q.data?.broker.name ?? '' }),
     onDone: onClose,
   });
-  if (!agentId) return null;
+  if (!brokerId) return null;
   const d = q.data;
   const det = d?.details;
   const done = d?.status === 'done';
@@ -338,7 +338,7 @@ export function CountersignSheet({ agentId, onClose }: { agentId: string | null;
       open
       onClose={onClose}
       dirty={!!name && !done}
-      title={t('countersign.title', { name: d?.agent.name ?? '' })}
+      title={t('countersign.title', { name: d?.broker.name ?? '' })}
       sub={done ? t('countersign.doneOn', { name: d?.agreement.countersignedName ?? '', date: date(d?.agreement.countersignedAt ?? '') }) : t('countersign.sub')}
       footer={
         done ? undefined : (
@@ -374,7 +374,7 @@ export function CountersignSheet({ agentId, onClose }: { agentId: string | null;
               IBAN {det.iban} · BIC {det.bic}
             </bdi>
             {det.bankConfirmation && (
-              <a className="link body-sm" href={`/api/agents/${agentId}/setup/files/${det.bankConfirmation}`} target="_blank" rel="noreferrer">
+              <a className="link body-sm" href={`/api/brokers/${brokerId}/setup/files/${det.bankConfirmation}`} target="_blank" rel="noreferrer">
                 {t('countersign.openConfirmation')}
               </a>
             )}
@@ -390,12 +390,12 @@ export function CountersignSheet({ agentId, onClose }: { agentId: string | null;
                 {d.agreement.signedAt && t('countersign.signed', { name: d.agreement.signedName ?? '', date: dateTime(d.agreement.signedAt) })} · {d.signMethod === 'paper' ? t('countersign.signedPaper') : t('countersign.signedApp')}
               </span>
             </span>
-            <a className="an-btn secondary sm" href={`/api/agents/${agentId}/agreement`} target="_blank" rel="noreferrer">
+            <a className="an-btn secondary sm" href={`/api/brokers/${brokerId}/agreement`} target="_blank" rel="noreferrer">
               {t('countersign.read')}
             </a>
           </div>
           {d.signedScan && (
-            <a className="link body-sm" href={`/api/agents/${agentId}/setup/files/${d.signedScan}`} target="_blank" rel="noreferrer">
+            <a className="link body-sm" href={`/api/brokers/${brokerId}/setup/files/${d.signedScan}`} target="_blank" rel="noreferrer">
               {t('countersign.openScan')}
             </a>
           )}

@@ -17,7 +17,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { PurchasingModule } from './purchasing/purchasing.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { WarehouseModule } from './warehouse/warehouse.module';
-import { AgentsModule } from './agents/agents.module';
+import { BrokersModule } from './brokers/brokers.module';
 import { EventsModule } from './events/events.module';
 import { MoneyModule } from './money/money.module';
 import { AdminModule } from './admin/admin.module';
@@ -39,7 +39,7 @@ import { AdminModule } from './admin/admin.module';
     PurchasingModule,
     InventoryModule,
     WarehouseModule,
-    AgentsModule,
+    BrokersModule,
     EventsModule,
     MoneyModule,
     AdminModule,

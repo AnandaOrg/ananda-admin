@@ -10,7 +10,7 @@ import { useSession } from '@/lib/session';
 import { useAction, useMedia } from '@/lib/hooks';
 import { Button, CaretRight, Card, Chips, EmptyState, Icon, ListCard, ListCards, PageHeader, Phone, Pill, Plus, Search, Sheet, Table, Users, searchFilter, type Column } from '@/components/ui';
 import { AddCustomerSheet } from './AddCustomerSheet';
-import { ChangeAgentSheet } from './ChangeAgentSheet';
+import { ChangeBrokerSheet } from './ChangeBrokerSheet';
 import { ReviewPanel } from '../home/ReviewPanel';
 import { STATUS_TONE } from './status';
 import s from './customers.module.css';
@@ -21,8 +21,8 @@ interface CustomerRow {
   vatNumber: string;
   city: string | null;
   phone: string | null;
-  agentId: string | null;
-  agentName: string | null;
+  brokerId: string | null;
+  brokerName: string | null;
   ownedUntil: string | null;
   lastOrderAt: string | null;
   owesCents: number | null;
@@ -42,7 +42,7 @@ export default function CustomersPage() {
   const router = useRouter();
   const params = useSearchParams();
   const phone = useMedia('(max-width: 767px)');
-  const { canEdit, isAgent, isAdmin } = useSession();
+  const { canEdit, isBroker, isAdmin } = useSession();
   const { money, date, dateShort } = useFmt();
   const [filter, setFilter] = useState<Filter>((params.get('filter') as Filter) ?? 'all');
   const [q, setQ] = useState('');
@@ -56,19 +56,19 @@ export default function CustomersPage() {
 
   const counts = list.data?.counts;
   const months = list.data?.ownershipMonths ?? 6;
-  const rows = searchFilter(list.data?.items ?? [], q, (c) => [c.companyName, c.vatNumber, c.city, c.agentName]);
+  const rows = searchFilter(list.data?.items ?? [], q, (c) => [c.companyName, c.vatNumber, c.city, c.brokerName]);
   const firstRun = !list.isLoading && !list.error && counts?.all === 0 && counts?.archived === 0;
   const canAdd = canEdit('customers');
   const today = new Date().toISOString().slice(0, 10);
 
-  const agentName = (c: CustomerRow) => (c.status === 'free_to_claim' || !c.agentName ? t('noAgent') : c.agentName);
+  const brokerName = (c: CustomerRow) => (c.status === 'free_to_claim' || !c.brokerName ? t('noBroker') : c.brokerName);
   const ownsUntil = (c: CustomerRow) =>
     c.status === 'needs_approval' || c.status === 'draft' ? t('onApproval') : c.status === 'free_to_claim' && c.ownedUntil ? t('freeSince', { date: dateShort(c.ownedUntil) }) : c.ownedUntil ? date(c.ownedUntil) : '—';
   const lastOrder = (c: CustomerRow) => (c.lastOrderAt ? dateShort(c.lastOrderAt) : t('neverOrdered'));
   const status = (c: CustomerRow) => <Pill tone={STATUS_TONE[c.status] ?? 'info'}>{tc(`customerStatus.${c.status}`)}</Pill>;
   const open = (c: CustomerRow) => {
     if (c.status === 'needs_approval' && c.approvalId && isAdmin) return setReview(c.approvalId);
-    if (phone && !isAgent) return setPeek(c);
+    if (phone && !isBroker) return setPeek(c);
     router.push(`/customers/${c.id}`);
   };
   const requested = (c: CustomerRow) =>
@@ -85,7 +85,7 @@ export default function CustomersPage() {
         </>
       ),
     },
-    { key: 'agent', header: tc('agent'), render: agentName },
+    { key: 'broker', header: tc('broker'), render: brokerName },
     { key: 'owns', header: t('cols.ownsUntil'), render: (c) => <span className="nowrap">{ownsUntil(c)}</span> },
     { key: 'last', header: t('cols.lastOrder'), render: (c) => <span className="nowrap">{lastOrder(c)}</span> },
     { key: 'owes', header: t('cols.owes'), type: 'amount', render: (c) => (c.owesCents == null ? '—' : <bdi className={c.lateCents ? 'bad' : ''}>{money(c.owesCents)}</bdi>) },
@@ -94,7 +94,7 @@ export default function CustomersPage() {
       header: tc('status'),
       type: 'status',
       render: (c) =>
-        isAgent && c.status === 'free_to_claim' && !c.mine ? (
+        isBroker && c.status === 'free_to_claim' && !c.mine ? (
           <Button size="sm" variant="primary" onClick={(e) => (e.stopPropagation(), claim.mutate(c.id))} busy={claim.busy && claim.variables === c.id}>
             {t('claim')}
           </Button>
@@ -120,7 +120,7 @@ export default function CustomersPage() {
           <EmptyState
             icon={Users}
             title={t('empty.firstTitle')}
-            text={isAgent ? t('empty.firstTextAgent') : t('empty.firstText')}
+            text={isBroker ? t('empty.firstTextBroker') : t('empty.firstText')}
             action={
               canAdd ? (
                 <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>
@@ -154,11 +154,11 @@ export default function CustomersPage() {
     <div className="page">
       <PageHeader
         crumbs={[{ label: tc('nav.customers') }]}
-        kicker={isAgent ? t('kickerMine', { n: counts?.all ?? 0 }) : t('kicker', { n: counts?.all ?? 0 })}
+        kicker={isBroker ? t('kickerMine', { n: counts?.all ?? 0 }) : t('kicker', { n: counts?.all ?? 0 })}
         title={tc('nav.customers')}
         actions={
           <>
-            {!phone && <Search value={q} onChange={setQ} placeholder={t('searchPlaceholder')} suggestions={rows.slice(0, 50).map((c) => ({ key: c.id, title: c.companyName, sub: [agentName(c), c.vatNumber].filter(Boolean).join(' · '), href: `/customers/${c.id}` }))} />}
+            {!phone && <Search value={q} onChange={setQ} placeholder={t('searchPlaceholder')} suggestions={rows.slice(0, 50).map((c) => ({ key: c.id, title: c.companyName, sub: [brokerName(c), c.vatNumber].filter(Boolean).join(' · '), href: `/customers/${c.id}` }))} />}
             {newButton}
           </>
         }
@@ -166,7 +166,7 @@ export default function CustomersPage() {
       {phone && <Search phone value={q} onChange={setQ} placeholder={t('searchPlaceholder')} />}
       <Chips value={filter} onChange={setFilter} fill={false} label={tc('filters')} options={chipKeys.map((f) => ({ value: f, label: t(`filters.${f}`), count: counts?.[f] }))} />
       <Card flush className="only-wide">
-        <Table columns={columns} rows={rows} rowKey={(c) => c.id} onRow={open} picker={{ id: 'customers', locked: ['customer', 'owes', 'status'], priority: ['agent', 'owns', 'last'] }} loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('couldntLoad')} empty={empty} />
+        <Table columns={columns} rows={rows} rowKey={(c) => c.id} onRow={open} picker={{ id: 'customers', locked: ['customer', 'owes', 'status'], priority: ['broker', 'owns', 'last'] }} loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('couldntLoad')} empty={empty} />
         {rows.length > 0 && <div className={s.foot2}>{t('rule', { n: months })}</div>}
       </Card>
       <div className="only-phone">
@@ -179,7 +179,7 @@ export default function CustomersPage() {
               amount={c.owesCents == null ? '' : money(c.owesCents)}
               sub={
                 <>
-                  {agentName(c)} · {c.lastOrderAt ? t('lastOrderOn', { date: dateShort(c.lastOrderAt) }) : t('neverOrdered')}
+                  {brokerName(c)} · {c.lastOrderAt ? t('lastOrderOn', { date: dateShort(c.lastOrderAt) }) : t('neverOrdered')}
                 </>
               }
               status={status(c)}
@@ -190,14 +190,14 @@ export default function CustomersPage() {
 
       <AddCustomerSheet open={adding} onClose={() => setAdding(false)} />
       <ReviewPanel id={review} onClose={() => setReview(null)} />
-      <ChangeAgentSheet customer={moving && { id: moving.id, companyName: moving.companyName, agentId: moving.status === 'free_to_claim' ? null : moving.agentId, agentName: moving.status === 'free_to_claim' ? null : moving.agentName, months }} onClose={() => setMoving(null)} />
+      <ChangeBrokerSheet customer={moving && { id: moving.id, companyName: moving.companyName, brokerId: moving.status === 'free_to_claim' ? null : moving.brokerId, brokerName: moving.status === 'free_to_claim' ? null : moving.brokerName, months }} onClose={() => setMoving(null)} />
       <Sheet open={!!peek} onClose={() => setPeek(null)} title={peek?.companyName ?? ''}>
         {peek && (
           <>
             <div className={s.peek}>
               <div className={s.kv}>
-                <span>{tc('agent')}</span>
-                <span>{agentName(peek)}</span>
+                <span>{tc('broker')}</span>
+                <span>{brokerName(peek)}</span>
               </div>
               <div className={s.kv}>
                 <span>{peek.status === 'free_to_claim' ? t('cols.lastOrder') : t('cols.ownsUntil')}</span>
@@ -225,7 +225,7 @@ export default function CustomersPage() {
                     setPeek(null);
                   }}
                 >
-                  {t('changeAgent')}
+                  {t('changeBroker')}
                 </Button>
               )}
             </div>

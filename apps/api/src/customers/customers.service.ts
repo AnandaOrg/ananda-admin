@@ -40,15 +40,15 @@ export interface CustomerFormInput {
   paymentTermsDays?: number;
   note?: string;
   submit?: boolean;
-  /** Admin only: an agent's id, or 'none' for a house customer (no agent, no commission). */
-  agentId?: string;
+  /** Admin only: a broker's id, or 'none' for a house customer (no broker, no commission). */
+  brokerId?: string;
 }
 
 /** Derived state shown in lists: Late while an invoice is overdue; Free to claim after ownership ends. */
 function displayStatus(c: CustomerRow, lateCents: number, today: string, freeAtEnd = true) {
   if (c.status !== 'active') return c.status;
   if (lateCents > 0) return 'late';
-  if (freeAtEnd && c.agentId && c.ownedUntil && c.ownedUntil < today) return 'free_to_claim';
+  if (freeAtEnd && c.brokerId && c.ownedUntil && c.ownedUntil < today) return 'free_to_claim';
   return 'active';
 }
 
@@ -89,12 +89,12 @@ export class CustomersService {
   private lateSql = sql<number>`coalesce((select sum(${outstandingSql}) from ${orders} where ${orders.customerId} = ${customers.id} and ${orders.status} not in ('draft','cancelled') and ${orders.paymentDueOn} < current_date), 0)::int`;
   private lastOrderSql = sql<string | null>`(select max(${orders.requestSentAt})::text from ${orders} where ${orders.customerId} = ${customers.id} and ${orders.status} not in ('draft','cancelled'))`;
 
-  async list(auth: AuthContext, q: { filter?: string; q?: string; agentId?: string }) {
+  async list(auth: AuthContext, q: { filter?: string; q?: string; brokerId?: string }) {
     const today = isoDate();
     const base: SQL[] = [];
     const scope = customerScope(auth);
     if (scope) base.push(scope);
-    if (q.agentId) base.push(eq(customers.agentId, q.agentId));
+    if (q.brokerId) base.push(eq(customers.brokerId, q.brokerId));
     if (q.q) {
       const like = `%${q.q.trim()}%`;
       base.push(or(ilike(customers.companyName, like), ilike(customers.vatNumber, like), ilike(customers.city, like))!);
@@ -102,7 +102,7 @@ export class CustomersService {
     const filters: Record<string, SQL> = {
       needs_approval: eq(customers.status, 'needs_approval'),
       late: and(eq(customers.status, 'active'), sql`${this.lateSql} > 0`)!,
-      free: and(eq(customers.status, 'active'), isNotNull(customers.agentId), lt(customers.ownedUntil, today))!,
+      free: and(eq(customers.status, 'active'), isNotNull(customers.brokerId), lt(customers.ownedUntil, today))!,
       archived: eq(customers.status, 'archived'),
       drafts: eq(customers.status, 'draft'),
     };
@@ -110,13 +110,13 @@ export class CustomersService {
     const rows = await this.db
       .select({
         c: customers,
-        agentName: users.name,
+        brokerName: users.name,
         owesCents: this.owesSql,
         lateCents: this.lateSql,
         lastOrderAt: this.lastOrderSql,
       })
       .from(customers)
-      .leftJoin(users, eq(users.id, customers.agentId))
+      .leftJoin(users, eq(users.id, customers.brokerId))
       .where(and(...base, active))
       .orderBy(sql`case when ${customers.status} = 'needs_approval' then 0 when ${this.lateSql} > 0 then 1 else 2 end`, asc(customers.companyName))
       .limit(500);
@@ -139,12 +139,12 @@ export class CustomersService {
           .innerJoin(users, eq(users.id, approvalRequests.requestedById))
           .where(and(inArray(approvalRequests.customerId, waiting), eq(approvalRequests.type, 'new_customer'), eq(approvalRequests.status, 'pending')))
       : [];
-    // Rule "what happens at the end": customers either become free to claim or stay with their agent.
+    // Rule "what happens at the end": customers either become free to claim or stay with their broker.
     const freeAtEnd = (await this.settings.rules()).ownership.atEnd === 'free_to_claim';
-    const visible = freeAtEnd || auth.perms.scope !== 'own' ? rows : rows.filter((r) => r.c.agentId === auth.user.id);
+    const visible = freeAtEnd || auth.perms.scope !== 'own' ? rows : rows.filter((r) => r.c.brokerId === auth.user.id);
     return {
       items: visible.map((r) => {
-        const mine = auth.perms.scope !== 'own' || r.c.agentId === auth.user.id;
+        const mine = auth.perms.scope !== 'own' || r.c.brokerId === auth.user.id;
         const req = requests.find((x) => x.customerId === r.c.id);
         const status = displayStatus(r.c, Number(r.lateCents), today, freeAtEnd);
         return {
@@ -153,11 +153,11 @@ export class CustomersService {
           vatNumber: r.c.vatNumber,
           city: r.c.city,
           phone: mine ? r.c.phone : null,
-          agentId: status === 'free_to_claim' ? null : r.c.agentId,
-          agentName: status === 'free_to_claim' ? null : r.agentName,
+          brokerId: status === 'free_to_claim' ? null : r.c.brokerId,
+          brokerName: status === 'free_to_claim' ? null : r.brokerName,
           ownedUntil: r.c.ownedUntil,
           lastOrderAt: r.lastOrderAt,
-          // Agents see the money of their own customers only.
+          // Brokers see the money of their own customers only.
           owesCents: mine ? Number(r.owesCents) : null,
           lateCents: mine ? Number(r.lateCents) : null,
           status,
@@ -182,12 +182,12 @@ export class CustomersService {
     const c = await this.load(auth, id);
     const rules = await this.settings.rules();
     const freeAtEnd = rules.ownership.atEnd === 'free_to_claim';
-    if (auth.perms.scope === 'own' && c.agentId !== auth.user.id && !freeAtEnd) throw new NotFoundException({ message: 'Customer not found' });
-    if (auth.perms.scope === 'own' && c.agentId !== auth.user.id) {
+    if (auth.perms.scope === 'own' && c.brokerId !== auth.user.id && !freeAtEnd) throw new NotFoundException({ message: 'Customer not found' });
+    if (auth.perms.scope === 'own' && c.brokerId !== auth.user.id) {
       // Free to claim: show who it is, not their money or history.
       return { customer: { id: c.id, companyName: c.companyName, vatNumber: c.vatNumber, city: c.city, country: c.country, ownedUntil: c.ownedUntil }, freeToClaim: true, ownershipMonths: rules.ownership.months };
     }
-    const [agent] = c.agentId ? await this.db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(eq(users.id, c.agentId)) : [null];
+    const [broker] = c.brokerId ? await this.db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(eq(users.id, c.brokerId)) : [null];
     const [ords, pays, docs, contacts, history, pending] = await Promise.all([
       this.db
         .select({ id: orders.id, number: orders.number, status: orders.status, createdAt: orders.createdAt, requestSentAt: orders.requestSentAt, totalCents: orders.totalCents, totalCartons: orders.totalCartons, outstandingCents: outstandingSql, paymentDueOn: orders.paymentDueOn, commissionCents: orders.commissionCents })
@@ -215,8 +215,8 @@ export class CustomersService {
     const status = displayStatus(c, late, today, freeAtEnd);
     return {
       customer: { ...c, displayStatus: status },
-      agent: status === 'free_to_claim' ? null : agent,
-      previousAgent: status === 'free_to_claim' ? agent : null,
+      broker: status === 'free_to_claim' ? null : broker,
+      previousBroker: status === 'free_to_claim' ? broker : null,
       tiles: {
         owesCents: owes,
         lateCents: late,
@@ -244,12 +244,12 @@ export class CustomersService {
     if (companyName && companyName.trim().length >= 3) conds.push(ilike(customers.companyName, companyName.trim()));
     if (!conds.length) return [];
     const rows = await this.db
-      .select({ id: customers.id, companyName: customers.companyName, vatNumber: customers.vatNumber, status: customers.status, agentId: customers.agentId, agentName: users.name, ownedUntil: customers.ownedUntil, lastOrderAt: this.lastOrderSql })
+      .select({ id: customers.id, companyName: customers.companyName, vatNumber: customers.vatNumber, status: customers.status, brokerId: customers.brokerId, brokerName: users.name, ownedUntil: customers.ownedUntil, lastOrderAt: this.lastOrderSql })
       .from(customers)
-      .leftJoin(users, eq(users.id, customers.agentId))
+      .leftJoin(users, eq(users.id, customers.brokerId))
       .where(and(or(...conds), excludeId ? ne(customers.id, excludeId) : undefined));
     const today = isoDate();
-    return rows.map((r) => ({ ...r, freeToClaim: r.status === 'active' && !!r.agentId && !!r.ownedUntil && r.ownedUntil < today }));
+    return rows.map((r) => ({ ...r, freeToClaim: r.status === 'active' && !!r.brokerId && !!r.ownedUntil && r.ownedUntil < today }));
   }
 
   /** Splits a VAT number typed with or without its country prefix into country and number. */
@@ -321,7 +321,7 @@ export class CustomersService {
 
   async create(auth: AuthContext, input: CustomerFormInput) {
     const isAdmin = auth.perms.scope === 'all';
-    if (isAdmin && !input.agentId) throw new BadRequestException({ message: 'Choose an agent, or No agent', fields: { agentId: 'Required' } });
+    if (isAdmin && !input.brokerId) throw new BadRequestException({ message: 'Choose a broker, or No broker', fields: { brokerId: 'Required' } });
     const vatNumber = input.vatNumber ? normalizeVat(input.vatNumber) : '';
     // The server asks the register itself; when it doesn't answer, the number is checked again before the first proforma.
     const check = vatNumber ? await this.vies(vatNumber, input.country) : null;
@@ -330,12 +330,12 @@ export class CustomersService {
       if (vatNumber && dup.some((d) => d.status !== 'declined' && normalizeVat(d.vatNumber) === normalizeVat(check?.vatNumber ?? vatNumber))) {
         throw new BadRequestException({ message: 'A customer with this VAT number is already in ANANDA', fields: { vatNumber: 'Already in ANANDA' } });
       }
-      // Customers an Admin creates are approved straight away; agents send theirs for approval.
+      // Customers an Admin creates are approved straight away; brokers send theirs for approval.
       const status = isAdmin ? 'active' : input.submit === false ? 'draft' : 'needs_approval';
-      const agentId = isAdmin ? (input.agentId === 'none' ? null : (input.agentId ?? null)) : auth.user.id;
-      if (agentId && isAdmin) {
-        const [a] = await tx.select({ id: users.id }).from(users).where(and(eq(users.id, agentId), inArray(users.roleId, sql`(select id from roles where base_role = 'agent')`)));
-        if (!a) throw new BadRequestException({ message: 'Choose an agent', fields: { agentId: 'Choose an agent' } });
+      const brokerId = isAdmin ? (input.brokerId === 'none' ? null : (input.brokerId ?? null)) : auth.user.id;
+      if (brokerId && isAdmin) {
+        const [a] = await tx.select({ id: users.id }).from(users).where(and(eq(users.id, brokerId), inArray(users.roleId, sql`(select id from roles where base_role = 'broker')`)));
+        if (!a) throw new BadRequestException({ message: 'Choose a broker', fields: { brokerId: 'Choose a broker' } });
       }
       const rules = await this.settings.rules(tx);
       const [c] = await tx
@@ -357,9 +357,9 @@ export class CustomersService {
           paymentTerms: input.paymentTerms ?? 'before_shipping',
           paymentTermsDays: input.paymentTermsDays ?? 7,
           note: input.note || null,
-          agentId,
-          // The agent keeps the customer for N months from each order; an Admin-added one from today.
-          ownedUntil: isAdmin && agentId ? isoDate(addMonths(new Date(), rules.ownership.months)) : null,
+          brokerId,
+          // The broker keeps the customer for N months from each order; an Admin-added one from today.
+          ownedUntil: isAdmin && brokerId ? isoDate(addMonths(new Date(), rules.ownership.months)) : null,
           status,
           approvedAt: isAdmin ? new Date() : null,
           approvedById: isAdmin ? auth.user.id : null,
@@ -376,11 +376,11 @@ export class CustomersService {
           recordType: 'customer',
           recordId: c.id,
           recordLabel: c.companyName,
-          meta: { vatChecked: !!check?.checked, vatValid: check?.valid ?? null, agentId, paymentTerms: c.paymentTerms },
+          meta: { vatChecked: !!check?.checked, vatValid: check?.valid ?? null, brokerId, paymentTerms: c.paymentTerms },
         },
         tx,
       );
-      if (isAdmin && agentId && agentId !== auth.user.id) await this.notify.toUsers([agentId], { type: 'customer_assigned', title: `${c.companyName} is now yours`, body: 'Added by an Admin. You can start a sale.', link: `/customers/${c.id}` }, tx);
+      if (isAdmin && brokerId && brokerId !== auth.user.id) await this.notify.toUsers([brokerId], { type: 'customer_assigned', title: `${c.companyName} is now yours`, body: 'Added by an Admin. You can start a sale.', link: `/customers/${c.id}` }, tx);
       return { id: c.id, status, companyName: c.companyName, vatChecked: !!check?.checked };
     });
   }
@@ -388,7 +388,7 @@ export class CustomersService {
   private async openApproval(tx: Tx, auth: AuthContext, customerId: string, reason?: string | null) {
     const [req] = await tx.insert(approvalRequests).values({ type: 'new_customer', customerId, requestedById: auth.user.id, reason: reason ?? null }).returning();
     const [c] = await tx.select({ name: customers.companyName, vatValid: customers.vatValid }).from(customers).where(eq(customers.id, customerId));
-    await this.notify.send('customer_approval', { roles: ['system_admin', 'admin'] }, { agent: auth.user.name, customer: c.name, ...(c.vatValid ? { vatValid: 1 } : {}) }, `/home?review=${req.id}`, tx);
+    await this.notify.send('customer_approval', { roles: ['system_admin', 'admin'] }, { broker: auth.user.name, customer: c.name, ...(c.vatValid ? { vatValid: 1 } : {}) }, `/home?review=${req.id}`, tx);
     await this.notify.send('sent_for_approval', { users: [auth.user.id] }, { customer: c.name }, `/customers/${customerId}`, tx);
   }
 
@@ -396,7 +396,7 @@ export class CustomersService {
     return this.db.transaction(async (tx) => {
       const c = await this.load(auth, id);
       const isAdmin = auth.perms.scope === 'all';
-      if (!isAdmin && (c.agentId !== auth.user.id || !['draft', 'declined'].includes(c.status))) {
+      if (!isAdmin && (c.brokerId !== auth.user.id || !['draft', 'declined'].includes(c.status))) {
         throw new ForbiddenException({ message: 'Ask an admin to change an approved customer' });
       }
       const vatChanged = input.vatNumber != null && normalizeVat(input.vatNumber) !== c.vatNumber;
@@ -432,26 +432,26 @@ export class CustomersService {
       const [c] = await tx.select().from(customers).where(eq(customers.id, id)).for('update');
       if (!c || c.status !== 'active' || !c.ownedUntil || c.ownedUntil >= isoDate()) throw new ConflictException({ message: 'This customer is not free to claim' });
       const rules = await this.settings.rules(tx);
-      if (rules.ownership.atEnd !== 'free_to_claim') throw new ConflictException({ message: 'Customers stay with their agent when ownership ends' });
+      if (rules.ownership.atEnd !== 'free_to_claim') throw new ConflictException({ message: 'Customers stay with their broker when ownership ends' });
       const ownedUntil = isoDate(addMonths(new Date(), rules.ownership.months));
-      await tx.update(customers).set({ agentId: auth.user.id, ownedUntil, ownershipWarnedAt: null }).where(eq(customers.id, id));
-      await this.audit.log(auth, { category: 'customers', action: 'customer_claimed', recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { agentId: { from: c.agentId, to: auth.user.id }, ownedUntil: { from: c.ownedUntil, to: ownedUntil } } }, tx);
+      await tx.update(customers).set({ brokerId: auth.user.id, ownedUntil, ownershipWarnedAt: null }).where(eq(customers.id, id));
+      await this.audit.log(auth, { category: 'customers', action: 'customer_claimed', recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { brokerId: { from: c.brokerId, to: auth.user.id }, ownedUntil: { from: c.ownedUntil, to: ownedUntil } } }, tx);
       return { ok: true, ownedUntil };
     });
   }
 
-  /** Admin moves a customer to another agent (or to no agent); open orders stay with the previous agent (FR-CUST-5). */
-  async changeAgent(auth: AuthContext, id: string, agentId: string | null, reason: string, note?: string) {
+  /** Admin moves a customer to another broker (or to no broker); open orders stay with the previous broker (FR-CUST-5). */
+  async changeBroker(auth: AuthContext, id: string, brokerId: string | null, reason: string, note?: string) {
     return this.db.transaction(async (tx) => {
       const c = await this.load(auth, id);
-      const [agent] = agentId ? await tx.select().from(users).where(eq(users.id, agentId)) : [null];
-      if (agentId && !agent) throw new BadRequestException({ message: 'Choose an agent' });
+      const [broker] = brokerId ? await tx.select().from(users).where(eq(users.id, brokerId)) : [null];
+      if (brokerId && !broker) throw new BadRequestException({ message: 'Choose a broker' });
       const rules = await this.settings.rules(tx);
-      const ownedUntil = agentId ? isoDate(addMonths(new Date(), rules.ownership.months)) : null;
-      await tx.update(customers).set({ agentId, ownedUntil, ownershipWarnedAt: null }).where(eq(customers.id, id));
-      await this.audit.log(auth, { category: 'customers', action: 'agent_changed', recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { agentId: { from: c.agentId, to: agentId } }, meta: { reason, note } }, tx);
-      if (agentId) await this.notify.toUsers([agentId], { type: 'customer_assigned', title: `${c.companyName} is now yours`, body: `Yours until ${ownedUntil}, and longer with each order.`, link: `/customers/${id}` }, tx);
-      if (c.agentId && c.agentId !== agentId) await this.notify.toUsers([c.agentId], { type: 'customer_moved', title: `${c.companyName} moved to ${agent?.name ?? 'no agent'}`, body: 'Open orders stay with you.', link: `/customers` }, tx);
+      const ownedUntil = brokerId ? isoDate(addMonths(new Date(), rules.ownership.months)) : null;
+      await tx.update(customers).set({ brokerId, ownedUntil, ownershipWarnedAt: null }).where(eq(customers.id, id));
+      await this.audit.log(auth, { category: 'customers', action: 'broker_changed', recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { brokerId: { from: c.brokerId, to: brokerId } }, meta: { reason, note } }, tx);
+      if (brokerId) await this.notify.toUsers([brokerId], { type: 'customer_assigned', title: `${c.companyName} is now yours`, body: `Yours until ${ownedUntil}, and longer with each order.`, link: `/customers/${id}` }, tx);
+      if (c.brokerId && c.brokerId !== brokerId) await this.notify.toUsers([c.brokerId], { type: 'customer_moved', title: `${c.companyName} moved to ${broker?.name ?? 'no broker'}`, body: 'Open orders stay with you.', link: `/customers` }, tx);
       return { ok: true };
     });
   }
@@ -471,8 +471,8 @@ export class CustomersService {
   }
 
   /**
-   * Daily: warn the agent N days (Settings) before ownership ends if no new order came in,
-   * in the app and by e-mail. After that day any agent may claim the customer.
+   * Daily: warn the broker N days (Settings) before ownership ends if no new order came in,
+   * in the app and by e-mail. After that day any broker may claim the customer.
    */
   @Cron(CronExpression.EVERY_DAY_AT_8AM)
   async warnExpiringOwnership() {
@@ -483,26 +483,26 @@ export class CustomersService {
     const rows = await this.db
       .select({ c: customers, email: users.email, lastOrderAt: this.lastOrderSql })
       .from(customers)
-      .innerJoin(users, eq(users.id, customers.agentId))
-      .where(and(eq(customers.status, 'active'), isNotNull(customers.agentId), gte(customers.ownedUntil, isoDate(today)), lte(customers.ownedUntil, limit), sql`${customers.ownershipWarnedAt} is null`));
+      .innerJoin(users, eq(users.id, customers.brokerId))
+      .where(and(eq(customers.status, 'active'), isNotNull(customers.brokerId), gte(customers.ownedUntil, isoDate(today)), lte(customers.ownedUntil, limit), sql`${customers.ownershipWarnedAt} is null`));
     for (const { c, email, lastOrderAt } of rows) {
       const days = Math.max(0, Math.round((new Date(c.ownedUntil!).getTime() - new Date(isoDate(today)).getTime()) / 86_400_000));
       const until = formatDate(c.ownedUntil, 'en');
       const title = `${days} days left with ${c.companyName}`;
-      const body = `${lastOrderAt ? `No order since ${formatDate(lastOrderAt, 'en')}. ` : ''}If ${c.companyName} doesn't order by ${until}, it becomes free for any agent to claim.`;
+      const body = `${lastOrderAt ? `No order since ${formatDate(lastOrderAt, 'en')}. ` : ''}If ${c.companyName} doesn't order by ${until}, it becomes free for any broker to claim.`;
       await this.db.update(customers).set({ ownershipWarnedAt: new Date() }).where(eq(customers.id, c.id));
-      await this.notify.toUsers([c.agentId], { type: 'ownership_expiring', title, body, link: `/customers/${c.id}` });
+      await this.notify.toUsers([c.brokerId], { type: 'ownership_expiring', title, body, link: `/customers/${c.id}` });
       await this.mail.send({ kind: 'ownership_expiring', to: [email], subject: title, body, recordType: 'customer', recordId: c.id });
     }
     return rows.length;
   }
 
-  /** Active agents, for pickers. */
-  async agents() {
+  /** Active brokers, for pickers. */
+  async brokers() {
     return this.db
       .select({ id: users.id, name: users.name })
       .from(users)
-      .where(and(inArray(users.roleId, sql`(select id from roles where base_role = 'agent')`), eq(users.status, 'active')))
+      .where(and(inArray(users.roleId, sql`(select id from roles where base_role = 'broker')`), eq(users.status, 'active')))
       .orderBy(asc(users.name));
   }
 }

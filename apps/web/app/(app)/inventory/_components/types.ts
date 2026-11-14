@@ -31,5 +31,5 @@ export interface AllocationData {
   unitsNeeded: Record<Flavour, number>;
   fromPurchase: string | null;
   stockHoldDays: number;
-  orders: { id: string; number: string; paidAt: string | null; since: string | null; customerName: string | null; agentName: string | null; units: number; lines: { flavour: Flavour; cartons: number; units: number }[] }[];
+  orders: { id: string; number: string; paidAt: string | null; since: string | null; customerName: string | null; brokerName: string | null; units: number; lines: { flavour: Flavour; cartons: number; units: number }[] }[];
 }

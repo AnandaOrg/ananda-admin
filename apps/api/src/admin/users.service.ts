@@ -100,8 +100,8 @@ export class UsersService {
   }
 
   /**
-   * POST /users/invite. Also used by the "Invite new agent" panel: a user without Users & roles
-   * edit may only invite the base role 'agent'.
+   * POST /users/invite. Also used by the "Invite new broker" panel: a user without Users & roles
+   * edit may only invite the base role 'broker'.
    */
   async invite(auth: AuthContext, input: InviteMemberInput) {
     const [role] = await this.db
@@ -109,8 +109,8 @@ export class UsersService {
       .from(roles)
       .where(input.roleId ? eq(roles.id, input.roleId) : eq(roles.key, input.roleKey!));
     if (!role) throw new BadRequestException({ message: 'Check the highlighted fields', fields: { roleId: 'Pick a role' } });
-    if (!canEdit(auth.perms.areas, 'users') && role.key !== 'agent') {
-      throw new ForbiddenException({ code: 'no_access', message: 'You can only invite sales agents' });
+    if (!canEdit(auth.perms.areas, 'users') && role.key !== 'broker') {
+      throw new ForbiddenException({ code: 'no_access', message: 'You can only invite sales brokers' });
     }
     const result = await this.db.transaction(async (tx) => {
       const [existing] = await tx.select().from(users).where(eq(users.email, input.email)).for('update');
@@ -169,9 +169,9 @@ export class UsersService {
       if (patch.roleId && patch.roleId !== user.roleId) {
         const [r] = await tx.select().from(roles).where(eq(roles.id, patch.roleId));
         if (!r) throw new BadRequestException({ message: 'Check the highlighted fields', fields: { roleId: 'Pick a role' } });
-        // An agent's account stays an agent; other people never become agents. They get a second invitation instead.
-        if ((oldRole.baseRole === 'agent') !== (r.baseRole === 'agent')) {
-          throw new BadRequestException({ message: 'Check the highlighted fields', fields: { roleId: "An agent's account stays an agent. Invite them again with another e-mail for other access." } });
+        // A broker's account stays a broker; other people never become brokers. They get a second invitation instead.
+        if ((oldRole.baseRole === 'broker') !== (r.baseRole === 'broker')) {
+          throw new BadRequestException({ message: 'Check the highlighted fields', fields: { roleId: "A broker's account stays a broker. Invite them again with another e-mail for other access." } });
         }
         newRole = r;
         next.roleId = r.id;

@@ -30,7 +30,7 @@
   },
   "cols": {
     "deal": "Deal",
-    "agent": "Agent",
+    "broker": "Broker",
     "paidOn": "Paid on",
     "units": "Units",
     "netSales": "Net sales",
@@ -56,8 +56,8 @@
     "noAccess": "Deal profit is for Admins and Finance. Ask an Admin if you need it.",
     "how": {
       "button": "How it's counted",
-      "rule": "Net sales (excl. VAT) − purchase cost (units × landed unit cost) = gross profit before commission − agent commission = profit after commission. No expenses, taxes or net profit here: those are in Monthly P&L. A deal counts once, when it's fully paid. Until delivery, its cost uses the current average purchase cost.",
-      "ruleShort": "Net sales (excl. VAT) − units × landed unit cost − agent commission = profit. Expenses are in Monthly P&L. A deal counts once, when it's fully paid."
+      "rule": "Net sales (excl. VAT) − purchase cost (units × landed unit cost) = gross profit before commission − broker commission = profit after commission. No expenses, taxes or net profit here: those are in Monthly P&L. A deal counts once, when it's fully paid. Until delivery, its cost uses the current average purchase cost.",
+      "ruleShort": "Net sales (excl. VAT) − units × landed unit cost − broker commission = profit. Expenses are in Monthly P&L. A deal counts once, when it's fully paid."
     },
     "net": "Net sales",
     "netSubLastYear": "Last year {amount}",
@@ -66,19 +66,19 @@
     "cost": "Purchase cost",
     "costSub": "{units} units × {cost}",
     "costNone": "No units sold",
-    "commission": "Agent commission",
+    "commission": "Broker commission",
     "commissionSub": "{amount} a unit",
     "profit": "Profit after commission",
     "profitSub": "Gross {gross}",
     "costLine": "− Purchase cost",
-    "commissionLine": "− Agent commission",
+    "commissionLine": "− Broker commission",
     "profitLine": "= Profit",
     "phoneNote": "{period}, after commission, once fully paid.",
     "breakdown": "Group the deals",
     "tabs": {
       "deals": "Deals",
       "customers": "By customer",
-      "agents": "By agent",
+      "brokers": "By broker",
       "flavours": "By flavour"
     },
     "total": "Total",
@@ -89,7 +89,7 @@
     "noneIn": "No deals fully paid in {range}.",
     "noneOn": "No deals fully paid on {range}.",
     "dealsCount": "Deals · {n}",
-    "phoneLine": "{number} · {agent} · paid {date}",
+    "phoneLine": "{number} · {broker} · paid {date}",
     "netUnits": "Net sales · {units} units",
     "empty": {
       "title": "No paid deals yet",

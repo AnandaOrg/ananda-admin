@@ -30,9 +30,9 @@ export function MemberSheet({ member, onClose, roles, editable, isSelf }: { memb
   if (!member) return null;
 
   const canChange = editable && !isSelf;
-  const isAgent = member.role.baseRole === 'agent';
-  // An agent's account stays an agent; nobody else becomes one. System admin isn't offered here either.
-  const options = roles.filter((r) => r.baseRole !== 'agent' && (r.baseRole !== 'system_admin' || r.id === member.role.id));
+  const isBroker = member.role.baseRole === 'broker';
+  // A broker's account stays a broker; nobody else becomes one. System admin isn't offered here either.
+  const options = roles.filter((r) => r.baseRole !== 'broker' && (r.baseRole !== 'system_admin' || r.id === member.role.id));
   const devices = member.devices ?? [];
   const invited = member.status === 'invited';
 
@@ -68,11 +68,11 @@ export function MemberSheet({ member, onClose, roles, editable, isSelf }: { memb
       </div>
 
       <span className={css.sgrp}>{t('users.member.roleGroup')}</span>
-      {isAgent ? (
+      {isBroker ? (
         <div className={css.fixedRole}>
           <span>
             {rt.name(member.role)}
-            <span className="sub">{t('users.member.agentFixed')}</span>
+            <span className="sub">{t('users.member.brokerFixed')}</span>
           </span>
           <Pill tone="blue">{t('users.member.fixed')}</Pill>
         </div>
@@ -106,7 +106,7 @@ export function MemberSheet({ member, onClose, roles, editable, isSelf }: { memb
                 {t('users.invite.resendFull')}
               </Button>
             )}
-            <Button variant="primary" busy={saveRole.isPending} disabled={isAgent || member.status !== 'active' || roleId === member.role.id} onClick={() => saveRole.mutate({ roleId })}>
+            <Button variant="primary" busy={saveRole.isPending} disabled={isBroker || member.status !== 'active' || roleId === member.role.id} onClick={() => saveRole.mutate({ roleId })}>
               {t('users.member.save')}
             </Button>
           </div>

@@ -16,15 +16,15 @@ interface CustomerOption {
   companyName: string;
   status: string;
   mine: boolean;
-  agentId: string | null;
-  agentName: string | null;
+  brokerId: string | null;
+  brokerName: string | null;
   ownedUntil: string | null;
   lastOrderAt: string | null;
 }
 
 interface Draft {
   customerId: string | null;
-  agentId: string | null;
+  brokerId: string | null;
   cartons: CartonsByFlavour;
 }
 
@@ -57,16 +57,16 @@ function keep(userId: string, d: Draft | null) {
   }
 }
 const filled = (d: Draft) => !!d.customerId || Object.values(d.cartons).some((n) => (n ?? 0) > 0);
-const EMPTY: Draft = { customerId: null, agentId: null, cartons: {} };
+const EMPTY: Draft = { customerId: null, brokerId: null, cartons: {} };
 
 /**
- * New sale (FR-SALE-2): the same form for Admins and agents, in cartons of 24, as a side panel on
+ * New sale (FR-SALE-2): the same form for Admins and brokers, in cartons of 24, as a side panel on
  * desktop and a bottom sheet on the phone. Also edits a draft (`draft`).
  */
 export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { open: boolean; onClose: () => void; onDone?: (r: { id: string; number: string; sent: boolean }) => void; customerId?: string | null; draft?: ExistingDraft }) {
   const t = useTranslations('sales');
   const { money, unit, num, date } = useFmt();
-  const { me, isAgent } = useSession();
+  const { me, isBroker } = useSession();
   const userId = me.user.id;
   const [v, setV] = useState<Draft>(EMPTY);
   const [restored, setRestored] = useState(false);
@@ -76,7 +76,7 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
     if (!open) return;
     saved.current = false;
     if (draft) {
-      setV({ customerId: draft.customerId, agentId: draft.agentId, cartons: draft.cartons });
+      setV({ customerId: draft.customerId, brokerId: draft.brokerId, cartons: draft.cartons });
       setRestored(false);
       return;
     }
@@ -91,9 +91,9 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
   }, [open, draft, customerId, userId]);
 
   const customers = useQuery({ queryKey: ['customers', 'picker'], queryFn: () => api.get<{ items: CustomerOption[] }>('/customers'), enabled: open });
-  const agents = useQuery({ queryKey: ['agents-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/agents'), enabled: open && !isAgent });
+  const brokers = useQuery({ queryKey: ['brokers-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/brokers'), enabled: open && !isBroker });
   // Sales start only for approved customers the user may sell to (FR-CUST-3, FR-CUST-5).
-  const options = (customers.data?.items ?? []).filter((c) => c.mine && (c.status === 'active' || c.status === 'late' || (!isAgent && c.status === 'free_to_claim')));
+  const options = (customers.data?.items ?? []).filter((c) => c.mine && (c.status === 'active' || c.status === 'late' || (!isBroker && c.status === 'free_to_claim')));
   const cust = options.find((c) => c.id === v.customerId) ?? null;
   const card = useQuery({
     queryKey: ['customers', v.customerId, 'terms'],
@@ -102,9 +102,9 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
   });
   const termsKey = card.data?.customer.paymentTerms ?? 'before_shipping';
   const free = cust?.status === 'free_to_claim';
-  const house = !!cust && !free && !cust.agentId;
-  const agentId = v.agentId ?? (cust ? (cust.agentId ?? (house ? 'none' : null)) : null);
-  const agentName = agentId === 'none' ? null : (agents.data?.find((a) => a.id === agentId)?.name ?? (agentId === cust?.agentId ? cust?.agentName : null));
+  const house = !!cust && !free && !cust.brokerId;
+  const brokerId = v.brokerId ?? (cust ? (cust.brokerId ?? (house ? 'none' : null)) : null);
+  const brokerName = brokerId === 'none' ? null : (brokers.data?.find((a) => a.id === brokerId)?.name ?? (brokerId === cust?.brokerId ? cust?.brokerName : null));
 
   const calc = useMemo(() => calculateOrder(v.cartons, draft?.specialUnitPriceCents), [v.cartons, draft?.specialUnitPriceCents]);
   const low = !calc.meetsMinimum;
@@ -115,7 +115,7 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
     onClose();
   };
 
-  const body = () => ({ customerId: v.customerId, cartons: v.cartons, ...(isAgent || !agentId ? {} : { agentId }) });
+  const body = () => ({ customerId: v.customerId, cartons: v.cartons, ...(isBroker || !brokerId ? {} : { brokerId }) });
   const finish = (r: { id: string; number: string; sent: boolean }) => {
     saved.current = true;
     if (!draft) keep(userId, null);
@@ -124,7 +124,7 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
     onClose();
   };
   const custName = cust?.companyName ?? '';
-  const sentMsg = (n: string) => `${t('newSale.sent', { number: n, customer: custName })} ${agentId === 'none' || !agentName ? t('newSale.sentNoCommission') : t('newSale.sentCommission', { first: firstName(agentName) })}`;
+  const sentMsg = (n: string) => `${t('newSale.sent', { number: n, customer: custName })} ${brokerId === 'none' || !brokerName ? t('newSale.sentNoCommission') : t('newSale.sentCommission', { first: firstName(brokerName) })}`;
   const save = useAction(
     async () => {
       if (draft) {
@@ -153,49 +153,49 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
   const custOptions = options.map((c) => ({
     value: c.id,
     label: c.companyName,
-    sub: isAgent
+    sub: isBroker
       ? c.lastOrderAt
         ? t('newSale.lastOrder', { date: date(c.lastOrderAt) })
         : t('newSale.noOrders')
       : c.status === 'free_to_claim'
         ? t('newSale.freeToClaim')
-        : !c.agentId
+        : !c.brokerId
           ? t('newSale.houseCustomer')
-          : `${c.agentName} · ${c.lastOrderAt ? t('newSale.lastOrder', { date: date(c.lastOrderAt) }) : t('newSale.noOrders')}`,
+          : `${c.brokerName} · ${c.lastOrderAt ? t('newSale.lastOrder', { date: date(c.lastOrderAt) }) : t('newSale.noOrders')}`,
   }));
-  const agentOptions = [
-    ...(agents.data ?? []).map((a) => ({ value: a.id, label: a.name, sub: a.id === cust?.agentId && !free ? t('newSale.ownsCustomer') : undefined })),
-    { value: 'none', label: t('newSale.noAgentOption'), sub: t('newSale.noCommission') },
+  const brokerOptions = [
+    ...(brokers.data ?? []).map((a) => ({ value: a.id, label: a.name, sub: a.id === cust?.brokerId && !free ? t('newSale.ownsCustomer') : undefined })),
+    { value: 'none', label: t('newSale.noBrokerOption'), sub: t('newSale.noCommission') },
   ];
   const ownerHint = !cust
     ? null
     : free
       ? t('newSale.freeHint')
-      : house && agentId === 'none'
+      : house && brokerId === 'none'
         ? t('newSale.houseHint')
-        : agentId === cust.agentId
+        : brokerId === cust.brokerId
           ? cust.ownedUntil
-            ? t('newSale.ownsUntil', { name: firstName(cust.agentName), date: date(cust.ownedUntil) })
-            : t('newSale.ownsNoDate', { name: firstName(cust.agentName) })
-          : cust.agentName
-            ? t('newSale.changedFrom', { from: cust.agentName, first: firstName(cust.agentName), to: agentName ? firstName(agentName) : t('newSale.noOne') })
+            ? t('newSale.ownsUntil', { name: firstName(cust.brokerName), date: date(cust.ownedUntil) })
+            : t('newSale.ownsNoDate', { name: firstName(cust.brokerName) })
+          : cust.brokerName
+            ? t('newSale.changedFrom', { from: cust.brokerName, first: firstName(cust.brokerName), to: brokerName ? firstName(brokerName) : t('newSale.noOne') })
             : t('newSale.houseHint');
 
-  const commissionLabel = agentName && agentId !== 'none' ? t('newSale.commissionOf', { first: firstName(agentName) }) : t('newSale.commission');
-  const commissionValue = agentId === 'none' ? t('newSale.none') : t('newSale.commissionValue', { amount: money(calc.commissionCents) });
+  const commissionLabel = brokerName && brokerId !== 'none' ? t('newSale.commissionOf', { first: firstName(brokerName) }) : t('newSale.commission');
+  const commissionValue = brokerId === 'none' ? t('newSale.none') : t('newSale.commissionValue', { amount: money(calc.commissionCents) });
 
   return (
     <Sheet
       open={open}
       onClose={close}
       title={draft ? t('newSale.editTitle', { number: draft.number }) : t('newSale.title')}
-      sub={restored ? undefined : isAgent ? t('newSale.subAgent') : t('newSale.sub')}
+      sub={restored ? undefined : isBroker ? t('newSale.subBroker') : t('newSale.sub')}
       footer={
         <>
           <Button writes disabled={!v.customerId || calc.totalCartons === 0} busy={save.isPending} onClick={() => !busy && save.mutate(undefined)}>
             {t('newSale.saveDraft')}
           </Button>
-          <Button variant="primary" disabled={!v.customerId || low || (!isAgent && !agentId && !!cust)} busy={send.isPending} onClick={() => !busy && send.mutate(undefined)}>
+          <Button variant="primary" disabled={!v.customerId || low || (!isBroker && !brokerId && !!cust)} busy={send.isPending} onClick={() => !busy && send.mutate(undefined)}>
             {t('newSale.send')}
           </Button>
         </>
@@ -223,12 +223,12 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
         value={v.customerId}
         placeholder={customers.isLoading ? '…' : options.length ? t('newSale.chooseCustomer') : t('newSale.noCustomers')}
         options={custOptions}
-        onChange={(id) => setV({ ...v, customerId: id, agentId: null })}
+        onChange={(id) => setV({ ...v, customerId: id, brokerId: null })}
         error={save.fields.customerId || send.fields.customerId}
       />
-      {!isAgent && cust && (
+      {!isBroker && cust && (
         <>
-          <Picker label={t('newSale.agent')} value={agentId} placeholder={t('newSale.chooseAgent')} options={agentOptions} onChange={(a) => setV({ ...v, agentId: a })} error={save.fields.agentId || send.fields.agentId} />
+          <Picker label={t('newSale.broker')} value={brokerId} placeholder={t('newSale.chooseBroker')} options={brokerOptions} onChange={(a) => setV({ ...v, brokerId: a })} error={save.fields.brokerId || send.fields.brokerId} />
           {ownerHint && <span className="sales-hint">{ownerHint}</span>}
         </>
       )}

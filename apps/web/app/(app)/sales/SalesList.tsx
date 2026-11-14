@@ -40,7 +40,7 @@ export interface OrderRow {
   totalCents: number;
   totalCartons: number;
   customerName: string | null;
-  agentName: string;
+  brokerName: string;
   daysLate: number;
   pendingCorrection: boolean;
   houseSale?: boolean;
@@ -66,26 +66,26 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
   const tc = useTranslations('common');
   const router = useRouter();
   const params = useSearchParams();
-  const { canEdit, isAgent } = useSession();
+  const { canEdit, isBroker } = useSession();
   const { money, dateShort } = useFmt();
   const [filter, setFilter] = useState<Filter>((params.get('filter') as Filter) ?? 'all');
   const [q, setQ] = useState('');
-  const [agentId, setAgentId] = useState<string>('');
+  const [brokerId, setBrokerId] = useState<string>('');
   const [period, setPeriod] = useState<Period>('any');
   const [flavour, setFlavour] = useState<string>('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [peek, setPeek] = useState<OrderRow | null>(null);
   const [saleOpen, setSaleOpen] = useState(newSale);
 
-  const query = qs({ filter, q, agentId, from: fromDate(period), flavour });
+  const query = qs({ filter, q, brokerId, from: fromDate(period), flavour });
   const list = useQuery({ queryKey: ['orders', query], queryFn: () => api.get<{ items: OrderRow[]; counts: Record<Filter, number> }>(`/orders${query}`) });
   // Totals without any filter: tells a new account (no orders at all) from an empty filter.
   const all = useQuery({ queryKey: ['orders', 'count'], queryFn: () => api.get<{ counts: Record<Filter, number> }>('/orders?filter=drafts'), select: (d) => d.counts });
-  const agents = useQuery({ queryKey: ['agents-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/agents'), enabled: !isAgent });
+  const brokers = useQuery({ queryKey: ['brokers-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/brokers'), enabled: !isBroker });
 
   const counts = list.data?.counts;
   const rows = list.data?.items ?? [];
-  const extra = [agentId, period !== 'any' ? period : '', flavour].filter(Boolean).length;
+  const extra = [brokerId, period !== 'any' ? period : '', flavour].filter(Boolean).length;
   const newAccount = all.data?.all === 0;
   const sell = canEdit('sales');
 
@@ -109,7 +109,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
         </>
       ),
     },
-    ...(isAgent ? [] : [{ key: 'agent', header: t('cols.agent'), render: (o: OrderRow) => (o.houseSale ? t('noAgent') : o.agentName) } as Column<OrderRow>]),
+    ...(isBroker ? [] : [{ key: 'broker', header: t('cols.broker'), render: (o: OrderRow) => (o.houseSale ? t('noBroker') : o.brokerName) } as Column<OrderRow>]),
     { key: 'created', header: t('cols.created'), render: (o) => <span className="nowrap">{dateShort(o.createdAt)}</span> },
     { key: 'total', header: t('cols.total'), type: 'amount', render: (o) => <bdi>{money(o.totalCents)}</bdi> },
     { key: 'status', header: t('cols.status'), type: 'status', render: (o) => <SalesStatus status={o.status} daysLate={o.daysLate} /> },
@@ -141,7 +141,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
         }}
       />
       {peek && (
-        <Sheet open onClose={() => setPeek(null)} title={peek.customerName ?? t('noCustomer')} sub={[peek.number, dateShort(peek.createdAt), ...(isAgent ? [] : [peek.houseSale ? t('noAgent') : peek.agentName])].join(' · ')}>
+        <Sheet open onClose={() => setPeek(null)} title={peek.customerName ?? t('noCustomer')} sub={[peek.number, dateShort(peek.createdAt), ...(isBroker ? [] : [peek.houseSale ? t('noBroker') : peek.brokerName])].join(' · ')}>
           <SumBox
             rows={[
               [t('peek.status'), <SalesStatus key="s" status={peek.status} daysLate={peek.daysLate} />],
@@ -162,7 +162,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
             <Button
               keep
               onClick={() => {
-                setAgentId('');
+                setBrokerId('');
                 setPeriod('any');
                 setFlavour('');
               }}
@@ -175,10 +175,10 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
           </>
         }
       >
-        {!isAgent && (
+        {!isBroker && (
           <>
-            <span className="sgrp">{t('filterSheet.agent')}</span>
-            <PickChips label={t('filterSheet.agent')} value={agentId} onChange={setAgentId} options={[{ value: '', label: t('filterSheet.allAgents') }, ...(agents.data ?? []).map((a) => ({ value: a.id, label: a.name }))]} />
+            <span className="sgrp">{t('filterSheet.broker')}</span>
+            <PickChips label={t('filterSheet.broker')} value={brokerId} onChange={setBrokerId} options={[{ value: '', label: t('filterSheet.allBrokers') }, ...(brokers.data ?? []).map((a) => ({ value: a.id, label: a.name }))]} />
           </>
         )}
         <span className="sgrp">{t('filterSheet.created')}</span>
@@ -198,7 +198,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
           <EmptyState
             icon={List}
             title={t('empty.title')}
-            text={isAgent ? t('empty.textAgent') : t('empty.text')}
+            text={isBroker ? t('empty.textBroker') : t('empty.text')}
             action={
               <div className="row wrap" style={{ justifyContent: 'center', gap: 'var(--space-2)' }}>
                 {canEdit('customers') && (
@@ -229,7 +229,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
       <div className="only-wide">
         <PageHeader
           crumbs={[{ label: tc('nav.sales') }]}
-          kicker={counts ? (isAgent ? t('kickerOwn', { n: all.data?.all ?? counts.all }) : t('kicker', { n: all.data?.all ?? counts.all })) : ' '}
+          kicker={counts ? (isBroker ? t('kickerOwn', { n: all.data?.all ?? counts.all }) : t('kicker', { n: all.data?.all ?? counts.all })) : ' '}
           title={tc('nav.sales')}
           actions={
             <>
@@ -259,7 +259,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
         </span>
       </div>
       <Card flush className="only-wide">
-        <Table columns={columns} rows={rows} rowKey={(o) => o.id} onRow={open} picker={{ id: 'sales', locked: ['customer', 'total', 'status', 'go'], priority: ['agent', 'created'] }} loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('load.error')} empty={empty} />
+        <Table columns={columns} rows={rows} rowKey={(o) => o.id} onRow={open} picker={{ id: 'sales', locked: ['customer', 'total', 'status', 'go'], priority: ['broker', 'created'] }} loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('load.error')} empty={empty} />
       </Card>
       <div className="only-phone">
         <ListCards loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('load.error')} empty={<Card>{empty}</Card>}>
@@ -272,7 +272,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
               sub={
                 <>
                   <bdi>{o.number}</bdi> · {dateShort(o.createdAt)}
-                  {!isAgent && ` · ${o.houseSale ? t('noAgent') : o.agentName}`}
+                  {!isBroker && ` · ${o.houseSale ? t('noBroker') : o.brokerName}`}
                 </>
               }
               status={<SalesStatus status={o.status} daysLate={o.daysLate} />}

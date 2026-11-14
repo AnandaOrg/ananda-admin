@@ -73,7 +73,7 @@ export interface OrderDetail {
     number: string;
     status: OrderStatus;
     customerId: string | null;
-    agentId: string;
+    brokerId: string;
     createdAt: string;
     requestSentAt: string | null;
     paidAt: string | null;
@@ -118,7 +118,7 @@ export interface OrderDetail {
     paymentTerms?: 'before_shipping' | 'half_before_shipping' | 'after_delivery_30';
     proformaLanguage: string;
   } | null;
-  agent: { id: string; name: string; email: string };
+  broker: { id: string; name: string; email: string };
   houseSale: boolean;
   payments: { id: string; receivedOn: string; amountCents: number; method: string; bankReference: string | null; createdAt: string; confirmedByName: string | null }[];
   documents: OrderDoc[];
@@ -145,7 +145,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const tc = useTranslations('common');
   const router = useRouter();
   const search = useSearchParams();
-  const { canView, isAgent } = useSession();
+  const { canView, isBroker } = useSession();
   const { money, unit, num, date, dateShort } = useFmt();
   const [action, setAction] = useState<ActionKey | null>(null);
   const [doc, setDoc] = useState<DocItem | null>(null);
@@ -197,7 +197,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const afterIndex = () => (o.status === 'draft' ? 0 : o.status === 'ready_to_send' || o.status === 'waiting_for_stock' ? 1 : o.status === 'at_warehouse' ? 2 : o.status === 'delivered' || o.status === 'delivered_part' ? 3 : paidFull ? 5 : 4);
   const step = cancelled ? (o.requestSentAt ? 1 : 0) : after ? afterIndex() : orderFlowIndex(o.status);
   const customerName = d.customer?.companyName ?? t('noCustomer');
-  const agentFirst = d.houseSale ? null : firstName(d.agent.name);
+  const brokerFirst = d.houseSale ? null : firstName(d.broker.name);
 
   // ---------- Documents, in order: proformas, payments, warehouse order, signed note, invoice, credit notes, uploads ----------
   const numberOf = (docId: string | null) => d.documents.find((x) => x.id === docId)?.number ?? null;
@@ -420,7 +420,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   ) : (
     <span className="sales-kick">
       <span>{t('order.kicker', { number: o.number, date: dateShort(o.createdAt) })}</span>
-      <Pill tone="blue">{d.agent.name}</Pill>
+      <Pill tone="blue">{d.broker.name}</Pill>
     </span>
   );
 
@@ -487,14 +487,14 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
           )
         }
       />
-      <p className="sales-sub only-phone">{d.houseSale ? t('order.kickerHouse', { number: o.number, date: dateShort(o.createdAt) }) : t('order.kickerPhone', { number: o.number, date: dateShort(o.createdAt), agent: d.agent.name })}</p>
+      <p className="sales-sub only-phone">{d.houseSale ? t('order.kickerHouse', { number: o.number, date: dateShort(o.createdAt) }) : t('order.kickerPhone', { number: o.number, date: dateShort(o.createdAt), broker: d.broker.name })}</p>
 
       {cancelled && (
         <div className="sales-cancelled" role="status">
           <span>
             <b>{t('order.cancelledTitle')}</b>
             <span className="m">
-              {d.houseSale ? t('order.cancelledTextHouse') : t('order.cancelledText', { agent: agentFirst ?? '' })}
+              {d.houseSale ? t('order.cancelledTextHouse') : t('order.cancelledText', { broker: brokerFirst ?? '' })}
               {o.cancelReason && ` ${t('order.cancelledReason', { reason: t.has(`actions.cancel.reasons.${o.cancelReason}`) ? t(`actions.cancel.reasons.${o.cancelReason}`) : o.cancelReason })}`}
               {d.cancelNote && ` · ${d.cancelNote}`}
             </span>
@@ -632,7 +632,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
             setEdit(false);
             if (search.get('edit')) router.replace(`/sales/${id}`);
           }}
-          draft={{ id, number: o.number, customerId: o.customerId, agentId: null, cartons: Object.fromEntries(d.lines.map((l) => [l.flavour, l.cartons])), specialUnitPriceCents: o.specialUnitPriceCents }}
+          draft={{ id, number: o.number, customerId: o.customerId, brokerId: null, cartons: Object.fromEntries(d.lines.map((l) => [l.flavour, l.cartons])), specialUnitPriceCents: o.specialUnitPriceCents }}
         />
       )}
     </div>

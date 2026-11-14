@@ -35,7 +35,7 @@ type Sale = EventDetail['sales'][number];
 type Move = EventDetail['movements'][number];
 type Expense = NonNullable<EventDetail['expenses']>[number];
 
-/** One event (FR-EVT-3): its own stock, sales by agent and direct costs. */
+/** One event (FR-EVT-3): its own stock, sales by broker and direct costs. */
 export default function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const t = useTranslations('events');
@@ -70,7 +70,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
   };
 
   const saleCols: Column<Sale>[] = [
-    { key: 'agent', header: t('detail.agent'), render: (s) => <span className="nm">{s.name}</span> },
+    { key: 'broker', header: t('detail.broker'), render: (s) => <span className="nm">{s.name}</span> },
     ...FLAVOURS.filter((f) => d.sales.some((s) => s.byFlavour[f] > 0)).map((f) => ({
       key: f,
       header: <FlavourName flavour={f} />,
@@ -171,7 +171,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
           </div>
         )}
         <span className="caption muted">
-          {t('detail.invited')}: {d.agents.length ? d.agents.map((a) => a.name).join(', ') : t('noneYet')}
+          {t('detail.invited')}: {d.brokers.length ? d.brokers.map((a) => a.name).join(', ') : t('noneYet')}
         </span>
       </Card>
 
@@ -181,11 +181,11 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
         ) : (
           <>
             <div className="only-wide">
-              <Table columns={saleCols} rows={d.sales} rowKey={(s) => s.agentId} />
+              <Table columns={saleCols} rows={d.sales} rowKey={(s) => s.brokerId} />
             </div>
             <div className="list-cards only-phone" style={{ padding: 'var(--space-3)' }}>
               {d.sales.map((s) => (
-                <ListCard key={s.agentId} title={s.name} amount={money(s.salesCents)} sub={`${tc('unitsCount', { n: num(s.units) })} · ${t('detail.commission')} ${money(s.commissionCents)}`} />
+                <ListCard key={s.brokerId} title={s.name} amount={money(s.salesCents)} sub={`${tc('unitsCount', { n: num(s.units) })} · ${t('detail.commission')} ${money(s.commissionCents)}`} />
               ))}
               <span className="caption muted">{t('detail.commissionHelp')}</span>
             </div>
