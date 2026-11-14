@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl';
 import { useDelayed } from '@/lib/hooks';
 import { useMedia } from '@/lib/media';
 import { CaretRight, Check, CheckCircle, Columns, Icon, Info, Lock, WarningCircle } from './icon';
-import { Button, MenuButton, Trunc } from './controls';
+import { Button, MenuButton, Tooltip, Trunc } from './controls';
 import { useRegisterPage } from '../shell/page-context';
 import { DefaultPageSkeleton, LoadError, LoadingLive, PageState, SkeletonCards, SkeletonRows, type SkeletonCell } from './states';
 
@@ -64,25 +64,19 @@ export function KpiTile({ label, value, sub, subTone, valueTone, link, linkAccen
           </Link>
         )}
       </div>
-      <div className={`v ${valueTone ?? ''}`}>
+      {/* the info icon sits at the end of the figure row: its bottom edge lines up with the number's baseline */}
+      <div className={`v ${valueTone ?? ''} ${tip ? 'has-tip' : ''}`}>
         <bdi>{value}</bdi>
+        {tip && <Tip text={tip} />}
       </div>
-      {(sub || tip) && (
-        <div className="row between">
-          {sub && <div className={`s ${subTone ?? ''}`}>{sub}</div>}
-          {tip && <Tip text={tip} />}
-        </div>
-      )}
+      {sub && <div className={`s ${subTone ?? ''}`}>{sub}</div>}
     </div>
   );
 }
 
+/** Info icon with the design system's tooltip box (see `Tooltip`). */
 export function Tip({ text }: { text: string }) {
-  return (
-    <span className="an-tip" tabIndex={0} title={text} aria-label={text} role="img">
-      <Icon as={Info} size="sm" />
-    </span>
-  );
+  return <Tooltip text={text} />;
 }
 
 export function ListRow({ icon, iconTone, title, sub, value, actions, onClick, href, wrapActions }: { icon: PhosphorIcon; iconTone?: 'bad' | 'warn' | 'accent'; title: ReactNode; sub?: ReactNode; value?: ReactNode; actions?: ReactNode; onClick?: () => void; href?: string; wrapActions?: boolean }) {
@@ -91,7 +85,7 @@ export function ListRow({ icon, iconTone, title, sub, value, actions, onClick, h
       <span className={`ico ${iconTone ?? ''}`}>
         <Icon as={icon} />
       </span>
-      <span style={{ minWidth: 0 }}>
+      <span className="tx">
         <span className="t">{title}</span>
         {sub && <span className="sub">{sub}</span>}
       </span>
@@ -147,13 +141,20 @@ export interface Column<T> {
   key: string;
   header: ReactNode;
   /** count: centred · amount: end-aligned, never wraps · status: a pill (skeleton shape) · text (default). */
-  type?: 'text' | 'count' | 'amount' | 'status';
+  type?: 'text' | 'count' | 'amount' | 'status' | 'date';
   render: (row: T) => ReactNode;
   className?: string;
   /** Column width (px or CSS length) on desktop. */
   width?: number | string;
   /** Cut long text with … and show the full text in a tooltip (true, or the max width). */
   trunc?: boolean | number | string;
+  /**
+   * The main text column (name, description): takes the leftover width and wraps to 2 lines. Defaults
+   * to the first text column. Every other column fits its content and never wraps, unless `wrap` is set.
+   */
+  main?: boolean;
+  /** Let this (non-main) text column wrap, e.g. a long description next to the name. */
+  wrap?: boolean;
 }
 
 /**
@@ -167,6 +168,8 @@ export interface ColumnPickerOptions {
   locked: string[];
   /** Optional column keys, most important first. Defaults to the table order. */
   priority?: string[];
+  /** Shown by default at 768 (besides `locked`); every other optional column starts hidden. See `TABLE_PICKERS`. */
+  defaults?: string[];
 }
 
 const colStore = {
@@ -209,12 +212,14 @@ function useColumnPicker<T>(columns: Column<T>[], opts: ColumnPickerOptions | un
       const show = new Set(ks.map((k) => keys.indexOf(k)));
       rows.forEach((r) => [...r.cells].forEach((c, i) => (c.style.display = r.cells.length === keys.length && !show.has(i) ? 'none' : '')));
       tb.style.width = 'min-content';
+      tb.classList.add('measuring');
       const ok = tb.getBoundingClientRect().width <= avail + 1;
       return ok;
     };
     const restore = () => {
       rows.forEach((r) => [...r.cells].forEach((c) => (c.style.display = '')));
       tb.style.width = prevW;
+      tb.classList.remove('measuring');
     };
     if (fits(keys)) {
       restore();
@@ -226,10 +231,11 @@ function useColumnPicker<T>(columns: Column<T>[], opts: ColumnPickerOptions | un
     if (Array.isArray(saved)) shown = [...new Set([...locked, ...saved.filter((k) => keys.includes(k))])];
     else {
       shown = [...locked];
-      for (const k of optional) if (fits([...shown, k])) shown.push(k);
+      if (opts!.defaults) shown = [...locked, ...opts!.defaults.filter((k) => keys.includes(k) && !locked.includes(k))];
+      else for (const k of optional) if (fits([...shown, k])) shown.push(k);
     }
     while (!fits(shown) && shown.length > locked.length) {
-      const drop = [...optional].reverse().find((k) => shown.includes(k));
+      const drop = [...(opts!.defaults ?? optional)].reverse().find((k) => shown.includes(k) && !locked.includes(k));
       if (!drop) break;
       shown = shown.filter((k) => k !== drop);
     }
@@ -307,10 +313,14 @@ export function Table<T>({
   const tbl = useRef<HTMLTableElement>(null);
   const late = useDelayed(!!loading);
   const { visible, picker: pk } = useColumnPicker(columns, picker, wrap, tbl, rows.length);
-  const cls = (c: Column<T>) => `${c.type === 'count' ? 'num' : c.type === 'amount' ? 'amt' : ''} ${c.className ?? ''}`;
+  const mainKey = (columns.find((c) => c.main) ?? columns.find((c) => (c.type ?? 'text') === 'text' && c.header !== '' && c.header != null))?.key;
+  const cls = (c: Column<T>) => `${c.type === 'count' ? 'num' : c.type === 'amount' ? 'amt' : c.type === 'date' ? 'dt' : c.type === 'status' ? 'st' : ''} ${c.key === mainKey ? 'c-main' : c.wrap ? 'c-wrap' : ''} ${c.className ?? ''}`;
   const cell = (c: Column<T>, r: T) => {
-    const v = c.render(r);
-    return c.trunc ? <Trunc max={typeof c.trunc === 'boolean' ? undefined : c.trunc}>{v}</Trunc> : v;
+    const raw = c.render(r);
+    // dates, counts and amounts stay left-to-right inside Hebrew text (minus signs, '14 Nov 2026')
+    const v = c.type === 'date' || c.type === 'count' || c.type === 'amount' ? <bdi>{raw}</bdi> : raw;
+    if (c.trunc) return <Trunc max={typeof c.trunc === 'boolean' ? undefined : c.trunc}>{v}</Trunc>;
+    return c.key === mainKey ? <span className="clamp2">{v}</span> : v;
   };
   const hidden = pk ? columns.length - pk.shown.length : 0;
   // Where the "Columns" button goes (prototype): next to the page's tab chips when the page has a
@@ -384,7 +394,7 @@ export function Table<T>({
           <thead>
             <tr>
               {visible.map((c) => (
-                <th key={c.key} className={cls(c)} scope="col" style={c.width != null ? { width: c.width } : undefined}>
+                <th key={c.key} className={cls(c)} scope="col" style={c.width != null && c.key !== mainKey ? { width: c.width } : undefined}>
                   {c.header}
                 </th>
               ))}
@@ -500,7 +510,7 @@ export function KeyValue({ items }: { items: [ReactNode, ReactNode][] }) {
   return (
     <dl className="an-kv">
       {items.map(([k, v], i) => (
-        <div key={i} style={{ display: 'contents' }}>
+        <div key={i} className="contents">
           <dt>{k}</dt>
           <dd>{v}</dd>
         </div>
@@ -534,6 +544,8 @@ export interface Step {
   action?: ReactNode;
   /** Overrides the done state when a later step can finish before an earlier one. */
   done?: boolean;
+  /** The step is late: bad border and number (light: pale red circle). */
+  late?: boolean;
 }
 
 /** Done / current / later steps; vertical on the order page. */
@@ -542,7 +554,7 @@ export function ProgressSteps({ steps, current, horizontal }: { steps: Step[]; c
     return (
       <div className="an-hsteps" style={{ ['--n' as string]: steps.length }}>
         {steps.map((s, i) => (
-          <div key={i} className={`an-hs ${(s.done ?? i < current) ? 'done' : i === current ? 'now' : ''}`}>
+          <div key={i} className={`an-hs ${s.late ? 'late' : (s.done ?? i < current) ? 'done' : i === current ? 'now' : ''}`}>
             <span className="c">{(s.done ?? i < current) ? <Icon as={Check} size="sm" /> : i + 1}</span>
             <span className="t">{s.label}</span>
             {s.detail && <span className="d">{s.detail}</span>}
@@ -552,13 +564,13 @@ export function ProgressSteps({ steps, current, horizontal }: { steps: Step[]; c
     );
   }
   return (
-    <ol className="an-steps" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ol className="an-steps">
       {steps.map((s, i) => (
-        <li key={i} className={`an-ps ${(s.done ?? i < current) ? 'done' : i === current ? 'now' : ''}`} aria-current={i === current ? 'step' : undefined}>
+        <li key={i} className={`an-ps ${s.late ? 'late' : (s.done ?? i < current) ? 'done' : i === current ? 'now' : ''}`} aria-current={i === current ? 'step' : undefined}>
           <span className="c">{(s.done ?? i < current) ? <Icon as={Check} size="sm" /> : i + 1}</span>
           <span className="t">{s.label}</span>
           {s.detail && <span className="d">{s.detail}</span>}
-          {s.action && i === current && <span className="d" style={{ marginTop: 'var(--space-2)' }}>{s.action}</span>}
+          {s.action && i === current && <span className="d act">{s.action}</span>}
         </li>
       ))}
     </ol>
@@ -571,7 +583,7 @@ export function DocRow({ icon, title, sub, actions }: { icon: PhosphorIcon; titl
       <span className="ico">
         <Icon as={icon} />
       </span>
-      <span style={{ minWidth: 0 }}>
+      <span className="tx">
         <span className="t">{title}</span>
         {sub && <span className="sub">{sub}</span>}
       </span>
@@ -580,8 +592,36 @@ export function DocRow({ icon, title, sub, actions }: { icon: PhosphorIcon; titl
   );
 }
 
+/** Design system name for `DocRow`: icon box, title, detail line, IconButton actions (aria-label naming the document). */
+export const DocumentRow = DocRow;
+
+/** Row that opens a setting or shows its value (label, value at the end, caret that flips in Hebrew). */
+export function SettingsItem({ icon, label, value, href, onClick, phone, pill }: { icon: PhosphorIcon; label: ReactNode; value?: ReactNode; href?: string; onClick?: () => void; phone?: boolean; pill?: ReactNode }) {
+  const inner = (
+    <>
+      <Icon as={icon} />
+      <span>{label}</span>
+      <span className="val">
+        {pill}
+        {value != null && <bdi>{value}</bdi>}
+        {(href || onClick) && <Icon as={CaretRight} size="sm" className="subtle" />}
+      </span>
+    </>
+  );
+  const cls = `an-sitem ${phone ? 'phone' : ''}`;
+  return href ? (
+    <Link href={href} className={cls}>
+      {inner}
+    </Link>
+  ) : (
+    <button type="button" className={cls} onClick={onClick}>
+      {inner}
+    </button>
+  );
+}
+
 export function Skeleton({ h = 20, w }: { h?: number; w?: number | string }) {
-  return <div className="skeleton" style={{ height: h, width: w ?? '100%' }} />;
+  return <div className="skeleton" style={{ height: h, width: w ?? '100%' }} aria-hidden />;
 }
 
 /** Page skeleton, shown only when loading takes longer than ~300 ms (so fast pages don't flash). */

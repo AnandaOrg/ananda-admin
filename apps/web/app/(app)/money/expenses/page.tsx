@@ -12,6 +12,7 @@ import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import {
   ActionError,
+  FileUpload,
   Button,
   CaretDown,
   Card,
@@ -43,6 +44,7 @@ import {
 import { shrinkImage } from '@/lib/image';
 import { MonthRangeCalendar, dayRangeLabel, monthName, monthPreset, monthRangeLabel, rangeQuery, useDayRange, type MonthPreset } from '../_components/range-calendar';
 import css from '../money.module.css';
+import { DateField } from '../_components/date-field';
 
 interface Expense {
   id: string;
@@ -98,7 +100,7 @@ export default function ExpensesPage() {
   const printPdf = usePdfReport();
 
   const columns: Column<Expense>[] = [
-    { key: 'month', header: t('cols.month'), render: (e) => <span className="nowrap">{monthName(e.spentOn, locale)}</span> },
+    { key: 'month', header: t('cols.month'), type: 'date', render: (e) => <bdi>{monthName(e.spentOn, locale)}</bdi> },
     { key: 'description', header: t('cols.description'), render: (e) => <Trunc max={360}>{e.description}</Trunc> },
     { key: 'category', header: t('cols.category'), render: (e) => catLabel(e.category) },
     { key: 'amount', header: t('cols.amountExclVat'), type: 'amount', render: (e) => <bdi>{money(e.netCents)}</bdi> },
@@ -267,8 +269,11 @@ function usePdfReport() {
     const total = rows.reduce((a, e) => a + e.netCents, 0);
     const range = dayRangeLabel(r.from, r.to, locale);
     const dir = locale === 'he' ? 'rtl' : 'ltr';
+    // The report is a document: only the paper-* tokens, copied from the app so the values stay in one place.
+    const cs = getComputedStyle(document.documentElement);
+    const paper = ['bg', 'ink', 'muted', 'line'].map((k) => `--paper-${k}:${cs.getPropertyValue(`--paper-${k}`)}`).join(';');
     w.document.write(`<!doctype html><html lang="${locale}" dir="${dir}"><head><meta charset="utf-8"><title>ANANDA · ${esc(t('expenses.report.title'))} · ${esc(range)}</title>
-<style>body{font:13px/1.45 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#111;margin:32px}h1{font-size:20px;margin:0 0 2px;letter-spacing:.12em}h2{font-size:15px;font-weight:500;margin:0 0 4px}p{color:#555;margin:0 0 20px;font-size:12px}table{width:100%;border-collapse:collapse}th,td{padding:7px 8px;border-bottom:1px solid #ddd;text-align:start;vertical-align:top}th{font-weight:600;font-size:12px;color:#444}td.r,th.r{text-align:end;white-space:nowrap;font-variant-numeric:tabular-nums}tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:0}@page{margin:16mm}</style></head><body>
+<style>:root{${paper}}body{font:14px/20px system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--paper-bg);color:var(--paper-ink);margin:32px}h1{font-size:22px;line-height:28px;font-weight:400;margin:0 0 4px;letter-spacing:.08em}h2{font-size:14px;font-weight:500;margin:0 0 4px}p{color:var(--paper-muted);margin:0 0 20px;font-size:12px;line-height:16px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid var(--paper-line);text-align:start;vertical-align:top}th{font-weight:600;font-size:12px;color:var(--paper-muted)}td.r,th.r{text-align:end;white-space:nowrap;font-variant-numeric:tabular-nums}tfoot td{font-weight:600;border-top:2px solid var(--paper-ink);border-bottom:0}@page{margin:16mm}</style></head><body>
 <h1>ANANDA</h1><h2>${esc(t('expenses.report.title'))} · ${esc(range)}</h2><p>${esc(t('expenses.report.generated', { date: date(isoDate()), name: me.user.name }))}</p>
 <table><thead><tr><th>${esc(t('cols.month'))}</th><th>${esc(t('cols.description'))}</th><th>${esc(t('cols.category'))}</th><th class="r">${esc(t('cols.amountExclVat'))}</th></tr></thead><tbody>
 ${rows.map((e) => `<tr><td>${esc(date(e.spentOn))}</td><td>${esc(e.description)}</td><td>${esc(cat(e.category))}</td><td class="r">${esc(money(e.netCents))}</td></tr>`).join('')}
@@ -282,10 +287,10 @@ ${rows.map((e) => `<tr><td>${esc(date(e.spentOn))}</td><td>${esc(e.description)}
 
 function NewExpenseSheet({ category: initial, onClose }: { category: string | null; onClose: () => void }) {
   const t = useTranslations('money');
+  const tc = useTranslations('common');
   const { money, month } = useFmt();
   const { day } = useAsOf();
   const open = initial != null;
-  const fileRef = useRef<HTMLInputElement>(null);
   const [spentOn, setSpentOn] = useState(day);
   const [category, setCategory] = useState<string>('marketing');
   const [description, setDescription] = useState('');
@@ -305,7 +310,7 @@ function NewExpenseSheet({ category: initial, onClose }: { category: string | nu
     setMissing(false);
     setKey((k) => k + 1);
   }, [open, initial, day]);
-  const save = useAction((fd: FormData) => api.post<{ id: string }>('/money/expenses', fd), { success: () => t('expenses.form.saved', { month: month(spentOn) }), onDone: onClose });
+  const save = useAction((fd: FormData) => api.post<{ id: string }>('/money/expenses', fd), { success: () => t('expenses.form.saved', { month: month(spentOn) }), successAction: { label: tc('view'), href: '/money/pnl' }, onDone: onClose });
   const vatCents = Math.round((net ?? 0) * Number(vat));
   const submit = () => {
     if (!net) {
@@ -346,7 +351,7 @@ function NewExpenseSheet({ category: initial, onClose }: { category: string | nu
       }
     >
       <div className={css.pair}>
-        <TextField label={t('expenses.form.date')} type="date" value={spentOn} max={day} onChange={(e) => setSpentOn(e.target.value)} error={f.spentOn} />
+        <DateField label={t('expenses.form.date')} value={spentOn} max={day} onChange={setSpentOn} error={f.spentOn} />
         <Select label={t('expenses.form.category')} value={category} onChange={(e) => setCategory(e.target.value)} options={EXPENSE_FORM_CATEGORIES.map((c) => ({ value: c, label: t(`categories.${c}`) }))} error={f.category} />
       </div>
       <TextField label={t('expenses.form.description')} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('expenses.form.descriptionPlaceholder')} error={f.description} maxLength={500} />
@@ -367,54 +372,7 @@ function NewExpenseSheet({ category: initial, onClose }: { category: string | nu
       <span className={css.small}>{net ? t.rich('expenses.form.totalLine', { net: money(net), vat: money(vatCents), total: money(net + vatCents), b: (c) => <b>{c}</b> }) : missing ? null : t('expenses.form.totalHint')}</span>
       <div className="an-field">
         <label>{t('expenses.form.receipt')}</label>
-        <input
-          ref={fileRef}
-          type="file"
-          hidden
-          accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
-          onChange={async (e) => {
-            const x = e.target.files?.[0] ?? null;
-            setFile(x ? await shrinkImage(x) : null);
-          }}
-          aria-label={t('expenses.form.receipt')}
-        />
-        {file ? (
-          <div className="an-lrow">
-            <span className="ico accent">
-              <Icon as={Receipt} />
-            </span>
-            <span style={{ minWidth: 0 }}>
-              <span className="t">{file.name}</span>
-              <span className="sub">{t('expenses.form.attached')}</span>
-            </span>
-            <span className="acts">
-              <Button
-                size="sm"
-                onClick={() => {
-                  setFile(null);
-                  if (fileRef.current) fileRef.current.value = '';
-                }}
-              >
-                {t('expenses.form.remove')}
-              </Button>
-            </span>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className={`an-input ${css.upload}`}
-            onClick={() => fileRef.current?.click()}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={async (e) => {
-              e.preventDefault();
-              const x = e.dataTransfer.files?.[0];
-              if (x) setFile(await shrinkImage(x));
-            }}
-          >
-            <Icon as={DownloadSimple} size="sm" />
-            {t('expenses.form.upload')}
-          </button>
-        )}
+        <FileUpload file={file} status={file ? 'ready' : 'idle'} onPick={async (x) => setFile(await shrinkImage(x))} onRemove={() => setFile(null)} />
         {f.receipt && <span className="an-help error">{f.receipt}</span>}
       </div>
     </Sheet>
@@ -477,8 +435,8 @@ function ExportSheet({ open, onClose, csvHref, onPdf }: { open: boolean; onClose
         ))}
       </div>
       <div className={css.pair}>
-        <TextField label={t('expenses.exportPanel.from')} type="date" value={from} max={day} onChange={(e) => setFrom(e.target.value)} />
-        <TextField label={t('expenses.exportPanel.to')} type="date" value={to} max={day} onChange={(e) => setTo(e.target.value)} error={from > to ? t('expenses.exportPanel.toAfterFrom') : undefined} />
+        <DateField label={t('expenses.exportPanel.from')} value={from} max={day} onChange={setFrom} />
+        <DateField label={t('expenses.exportPanel.to')} value={to} max={day} onChange={setTo} error={from > to ? t('expenses.exportPanel.toAfterFrom') : undefined} />
       </div>
       <span className={css.sectionLabel}>{t('expenses.exportPanel.format')}</span>
       <Chips

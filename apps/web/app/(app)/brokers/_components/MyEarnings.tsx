@@ -30,7 +30,7 @@ export function MyEarnings() {
   const t = useTranslations('brokers');
   const tc = useTranslations('common');
   const router = useRouter();
-  const { money, date, dateShort, num } = useFmt();
+  const { money, date, num } = useFmt();
   const q = useQuery({ queryKey: ['brokers', 'me'], queryFn: () => api.get<Earnings>('/brokers/me/earnings') });
   const reqs = useQuery({ queryKey: ['approvals', 'mine'], queryFn: () => api.get<MyRequest[]>('/approvals/mine') });
 
@@ -63,7 +63,7 @@ export function MyEarnings() {
   const requests = reqs.data ?? [];
   const reqAbout = (r: MyRequest) => r.customerName ?? r.orderNumber ?? '—';
   const reqDecision = (r: MyRequest) => (
-    <span className="stack tight" style={{ gap: 2, justifyItems: 'start' }}>
+    <span className="stack tight">
       <Pill tone={REQUEST_TONE[r.status]}>{t(`requests.statuses.${r.status}`)}</Pill>
       {r.status === 'declined' && r.declineReason && (
         <span className="caption muted">
@@ -122,7 +122,7 @@ export function MyEarnings() {
                   amount={money(e.amountCents)}
                   sub={
                     <>
-                      {e.orderId ? <bdi>{e.orderNumber}</bdi> : t('earnings.eventSale')} · {tc('unitsCount', { n: num(e.units) })} · {dateShort(when(e))}
+                      {e.orderId ? <bdi>{e.orderNumber}</bdi> : t('earnings.eventSale')} · {tc('unitsCount', { n: num(e.units) })} · {date(when(e))}
                     </>
                   }
                   status={status(e)}
@@ -149,7 +149,7 @@ export function MyEarnings() {
             </div>
             <div className="list-cards only-phone" style={{ padding: 'var(--space-3)' }}>
               {requests.map((r) => (
-                <ListCard key={r.id} onClick={() => openReq(r)} title={reqAbout(r)} sub={`${t(`requests.types.${r.type}`)} · ${dateShort(r.createdAt)}`} status={reqDecision(r)} />
+                <ListCard key={r.id} onClick={() => openReq(r)} title={reqAbout(r)} sub={`${t(`requests.types.${r.type}`)} · ${date(r.createdAt)}`} status={reqDecision(r)} />
               ))}
             </div>
           </>

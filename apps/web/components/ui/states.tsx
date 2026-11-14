@@ -13,8 +13,8 @@ import { ArrowClockwise, Icon, Lock, MagnifyingGlass, WarningCircle, WifiSlash }
 const SKW = [0.9, 0.7, 0.82, 0.6, 0.86, 0.74, 0.66, 0.8];
 
 /** One skeleton bar (surface-3 with a soft shimmer every 1.4 s; none with reduced motion). */
-export function Sk({ w, h = 12, pill, style }: { w: number | string; h?: number; pill?: boolean; style?: React.CSSProperties }) {
-  return <span className={`an-sk ${pill ? 'pill' : ''}`} style={{ width: w, height: h, ...style }} aria-hidden />;
+export function Sk({ w, h = 12, pill, style, className = '' }: { w: number | string; h?: number; pill?: boolean; style?: React.CSSProperties; className?: string }) {
+  return <span className={`an-sk ${pill ? 'pill' : ''} ${className}`} style={{ width: w, height: h, ...style }} aria-hidden />;
 }
 
 /** Screen readers hear "Loading…" once. */
@@ -27,7 +27,7 @@ export function LoadingLive() {
   );
 }
 
-export type SkeletonCell = 'text' | 'count' | 'amount' | 'status' | 'empty';
+export type SkeletonCell = 'text' | 'date' | 'count' | 'amount' | 'status' | 'empty';
 
 /** Six skeleton rows shaped like the data: two lines in the first column, short bars aligned like the values, a pill for status. */
 export function SkeletonRows({ cells, rows = 6 }: { cells: SkeletonCell[]; rows?: number }) {
@@ -45,7 +45,7 @@ export function SkeletonRows({ cells, rows = 6 }: { cells: SkeletonCell[]; rows?
                   <>
                     <Sk w={Math.round(110 + 80 * k)} />
                     <br />
-                    <Sk w={Math.round(56 + 24 * k)} h={10} style={{ marginTop: 8 }} />
+                    <Sk w={Math.round(56 + 24 * k)} h={10} className="sk-gap" />
                   </>
                 ) : (
                   <Sk w={c === 'amount' ? Math.round(64 + 30 * k) : c === 'count' ? 32 : Math.round(70 + 50 * k)} />
@@ -77,7 +77,7 @@ export function SkeletonCards({ count = 6 }: { count?: number }) {
             <span className="sub">
               <Sk w={`${Math.round(30 + 25 * k)}%`} h={10} />
             </span>
-            <span style={{ justifySelf: 'end' }}>
+            <span className="sk-end">
               <Sk w={72} h={22} pill />
             </span>
           </div>
@@ -110,26 +110,31 @@ export function LoadError({ title, sub, error, onRetry }: { title?: ReactNode; s
 }
 
 /**
- * Why an action failed, right under its button (or button row), with Try again — or Reload when
- * someone else changed the record. Pass the `useAction` result.
+ * Why an action failed, directly above the panel's buttons (README: Errors). In a panel, sheet or form the
+ * panel's own main button is the retry, so there is NO separate Try again link: the sentence itself says
+ * "That didn't go through. Try again." When someone else changed the record it says "Someone changed this"
+ * with a Reload link. Pass the `useAction` result. `withRetry` adds a Try again link (only for the rare
+ * page-level case without a toast).
  */
-export function ActionError({ action, error, onRetry, message }: { action?: { error: ApiError | null; retry: () => void }; error?: unknown; onRetry?: () => void; message?: ReactNode }) {
+export function ActionError({ action, error, onRetry, message, withRetry }: { action?: { error: ApiError | null; retry: () => void }; error?: unknown; onRetry?: () => void; message?: ReactNode; withRetry?: boolean }) {
   const t = useTranslations('common');
   const err = action?.error ?? error;
   if (!err) return null;
   const conflict = err instanceof ApiError && err.isConflict;
   const blocked = err instanceof ApiError && err.isLookingBack;
   const retry = onRetry ?? action?.retry;
+  const raw = conflict ? t('errors.conflictInline') : messageOf(err, t);
+  const text = message ?? (raw === t('errors.actionFailed') ? t('errors.actionInline') : raw);
   return (
     <div className="an-inlerr" role="alert">
       <Icon as={WarningCircle} size="sm" />
-      <span>{message ?? (conflict ? t('errors.conflict') : messageOf(err, t))}</span>
+      <span>{text}</span>
       {!blocked &&
         (conflict ? (
           <button type="button" className="an-errlink" onClick={() => window.location.reload()}>
             {t('reload')}
           </button>
-        ) : retry ? (
+        ) : withRetry && retry ? (
           <button type="button" className="an-errlink" onClick={retry}>
             {t('retry')}
           </button>
@@ -225,8 +230,8 @@ function DefaultPageSkeleton() {
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="an-kpi" aria-hidden>
             <Sk w="50%" />
-            <Sk w="70%" h={28} style={{ marginTop: 8 }} />
-            <Sk w="40%" h={10} style={{ marginTop: 8 }} />
+            <Sk w="70%" h={28} className="sk-gap" />
+            <Sk w="40%" h={10} className="sk-gap" />
           </div>
         ))}
       </div>

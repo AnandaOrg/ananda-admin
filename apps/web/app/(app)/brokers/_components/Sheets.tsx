@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { vatOf } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
-import { useFmt } from '@/lib/format';
+import { useFmt, iso } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { ActionError, Bank, Button, CaretRight, EnvelopeSimple, FileText, Icon, Pill, Sheet, Signature, Skeleton, TextField, TwoStepField, Users } from '@/components/ui';
 import { PolishableText } from './MailDraft';
@@ -19,7 +19,7 @@ const first = (name: string) => name.trim().split(/\s+/)[0];
 /** Send to pay (A4): what the accountant gets, with the broker's bank details (two-step code). */
 export function SendToPaySheet({ broker, accountingEmail, perUnitCents, onClose }: { broker: BrokerRow | null; accountingEmail: string | null; perUnitCents: number; onClose: () => void }) {
   const t = useTranslations('brokers');
-  const { money, unit } = useFmt();
+  const { money, date, unit } = useFmt();
   const [code, setCode] = useState('');
   const [note, setNote] = useState('');
   useEffect(() => {
@@ -27,7 +27,7 @@ export function SendToPaySheet({ broker, accountingEmail, perUnitCents, onClose 
     setNote('');
   }, [broker?.id]);
   const act = useAction(() => api.post<{ amountCents: number }>(`/brokers/${broker!.id}/send-to-pay`, { note: note.trim() || undefined }, { code }), {
-    success: () => t('pay.sent', { name: first(broker?.name ?? '') }),
+    success: () => t('pay.sent', { name: iso(first(broker?.name ?? '')) }),
     onDone: onClose,
   });
   if (!broker) return null;
@@ -97,12 +97,12 @@ export function SendToPaySheet({ broker, accountingEmail, perUnitCents, onClose 
 export function MarkPaidSheet({ broker, onClose }: { broker: BrokerRow | null; onClose: () => void }) {
   const t = useTranslations('brokers');
   const tc = useTranslations('common');
-  const { money, num } = useFmt();
+  const { money, date, num } = useFmt();
   const [code, setCode] = useState('');
   useEffect(() => setCode(''), [broker?.id]);
   const detail = useQuery({ queryKey: ['brokers', 'earnings', broker?.id], queryFn: () => api.get<Earnings>(`/brokers/${broker!.id}/earnings`), enabled: !!broker });
   const act = useAction(() => api.post<{ amountCents: number }>(`/brokers/${broker!.id}/mark-paid`, {}, { code }), {
-    success: (r) => t('pay.paid', { name: broker?.name ?? '', amount: money(r.amountCents) }),
+    success: (r) => t('pay.paid', { name: iso(broker?.name ?? ''), amount: iso(money(r.amountCents)) }),
     onDone: onClose,
   });
   if (!broker) return null;
@@ -173,7 +173,7 @@ export function MailSheet({ broker, kind, onClose }: { broker: BrokerRow | null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [broker?.id, kind]);
   const act = useAction(() => api.post(`/brokers/${broker!.id}/${kind === 'nudge' ? 'nudge' : 'email'}`, { subject, message: body }), {
-    success: () => t('mail.sent', { name: broker?.name ?? '' }),
+    success: () => t('mail.sent', { name: iso(broker?.name ?? '') }),
     onDone: onClose,
   });
   if (!broker) return null;
@@ -210,7 +210,7 @@ export function MailSheet({ broker, kind, onClose }: { broker: BrokerRow | null;
 export function InviteSheet({ open, terms, onClose }: { open: boolean; terms: BrokersOverview['terms'] | undefined; onClose: () => void }) {
   const t = useTranslations('brokers');
   const locale = useLocale();
-  const { unit } = useFmt();
+  const { unit, date } = useFmt();
   const { me } = useSession();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -254,7 +254,7 @@ export function InviteSheet({ open, terms, onClose }: { open: boolean; terms: Br
 /** One broker: figures, their customers with what each owes, set-up and an e-mail button. */
 export function BrokerSheet({ broker, onClose, onEmail, onCountersign }: { broker: BrokerRow | null; onClose: () => void; onEmail: (a: BrokerRow) => void; onCountersign: (a: BrokerRow) => void }) {
   const t = useTranslations('brokers');
-  const { money, date, dateShort } = useFmt();
+  const { money, date } = useFmt();
   const { canEdit, readOnly } = useSession();
   const q = useQuery({ queryKey: ['brokers', 'detail', broker?.id], queryFn: () => api.get<BrokerDetail>(`/brokers/${broker!.id}`), enabled: !!broker });
   if (!broker) return null;
@@ -289,7 +289,7 @@ export function BrokerSheet({ broker, onClose, onEmail, onCountersign }: { broke
               </span>
               <span>
                 {c.name}
-                <span className={s.sub}>{c.lastOrderAt ? t('panel.customerLast', { date: dateShort(c.lastOrderAt) }) : t('panel.customerNone')}</span>
+                <span className={s.sub}>{c.lastOrderAt ? t('panel.customerLast', { date: date(c.lastOrderAt) }) : t('panel.customerNone')}</span>
               </span>
               <span className={s.v}>
                 <bdi>{money(c.owedCents)}</bdi>
@@ -326,7 +326,7 @@ export function CountersignSheet({ brokerId, onClose }: { brokerId: string | nul
   }, [brokerId]);
   const q = useQuery({ queryKey: ['brokers', 'setup', brokerId], queryFn: () => api.get<BrokerSetup>(`/brokers/${brokerId}/setup`), enabled: !!brokerId });
   const act = useAction(() => api.post(`/brokers/${brokerId}/countersign`, { name: name.trim(), agree }), {
-    success: () => t('countersign.done', { name: q.data?.broker.name ?? '' }),
+    success: () => t('countersign.done', { name: iso(q.data?.broker.name ?? '') }),
     onDone: onClose,
   });
   if (!brokerId) return null;

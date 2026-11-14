@@ -1,0 +1,15 @@
+/* Sign-in pages: route-local layout; tokens only, logical properties. */
+
+.brand {
+  padding: 0;
+}
+
+.steps {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+.secret {
+  text-align: center;
+  word-break: break-all;
+}

@@ -9,17 +9,19 @@ import { useSession } from '@/lib/session';
 import { Button, Camera, Card, EmptyState, ErrorState, FlavourName, Icon, ListCard, PageHeader, PageSkeleton, Phone, Pill } from '@/components/ui';
 import { PartDeliverySheet, SignedNoteSheet } from './DeliverySheets';
 import { daysAgo, mapsUrl, type ShipCard } from './types';
+import css from '../warehouse.module.css';
 
 /** When an order reached the warehouse, as a day: Today, Yesterday, or the date. */
-export function useWhen() {
+/** "Today", "Yesterday" or the date: compact (pills) by default, `full` for table cells where the date is the data. */
+export function useWhen(full?: boolean) {
   const t = useTranslations('warehouse');
-  const { dateShort } = useFmt();
+  const { dateShort, date } = useFmt();
   return (iso: string | null) => {
     const d = daysAgo(iso);
     if (d === null) return '—';
     if (d <= 0) return t('when.today');
     if (d === 1) return t('when.yesterday');
-    return dateShort(iso);
+    return full ? date(iso) : dateShort(iso);
   };
 }
 
@@ -30,19 +32,19 @@ function OpenOrder({ o, onToggle, onNote, onPart, canAct }: { o: ShipCard; onTog
   const when = useWhen();
   const fresh = (daysAgo(o.sentAt) ?? 0) <= 0;
   return (
-    <section className="an-card" style={{ borderColor: 'var(--accent-line)', gap: 'var(--space-2)' }}>
-      <button type="button" onClick={onToggle} aria-expanded="true" style={{ all: 'unset', cursor: 'pointer', display: 'grid', gap: 'var(--space-1)' }}>
-        <span className="row between" style={{ alignItems: 'flex-start' }}>
-          <b style={{ font: '600 17px/24px var(--font-sans)' }}>{o.customerName}</b>
+    <section className={`an-card ${css.shipCard}`}>
+      <button type="button" onClick={onToggle} aria-expanded="true" className={css.shipHead}>
+        <span className={`row between ${css.shipTop}`}>
+          <b className={css.shipName}>{o.customerName}</b>
           <Pill tone={fresh ? 'warn' : 'mute'}>{when(o.sentAt)}</Pill>
         </span>
-        <span className="muted" style={{ fontSize: 14 }}>
+        <span className={`muted ${css.shipSub}`}>
           <bdi>{o.number}</bdi>
           {o.city && ` · ${o.city}`}
           {o.partDelivered && ` · ${t('card.rest')}`}
         </span>
       </button>
-      <div style={{ background: 'var(--surface-2)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2) var(--space-3)', display: 'grid', gap: 'var(--space-1)', fontSize: 14 }}>
+      <div className={css.address}>
         <span>
           <bdi>{o.address}</bdi>
           {o.city && !o.address.includes(o.city) && `, ${o.city}`}
@@ -50,11 +52,11 @@ function OpenOrder({ o, onToggle, onNote, onPart, canAct }: { o: ShipCard; onTog
         <span className="muted">{t('card.contact', { name: o.contactName, phone: o.phone })}</span>
       </div>
       <div className="row">
-        <a className="an-btn secondary" href={`tel:${o.phone.replace(/[^\d+]/g, '')}`} style={{ flex: '1 1 0' }}>
+        <a href={`tel:${o.phone.replace(/[^\d+]/g, '')}`} className={`an-btn secondary ${css.share}`}>
           <Icon as={Phone} size="sm" />
           {t('card.call')}
         </a>
-        <a className="an-btn secondary" href={mapsUrl(o)} target="_blank" rel="noreferrer" style={{ flex: '1 1 0' }}>
+        <a className={`an-btn secondary ${css.share}`} href={mapsUrl(o)} target="_blank" rel="noreferrer">
           {t('card.directions')}
         </a>
       </div>
@@ -64,7 +66,7 @@ function OpenOrder({ o, onToggle, onNote, onPart, canAct }: { o: ShipCard; onTog
           <b className="num">{t('card.cartons', { n: l.cartons })}</b>
         </div>
       ))}
-      <div className="row between" style={{ borderTop: '1px solid var(--line)', paddingTop: 'var(--space-2)' }}>
+      <div className={`row between ${css.total}`}>
         <span className="muted">{t('card.total')}</span>
         <bdi className="num">{t('card.totalValue', { c: o.totalCartons, u: num(o.totalUnits) })}</bdi>
       </div>

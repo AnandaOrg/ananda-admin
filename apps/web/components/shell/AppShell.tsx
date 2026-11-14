@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { formatDate, type Locale } from '@ananda/shared';
+import { formatDate, formatDateShort, type Locale } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { useRealtime } from '@/lib/realtime';
@@ -35,6 +35,7 @@ import {
   Plus,
   ShieldCheck,
   SidebarSimple,
+  SettingsItem,
   SignOut,
   StatusBar,
   Sun,
@@ -298,7 +299,7 @@ function Shell({ children }: { children: ReactNode }) {
   const isRoot = TAB_ROOTS.includes(pathname);
   const backHref = [...(page?.crumbs ?? [])].reverse().find((c) => c.href)?.href ?? (current && !onTabs.has(current.key) ? '/more' : '/home');
   // BG header chip: DD.MM.YY (prototype "Към 03.11.26").
-  const chipDate = locale === 'bg' ? formatDate(asOf.day, locale).replace(/\.20(\d\d)$/, '.$1') : formatDate(asOf.day, locale);
+  const chipDate = formatDateShort(asOf.day, locale);
   const unread = badges.data?.unread ?? 0;
   const lang = LANGS.find((l) => l.key === locale) ?? LANGS[0];
 
@@ -347,7 +348,10 @@ function Shell({ children }: { children: ReactNode }) {
             aria-expanded={railOpen}
             onClick={() => {
               setRailHover(false);
-              setRailOpen((o) => !(o && !railHover));
+              const opening = !railOpen || railHover;
+              setRailOpen(opening);
+              // focus moves into the sidebar when the button opens it (and stays on the button when it closes)
+              if (opening) setTimeout(() => sideRef.current?.querySelector<HTMLElement>('.an-ni[aria-current="page"], .an-ni')?.focus(), 0);
             }}
           >
             <Icon as={SidebarSimple} />
@@ -378,6 +382,7 @@ function Shell({ children }: { children: ReactNode }) {
                       className="an-ni"
                       aria-current={isActive(pathname, i.href) ? 'page' : undefined}
                       aria-label={railOpen ? undefined : label(i.key)}
+                      onClick={() => setRailOpen(false)}
                       onMouseEnter={(e) => {
                         const s = e.currentTarget.querySelector<HTMLElement>('.nlbl');
                         e.currentTarget.title = s && s.scrollWidth > s.clientWidth + 1 ? label(i.key) : '';
@@ -387,9 +392,7 @@ function Shell({ children }: { children: ReactNode }) {
                       <span className="nlbl">{label(i.key)}</span>
                       {i.key === 'home' && !!badges.data?.home ? (
                         <span className="an-count">{badges.data.home}</span>
-                      ) : (
-                        isActive(pathname, i.href) && <span className="dt" aria-hidden="true" />
-                      )}
+                      ) : null}
                     </Link>
                   ))}
                 </div>
@@ -602,22 +605,17 @@ export function MoreList({ groups, label, onPick, onSignOut }: { groups: ReturnT
   const t = useTranslations('common');
   return (
     <div className="more-list">
-      <span className="more-sub">{t('moreSub')}</span>
       {groups.map((g) => (
         <div key={g.key ?? 'root'} role="group" aria-label={g.key ? t(`navGroup.${g.key}`) : undefined}>
           {g.key && <span className="sgrp">{t(`navGroup.${g.key}`)}</span>}
           {g.items.map((i) => (
-            <Link key={i.key} href={i.href} className="an-sitem phone" onClick={onPick}>
-              <Icon as={i.icon} />
-              <span>{label(i.key)}</span>
-            </Link>
+            <span key={i.key} className="contents" onClick={onPick}>
+              <SettingsItem icon={i.icon} label={label(i.key)} href={i.href} phone />
+            </span>
           ))}
         </div>
       ))}
-      <button type="button" className="an-sitem phone" onClick={onSignOut}>
-        <Icon as={SignOut} />
-        <span>{t('signOut')}</span>
-      </button>
+      <SettingsItem icon={SignOut} label={t('signOut')} onClick={onSignOut} phone />
     </div>
   );
 }

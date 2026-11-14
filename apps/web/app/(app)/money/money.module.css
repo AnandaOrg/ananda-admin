@@ -98,7 +98,7 @@
 .calChips :global(.an-chip) {
   height: 30px;
   padding-inline: var(--space-2);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .monthGrid {
@@ -162,13 +162,13 @@
 
 .foot {
   padding: var(--space-4) var(--space-6);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-muted);
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
 }
 
 .sumRow td {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
   background: var(--surface-2);
   font-weight: 600;
 }
@@ -218,7 +218,7 @@
 /* ---------- phone ---------- */
 .box {
   background: var(--surface-1);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   display: grid;
@@ -250,9 +250,9 @@
 }
 
 .line.big {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
   padding-top: var(--space-2);
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .line.big > :first-child {
@@ -263,12 +263,12 @@
   display: grid;
   gap: var(--space-1);
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-soft);
   margin-bottom: var(--space-1);
 }
 
 .small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
@@ -321,3 +321,20 @@
   color: var(--bad);
 }
 
+
+/* Date field: the field shows the formatted date; the calendar opens below it. */
+.dateWrap {
+  display: block;
+}
+
+.dateValue {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dateWrap > .datePop {
+  inset-inline: 0 auto;
+  inline-size: 288px;
+  max-inline-size: 100vw;
+}

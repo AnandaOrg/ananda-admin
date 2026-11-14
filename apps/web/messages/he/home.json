@@ -4,8 +4,8 @@
   "openOrders": "הזמנות פתוחות",
   "addCustomer": "הוספת לקוח",
   "and": "ו-",
-  "daysLate": "{n} ימי איחור",
-  "issuedAll": "{n, plural, one {חשבונית אחת הופקה ונשלחה} other {# חשבוניות הופקו ונשלחו}}",
+  "daysLate": "{n, plural, one {יום אחד} other {{n} ימים}} באיחור",
+  "issuedAll": "{n, plural, one {חשבונית אחת נשלחה} other {# חשבוניות נשלחו}}",
   "tiles": {
     "salesMonth": "מכירות החודש",
     "confirmed": "אושר",
@@ -45,7 +45,7 @@
     "yourDraft": "הטיוטה שלך, לא נשלחה מאז {date}",
     "openDraft": "פתיחת הטיוטה",
     "dueReorder": "הגיע זמן להזמנה חוזרת · הזמנה אחרונה {date}",
-    "email": "מייל ל-{name}",
+    "email": "אימייל ל-{name}",
     "openCustomer": "פתיחת הלקוח",
     "draftSubject": "טיוטה של {customer}",
     "draftBody": "היי {name}, הטיוטה של {customer} ({number}, {amount}) לא נשלחה מאז {date}. אפשר לשלוח או למחוק אותה?",
@@ -71,7 +71,7 @@
     "more": "יותר קרטונים של {f}",
     "changed": "קרטונים שונו",
     "emptyTitle": "הכול הוחלט",
-    "emptyText": "בקשות חדשות מסוכנים ותשלומים לאישור יופיעו כאן."
+    "emptyText": "בקשות חדשות מברוקרים ותשלומים לאישור יופיעו כאן."
   },
   "attention": {
     "title": "דורש תשומת לב",
@@ -80,14 +80,14 @@
     "newTitle": "אין כרגע משימות עבורך",
     "newText": "תשלומים באיחור, הזמנות להפקת חשבונית ומלאי להזמנה חוזרת יופיעו כאן לאחר תחילת המכירות.",
     "overdue": "חשבוניות באיחור",
-    "oldest": "הוותיק ביותר {n} ימים",
+    "oldest": "הוותיק ביותר {n, plural, one {יום אחד} other {{n} ימים}}",
     "delivered_not_invoiced": "נמסר, טרם הופקה חשבונית",
     "fullyPaid": "{n} שולמו במלואן",
     "issueAll": "הפקת כל {n} ששולמו",
     "late_purchases": "הזמנות רכש באיחור",
-    "lateSub": "{number} · {n} ימים באיחור",
+    "lateSub": "{number} · {n, plural, one {יום אחד} other {{n} ימים}} באיחור",
     "reorder": "טעמים להזמנה חוזרת",
-    "monthsLeft": "נותרו {n} חודשים",
+    "monthsLeft": "נותרו {n, plural, one {חודש אחד} other {{n} חודשים}}",
     "runsOut": "נגמר ב-{date}, לפני שרכש יכול להגיע",
     "waiting_for_stock": "הזמנות הממתינות למלאי",
     "waitingFor": "ממתין להזמנת רכש {number}",
@@ -100,7 +100,7 @@
     "drafts": "טיוטות",
     "since": "מאז {date}",
     "bank_balance": "לא נרשמה יתרת בנק",
-    "bankOld": "יתרת הבנק בת {n} ימים",
+    "bankOld": "יתרת הבנק בת {n, plural, one {יום אחד} other {{n} ימים}}",
     "lastBalance": "נרשמה לאחרונה ב-{date}",
     "noBalance": "יתרת המזומנים מתחילה ממנה",
     "record": "רישום"
@@ -118,7 +118,7 @@
     "title": "נמסר, טרם הופקה חשבונית · {n}",
     "sub": "ניתן להפיק חשבונית רק להזמנות ששולמו במלואן.",
     "issue": "הפקת חשבונית",
-    "issuedOne": "החשבונית הופקה ונשלחה",
+    "issuedOne": "החשבונית נשלחה",
     "invoiced": "הופקה חשבונית",
     "paid": "שולם",
     "notPaid": "לא שולם במלואו",
@@ -156,10 +156,10 @@
     "saved": "היתרה נשמרה"
   },
   "mail": {
-    "title": "דוא״ל חדש",
+    "title": "אימייל חדש",
     "send": "שליחה",
-    "sent": "המייל ל-{name} נשלח",
-    "note": "נשלח מהכתובת של ANANDA. עותק נשמר ביומן הדוא״ל."
+    "sent": "האימייל נשלח",
+    "note": "נשלח מהכתובת של ANANDA. עותק נשמר ביומן האימייל."
   },
   "stock": {
     "title": "מלאי זמין לפי טעם",
@@ -176,8 +176,8 @@
     "done": "סיום",
     "start": "התחלה",
     "open": "פתיחה",
-    "steps": { "company": "פרטי חברה ולוגו", "bank": "חשבון בנק", "supplier": "ספק מאושר", "purchase": "רכש ראשון", "brokers": "הזמנת הסוכנים", "customer": "לקוח ראשון" },
-    "desc": { "company": "שם, כתובת ולוגו בחשבונות עסקה", "bank": "ה-IBAN שאליו לקוחות משלמים", "supplier": "ממי קונים את הקוקטיילים", "purchase": "המלאי מתקבל; העלות הנחתת מחושבת", "brokers": "הם מקבלים מייל וקובעים סיסמה בעצמם", "customer": "יש להתחיל במספר המע״מ" }
+    "steps": { "company": "פרטי חברה ולוגו", "bank": "חשבון בנק", "supplier": "ספק מאושר", "purchase": "רכש ראשון", "brokers": "הזמנת הברוקרים", "customer": "לקוח ראשון" },
+    "desc": { "company": "שם, כתובת ולוגו בחשבונות עסקה", "bank": "ה-IBAN שאליו לקוחות משלמים", "supplier": "ממי קונים את הקוקטיילים", "purchase": "המלאי מתקבל; העלות הנחתת מחושבת", "brokers": "הם מקבלים אימייל וקובעים סיסמה בעצמם", "customer": "יש להתחיל במספר המע״מ" }
   },
   "review": {
     "title": { "new_customer": "לקוח חדש", "special_price": "מחיר מיוחד", "correction": "תיקון" },
@@ -216,8 +216,8 @@
     "tierChanges": "מדרגת המחיר משתנה",
     "commissionOf": "העמלה של {name}",
     "stock": "מלאי",
-    "stockBack": "{n} יחידות חוזרות לזמין",
-    "stockNeeded": "נדרשות עוד {n} יחידות",
+    "stockBack": "{n, plural, one {יחידה אחת} other {{n} יחידות}} חוזרות לזמין",
+    "stockNeeded": "נדרשות עוד {n, plural, one {יחידה אחת} other {{n} יחידות}}",
     "replaces": "חשבון עסקה מתוקן מחליף את הקודם; שום דבר לא נערך.",
     "after": {
       "new_customer": "{name} מקבל התראה ויכול להתחיל במכירה.",
@@ -235,7 +235,10 @@
     "reasonNotified": "{name} מקבל את הסיבה כהתראה.",
     "approvedToast": "{name} אושר",
     "declinedToast": "{name} נדחה",
-    "undone": "{name} שוב ממתין לאישור שלך",
-    "approveFailedFor": "לא ניתן לאשר את {name}. כדאי לבדוק את החיבור ולנסות שוב."
+    "alreadyApprovedBy": "{name} כבר אישר את זה",
+    "alreadyDeclinedBy": "{name} כבר דחה את זה",
+    "alreadyDecided": "מישהו כבר החליט על כך",
+    "undone": "ההחלטה בוטלה",
+    "approveFailedFor": "{name} לא אושר. אפשר לנסות שוב."
   }
 }

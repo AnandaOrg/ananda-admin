@@ -40,7 +40,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
   const { id } = use(params);
   const t = useTranslations('events');
   const tc = useTranslations('common');
-  const { money, num, date, dateShort, dateTime, locale } = useFmt();
+  const { money, num, date, dateTime, locale } = useFmt();
   const router = useRouter();
   const search = useSearchParams();
   const { readOnly, canView } = useSession();
@@ -142,7 +142,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
         {d.totals.movedUnits <= 0 && d.totals.stockUnits <= 0 ? (
           <EmptyState
             icon={Truck}
-            title={t('detail.stockTitle')}
+            title={t('detail.stockEmptyTitle')}
             text={t('detail.stockEmpty')}
             action={
               mayEdit ? (
@@ -204,7 +204,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
               </div>
               <div className="list-cards only-phone" style={{ padding: 'var(--space-3)' }}>
                 {d.expenses.map((x) => (
-                  <ListCard key={x.id} title={x.description} amount={money(x.netCents)} sub={dateShort(x.spentOn)} />
+                  <ListCard key={x.id} title={x.description} amount={money(x.netCents)} sub={date(x.spentOn)} />
                 ))}
               </div>
             </>
@@ -229,7 +229,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
                   amount={(m.units > 0 ? '+' : '−') + num(Math.abs(m.units) / UNITS_PER_CARTON)}
                   sub={
                     <>
-                      {m.flavour.toUpperCase()} · {dateShort(m.createdAt)}
+                      {m.flavour.toUpperCase()} · {date(m.createdAt)}
                       {m.byName && ` · ${m.byName}`}
                     </>
                   }

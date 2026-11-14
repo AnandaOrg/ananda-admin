@@ -65,7 +65,7 @@
     "subPart": "{customer} · {n, plural, one {# carton} other {# cartons}} (part)"
   },
   "note": {
-    "done": "{number} delivered. The Admin and broker are told.",
+    "done": "{number} delivered",
     "view": "Signed delivery note",
     "open": "Open"
   },
@@ -74,7 +74,7 @@
     "sub": "{customer} · {number}. The rest stays in To ship.",
     "of": "of {n, plural, one {# carton} other {# cartons}}",
     "next": "Next: signed note",
-    "done": "Part delivered. {n, plural, one {# carton stays} other {# cartons stay}} in To ship."
+    "done": "Part delivered"
   },
   "deliveredPage": {
     "title": "Delivered",
@@ -90,7 +90,7 @@
     "title": "Stock count",
     "help": "Count the full cartons on the shelves, per flavour. You won't see what the system expects, so the count stays honest.",
     "send": "Send count to Admin",
-    "sent": "Count sent to Admin",
+    "sent": "Count sent",
     "doneTitle": "Count sent",
     "doneText": "{n, plural, one {# carton} other {# cartons}} counted on {date}. The Admin sees any difference from what the system expects.",
     "again": "Start a new count"

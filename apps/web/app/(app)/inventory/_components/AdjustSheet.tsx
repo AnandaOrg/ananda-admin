@@ -7,14 +7,16 @@ import { FLAVOURS, UNITS_PER_CARTON, type Flavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, CaretDown, Icon, Sheet, Stepper } from '@/components/ui';
+import { ActionError, Button, CaretDown, Icon, Sheet, Stepper } from '@/components/ui';
 import { ADJUST_REASONS, type InventoryOverview } from './types';
+import css from '../inventory.module.css';
 
 type Reason = (typeof ADJUST_REASONS)[number];
 
 /** FR-INV-4 Stock adjustment: flavour, change in cartons (±), reason. Written to stock movements and the audit log. */
 export function AdjustSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations('inventory');
+  const tc = useTranslations('common');
   const { num } = useFmt();
   const stock = useQuery({ queryKey: ['inventory', 'overview'], queryFn: () => api.get<InventoryOverview>('/inventory'), enabled: open });
   const [flavour, setFlavour] = useState<Flavour | null>(null);
@@ -31,6 +33,7 @@ export function AdjustSheet({ open, onClose }: { open: boolean; onClose: () => v
   const minCartons = -Math.floor(inStock / UNITS_PER_CARTON);
   const adjust = useAction(() => api.post('/inventory/adjustments', { flavour, cartons, reason }), {
     success: t('adjust.done', { flavour: (flavour ?? '').toUpperCase(), n: cartons > 0 ? `+${cartons}` : String(cartons) }),
+    successAction: { label: tc('view'), href: '/inventory/movements' },
     onDone: onClose,
   });
   const units = cartons * UNITS_PER_CARTON;
@@ -38,12 +41,12 @@ export function AdjustSheet({ open, onClose }: { open: boolean; onClose: () => v
 
   return (
     <Sheet open={open} onClose={onClose} title={t('adjust.title')} dirty={cartons !== 0 || !!reason}>
-      <p className="body-sm muted" style={{ margin: 0 }}>
+      <p className={`body-sm muted ${css.para}`}>
         {t('adjust.sub')}
       </p>
       <div className="stack tight">
-        <span className="overline">{t('adjust.flavour')}</span>
-        <div className="an-chips" role="radiogroup" aria-label={t('adjust.flavour')} style={{ flexWrap: 'wrap' }}>
+        <label>{t('adjust.flavour')}</label>
+        <div className={`an-chips ${css.chipRow}`} role="radiogroup" aria-label={t('adjust.flavour')}>
           {FLAVOURS.map((f) => (
             <button
               key={f}
@@ -57,14 +60,15 @@ export function AdjustSheet({ open, onClose }: { open: boolean; onClose: () => v
                 setCartons(0);
               }}
             >
+              <i aria-hidden className={`${css.dot} ${css[f]}`} />
               {f.toUpperCase()}
             </button>
           ))}
         </div>
       </div>
-      <div className="row between" style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3) var(--space-4)' }}>
+      <div className={`row between ${css.box}`}>
         <span className="body-strong">{t('adjust.change')}</span>
-        <span className="stack tight" style={{ justifyItems: 'center' }}>
+        <span className={`stack tight ${css.center}`}>
           <Stepper value={cartons} onChange={setCartons} min={flavour ? minCartons : 0} max={flavour ? undefined : 0} label={t('adjust.change')} />
           <span className={`caption strong ${tone}`}>
             <bdi>{cartons > 0 ? '+' : cartons < 0 ? '−' : ''}{t('adjust.units', { n: num(Math.abs(units)) })}</bdi>
@@ -73,7 +77,7 @@ export function AdjustSheet({ open, onClose }: { open: boolean; onClose: () => v
       </div>
       {adjust.fields.cartons && <span className="an-help error">{adjust.fields.cartons}</span>}
       <ReasonDropdown value={reason} onChange={setReason} />
-      {adjust.errorText && !adjust.fields.cartons && <Banner tone="bad">{adjust.errorText}</Banner>}
+      {!adjust.fields.cartons && <ActionError action={adjust} />}
       <Button variant="primary" block size="lg" disabled={!flavour || !reason || cartons === 0} busy={adjust.isPending} onClick={() => adjust.mutate(undefined)}>
         {t('adjust.cta')}
       </Button>
@@ -103,26 +107,25 @@ function ReasonDropdown({ value, onChange }: { value: Reason | null; onChange: (
     };
   }, [open]);
   return (
-    <div className="an-field" ref={wrap} style={{ position: 'relative' }}>
+    <div className={`an-field ${css.reason}`} ref={wrap}>
       <label id="adj-reason">{t('adjust.reason')}</label>
-      <button type="button" className="an-input an-dd" aria-haspopup="listbox" aria-expanded={open} aria-labelledby="adj-reason" onClick={() => setOpen((o) => !o)} style={{ height: 'var(--control-lg)' }}>
+      <button type="button" className="an-input an-dd" aria-haspopup="listbox" aria-expanded={open} aria-labelledby="adj-reason" onClick={() => setOpen((o) => !o)}>
         <span className={value ? '' : 'muted'}>{value ? t(`adjust.reasons.${value}`) : t('adjust.chooseReason')}</span>
         <Icon as={CaretDown} size="sm" />
       </button>
       {open && (
-        <div className="an-pop" role="listbox" aria-labelledby="adj-reason" style={{ position: 'absolute', insetInline: 0, top: 'calc(100% + 6px)', zIndex: 40 }}>
+        <div className={`an-pop ${css.reasonPop}`} role="listbox" aria-labelledby="adj-reason">
           {ADJUST_REASONS.map((r) => (
             <button
               key={r}
               type="button"
               role="option"
-              className="an-mi"
+              className={`an-mi ${css.reasonItem}`}
               aria-selected={r === value}
               onClick={() => {
                 onChange(r);
                 setOpen(false);
               }}
-              style={{ textAlign: 'start', border: 0, background: r === value ? 'var(--surface-3)' : 'transparent' }}
             >
               <span className="body-strong">{t(`adjust.reasons.${r}`)}</span>
               <small>{t(`adjust.reasonHelp.${r}`)}</small>

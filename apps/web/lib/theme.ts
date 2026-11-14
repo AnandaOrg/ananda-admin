@@ -1,5 +1,7 @@
 'use client';
 
+import themeColors from '@/app/styles/theme-colors.json';
+
 /** Theme preference: System / Light / Dark (profile menu), kept in a cookie so the first paint is right. */
 export type ThemePref = 'system' | 'light' | 'dark';
 export const THEME_COOKIE = 'ananda_theme';
@@ -21,7 +23,7 @@ export function applyThemePref(pref: ThemePref) {
   const el = document.documentElement;
   el.setAttribute('data-theme', resolveTheme(pref));
   el.setAttribute('data-theme-pref', pref);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolveTheme(pref) === 'light' ? '#F8F8F8' : '#0A0A0B');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[resolveTheme(pref)]);
 }
 
 /** Inline script for <head>: resolves "system" before the first paint and follows the OS while open. */

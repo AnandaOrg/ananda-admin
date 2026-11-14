@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { CaretRight, Chips } from '@/components/ui';
 import type { PurchaseList } from '../_lib/types';
+import css from '../purchasing.module.css';
 
 export type PurchasingTab = 'purchases' | 'suppliers' | 'payables' | 'shipments';
 const HREF: Record<PurchasingTab, string> = { purchases: '/purchasing', suppliers: '/purchasing/suppliers', payables: '/purchasing/payables', shipments: '/purchasing/shipments' };
@@ -39,7 +40,7 @@ export function PurchasingTabs({ current }: { current: PurchasingTab }) {
 /** Note under a table, inside its card. */
 export function TableFoot({ children }: { children: React.ReactNode }) {
   return (
-    <div className="body-sm muted" style={{ padding: 'var(--space-4) var(--card-padding)', borderTop: '1px solid var(--line)' }}>
+    <div className={`body-sm muted ${css.strip}`}>
       {children}
     </div>
   );

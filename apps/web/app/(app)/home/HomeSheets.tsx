@@ -21,7 +21,7 @@ const first = (name?: string | null) => (name ?? '').split(' ')[0];
 export function OverdueSheet({ row, onClose }: { row: Attention | null; onClose: () => void }) {
   const t = useTranslations('home');
   const tc = useTranslations('common');
-  const { money, num } = useFmt();
+  const { money, date, num } = useFmt();
   const [drafts, setDrafts] = useState<Record<string, { subject: string; message: string } | 'sent'>>({});
   const items = (row?.items ?? []) as { orderId: string; number: string; customerName: string; phone: string | null; brokerName: string; outstandingCents: number; daysLate: number }[];
   const load = useAction((orderId: string) => api.get<{ subject: string; message: string }>(`/collections/${orderId}/reminder`).then((d) => ({ d, orderId })), {
@@ -95,7 +95,7 @@ export function OverdueSheet({ row, onClose }: { row: Attention | null; onClose:
 /** Delivered, no invoice yet: only fully paid orders can be invoiced; one, or all paid ones at once. */
 export function NoInvoiceSheet({ row, onClose }: { row: Attention | null; onClose: () => void }) {
   const t = useTranslations('home');
-  const { dateShort } = useFmt();
+  const { date } = useFmt();
   const [items, setItems] = useState<{ orderId: string; number: string; customerName: string | null; deliveredAt: string | null; paid: boolean }[]>([]);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [all, setAll] = useState(false);
@@ -142,7 +142,7 @@ export function NoInvoiceSheet({ row, onClose }: { row: Attention | null; onClos
             </span>
             <span className={s.s}>
               <bdi>{o.number}</bdi>
-              {o.deliveredAt && ` · ${t('noinv.delivered', { date: dateShort(o.deliveredAt) })}`}
+              {o.deliveredAt && ` · ${t('noinv.delivered', { date: date(o.deliveredAt) })}`}
             </span>
           </div>
         ))}

@@ -58,11 +58,12 @@ export function formatDate(value: Date | string | null | undefined, locale: Loca
   return `${d.getDate()} ${MONTHS_EN[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/** Short dates with a day (lists, chips): EN "8 Nov", BG "08.11" (prototype). */
+/** Compact dates for controls and sub-lines (date chips, range buttons, "As of"): EN "8 Nov", BG "03.11.26" (DD.MM.YY),
+ *  HE "8 בנוב׳". Dates that are the data (tables, invoices, documents, exports) use formatDate. */
 export function formatDateShort(value: Date | string | null | undefined, locale: Locale | string = 'en'): string {
   if (!value) return '';
   const d = toDate(value);
-  if (locale === 'bg') return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`;
+  if (locale === 'bg') return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(-2)}`;
   if (locale === 'he') return new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'short' }).format(d);
   return `${d.getDate()} ${MONTHS_EN[d.getMonth()]}`;
 }

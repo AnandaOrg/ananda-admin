@@ -9,7 +9,7 @@ import { api, ApiError } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { ActionError, Banner, Button, Card, Clock, Icon, IconButton, MoneyField, PageHeader, PageState, Plus, Select, Sheet, TextField, TwoStepField, UploadSimple, X } from '@/components/ui';
+import { ActionError, Banner, Button, Chips, FileUpload, Card, Clock, Icon, IconButton, MoneyField, PageHeader, PageState, Plus, Select, Sheet, TextField, TwoStepField, UploadSimple, X } from '@/components/ui';
 import { ProfileDevices } from '../../profile/_components/profile-devices';
 import { SettingsTabs, type SettingsTab } from './settings-tabs';
 import css from '../settings.module.css';
@@ -308,15 +308,12 @@ function RuleSheet({ rule, data, editable, onClose }: { rule: Rule; data: Settin
       {rule === 'ownership' && (
         <>
           <span className="overline">{t('settings.rulePanel.warnTitle')}</span>
-          <div className="an-chips" role="group" aria-label={t('settings.rulePanel.warnTitle')} style={{ flexWrap: 'wrap' }}>
-            {[...new Set([...WARN_DAYS, r.ownership.warningDays])]
-              .sort((a, b) => a - b)
-              .map((n) => (
-                <button key={n} type="button" className="an-chip" aria-pressed={draft.ownership.warningDays === n} disabled={!editable} onClick={() => set('ownership', { ...draft.ownership, warningDays: n })}>
-                  {t('settings.rulePanel.warnChip', { n })}
-                </button>
-              ))}
-          </div>
+          <Chips
+            label={t('settings.rulePanel.warnTitle')}
+            value={String(draft.ownership.warningDays)}
+            onChange={(v) => editable && set('ownership', { ...draft.ownership, warningDays: Number(v) })}
+            options={[...new Set([...WARN_DAYS, r.ownership.warningDays])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: t('settings.rulePanel.warnChip', { n }) }))}
+          />
           <p className="muted body-sm">{t('settings.rulePanel.warnNote')}</p>
           <span className="overline">{t('settings.rulePanel.getsTitle')}</span>
           <div className={css.example}>
@@ -499,25 +496,26 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
   );
 }
 
-/** Logo on documents: shown with Remove, or a dashed upload button (SVG or PNG). Saved straight away. */
+/** Logo on documents: the shared FileUpload (images only, saved straight away); a stored logo shows as a ready row with Remove. */
 function LogoField({ logo, editable }: { logo: SettingsData['documents']['logo']; editable: boolean }) {
   const t = useTranslations('admin');
-  const input = useRef<HTMLInputElement>(null);
   const [stamp, setStamp] = useState(0);
+  const [sent, setSent] = useState<File | null>(null);
   const upload = useAction(
     (file: File) => {
       const fd = new FormData();
       fd.append('file', file);
       return api.post('/settings/documents/logo', fd);
     },
-    { success: t('settings.cardPanel.logoUploaded'), onDone: () => setStamp(Date.now()) },
+    { success: t('settings.cardPanel.logoUploaded'), onDone: () => (setStamp(Date.now()), setSent(null)) },
   );
   const remove = useAction(() => api.del('/settings/documents/logo'), { success: t('settings.cardPanel.logoRemoved') });
-  const err = upload.fields.file ?? upload.errorText ?? remove.errorText ?? undefined;
+  const err = upload.fields.file ?? remove.errorText ?? undefined;
+  const failed = !!upload.error && !upload.fields.file;
   return (
     <div className="an-field">
       <label>{t('settings.cardPanel.logo')}</label>
-      {logo ? (
+      {logo && !sent ? (
         <div className={css.logoRow}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className={css.logoImg} src={`/api/settings/documents/logo?v=${stamp}`} alt="" />
@@ -531,23 +529,17 @@ function LogoField({ logo, editable }: { logo: SettingsData['documents']['logo']
             </Button>
           )}
         </div>
-      ) : (
-        <button type="button" className={css.upload} disabled={!editable || upload.isPending} onClick={() => input.current?.click()}>
-          <Icon as={UploadSimple} size="sm" />
-          {t('settings.cardPanel.upload')}
-        </button>
-      )}
-      <input
-        ref={input}
-        type="file"
-        accept="image/svg+xml,image/png,image/jpeg,image/webp"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) upload.mutate(file);
-          e.target.value = '';
-        }}
-      />
+      ) : editable ? (
+        <FileUpload
+          imageOnly
+          file={sent}
+          status={upload.isPending ? 'uploading' : failed ? 'error' : sent ? 'ready' : 'idle'}
+          error="stopped"
+          onPick={(f) => (setSent(f), upload.mutate(f))}
+          onRetry={() => sent && upload.mutate(sent)}
+          onRemove={() => setSent(null)}
+        />
+      ) : null}
       {err && <span className="an-help error">{err}</span>}
     </div>
   );

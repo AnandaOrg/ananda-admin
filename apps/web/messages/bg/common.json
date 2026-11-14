@@ -12,7 +12,7 @@
   "markAllRead": "Маркирай всички като прочетени",
   "language": "Език",
   "loading": "Зареждане…",
-  "error": "Нещо се обърка. Опитай пак.",
+  "error": "Нещо се обърка. Опитайте пак.",
   "retry": "Опитай пак",
   "close": "Затвори",
   "undo": "Отмени",
@@ -67,7 +67,7 @@
   "date": "Дата",
   "flavour": "Вкус",
   "cartonsOf": "Кашони {flavour}",
-  "unitsCount": "{n} бройки",
+  "unitsCount": "{n, plural, one {{n} брой} other {{n} броя}}",
   "upTo": "до {n}",
   "cartonsUnits": "{c} кашона · {u} бройки",
   "daysLate": "{n, plural, one {# ден просрочено} other {# дни просрочено}}",
@@ -219,6 +219,7 @@
     "calendar": "Календар"
   },
   "errors": {
+    "tryAgainSentence": "Опитайте отново.",
     "network": "Проверете връзката и опитайте пак.",
     "server": "Нещо се обърка при нас. Опитайте след минута.",
     "actionFailed": "Не се получи",
@@ -244,12 +245,22 @@
     "signedOutTitle": "Излязохте от профила си",
     "signedOutText": "За ваша сигурност това става след време. Промените ви са запазени.",
     "signIn": "Вход",
-    "signedInAgain": "Влязохте отново"
+    "signedInAgain": "Влязохте отново",
+    "actionInline": "Не се получи. Опитайте пак.",
+    "conflictInline": "Някой го промени",
+    "notFoundOrder": "Не намираме тази поръчка",
+    "backSales": "Към Продажби и поръчки",
+    "backOrders": "Към Поръчки",
+    "backCustomers": "Към Клиенти",
+    "uploadTooBig": "{size} MB. Ограничението е {limit} MB.",
+    "uploadWrongType": "Само PDF, JPG, PNG или HEIC.",
+    "uploadStopped": "Връзката прекъсна.",
+    "chooseAnother": "Изберете друг файл"
   },
   "unsaved": {
     "title": "Да се откажат ли промените?",
     "text": "Въведеното тук ще се загуби.",
-    "keep": "Продължи"
+    "keep": "Продължи редакцията"
   },
   "columns": {
     "label": "Колони",
@@ -291,7 +302,6 @@
     "off": "Изкл.",
     "account": "Профил"
   },
-  "moreSub": "Групирано като страничното меню на компютър.",
   "searchNone": "Няма съвпадения за „{q}“",
   "notify": {
     "customer_approval": {
@@ -319,7 +329,7 @@
       "body": "Складът качи подписаната бележка."
     },
     "purchase_late": {
-      "title": "{purchase} закъснява с {days} дни",
+      "title": "{purchase} закъснява с {days, plural, one {{days} ден} other {{days} дни}}",
       "body": "{supplier}"
     },
     "payment_confirmed": {
@@ -327,7 +337,7 @@
       "body": "{customer} · {amount}"
     },
     "payment_late": {
-      "title": "{customer} закъснява с {days} дни",
+      "title": "{customer} закъснява с {days, plural, one {{days} ден} other {{days} дни}}",
       "body": "{amount} дължими по {order}"
     },
     "upload_opened": {
@@ -361,5 +371,14 @@
     "broker": "Брокер",
     "warehouse": "Склад",
     "finance": "Финанси"
+  },
+  "upload": {
+    "drop": "Пуснете PDF или снимка тук или <b>изберете файл</b>",
+    "hint": "PDF, JPG, PNG или HEIC, до {max}",
+    "takePhoto": "Снимайте",
+    "chooseFile": "Изберете файл",
+    "remove": "Премахни",
+    "uploading": "Качване…",
+    "ready": "{size} · готов"
   }
 }

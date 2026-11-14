@@ -7,9 +7,10 @@ import { FLAVOURS, type Flavour, type StatusTone } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, DownloadSimple, EnvelopeSimple, Eye, FileText, KeyValue, NotePencil, Pill, Segmented, Sheet, ShoppingCart, TextField } from '@/components/ui';
+import { ActionError, Banner, Button, DownloadSimple, EnvelopeSimple, Eye, FileText, KeyValue, NotePencil, Pill, Segmented, Sheet, ShoppingCart, TextField } from '@/components/ui';
 import { FlavourToggles } from '../_components/FlavourToggles';
 import { formWith, type Supplier, type SupplierDetail } from '../_lib/types';
+import css from '../purchasing.module.css';
 
 type Status = Supplier['status'];
 export const SUPPLIER_TONE: Record<Status, StatusTone> = { approved: 'good', pending: 'warn', inactive: 'mute' };
@@ -71,7 +72,7 @@ export function SupplierView({ supplier, onClose, onEdit, onBuy }: { supplier: S
         </>
       }
     >
-      <div className="an-card" style={{ background: 'var(--surface-2)', padding: 'var(--space-4)' }}>
+      <div className={`an-card ${css.card}`}>
         <KeyValue
           items={[
             [tc('status'), <Pill key="s" tone={SUPPLIER_TONE[s.status]}>{t(`suppliers.status.${s.status}`)}</Pill>],
@@ -236,7 +237,7 @@ export function SupplierSheet({ open, supplier, all, onClose }: { open: boolean;
         </div>
       )}
       {!supplier && <p className="body-sm muted">{t('suppliers.form.thenPick')}</p>}
-      {save.errorText && !Object.keys(save.fields).length && <Banner tone="bad">{save.errorText}</Banner>}
+      {!Object.keys(save.fields).length && <ActionError action={save} />}
     </Sheet>
   );
 }

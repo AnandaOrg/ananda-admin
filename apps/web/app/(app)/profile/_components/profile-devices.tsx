@@ -9,7 +9,7 @@ import { useAction, useMedia } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { meQueryKey, useSession } from '@/lib/session';
 import { setLocaleCookie } from '@/components/shell/AppShell';
-import { applyThemePref, readThemePref, resolveTheme } from '@/lib/theme';
+import { applyThemePref, readThemePref, type ThemePref } from '@/lib/theme';
 import { ActionError, Button, Card, Count, Globe, LoadError, Icon, Pill, Chips, Sheet, Skeleton, SquaresFour, TextField, TwoStepField } from '@/components/ui';
 import css from './profile.module.css';
 
@@ -67,12 +67,12 @@ export function ProfileDevices() {
     },
   );
   // Same preference as the profile menu's theme switch (cookie for the first paint, saved on the account).
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const tt = useTranslations('common');
+  const [theme, setTheme] = useState<ThemePref>('dark');
   useEffect(() => {
-    const pref = readThemePref();
-    setTheme(pref === 'system' ? resolveTheme(pref) : pref);
+    setTheme(readThemePref());
   }, []);
-  const chooseTheme = (v: 'dark' | 'light') => {
+  const chooseTheme = (v: ThemePref) => {
     setTheme(v);
     applyThemePref(v);
     api.patch('/auth/profile', { theme: v }).then(() => qc.invalidateQueries({ queryKey: meQueryKey })).catch(() => {});
@@ -111,7 +111,7 @@ export function ProfileDevices() {
               <span className={css.sub}>{t('profile.themeSub')}</span>
             </span>
             <span className={css.seg}>
-              <Chips label={t('profile.theme')} fill={false} value={theme} onChange={chooseTheme} options={(['dark', 'light'] as const).map((v) => ({ value: v, label: t(`profile.${v}`) }))} />
+              <Chips label={t('profile.theme')} fill={false} value={theme} onChange={chooseTheme} options={(['system', 'light', 'dark'] as const).map((v) => ({ value: v, label: tt(`theme.${v}`) }))} />
             </span>
           </div>
           <div className={css.group}>

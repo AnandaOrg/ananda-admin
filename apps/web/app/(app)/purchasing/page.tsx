@@ -14,6 +14,7 @@ import { NewPurchaseSheet } from './_components/NewPurchaseSheet';
 import { PurchaseStatusPill } from './_components/PurchaseStatus';
 import { SupplierSheet } from './suppliers/SupplierSheet';
 import type { PurchaseFilter, PurchaseList, PurchaseRow } from './_lib/types';
+import css from './purchasing.module.css';
 
 /** FR-PUR-1: purchases with tiles; Home links to ?filter=late and ?new=1. */
 export default function PurchasesPage() {
@@ -65,14 +66,9 @@ export default function PurchasesPage() {
             text={t('empty.text')}
             action={
               editable ? (
-                <span className="row wrap" style={{ justifyContent: 'center' }}>
-                  <Button icon={Plus} onClick={() => setAddingSupplier(true)}>
-                    {t('empty.addSupplier')}
-                  </Button>
-                  <Button variant="primary" icon={ShoppingCart} onClick={() => setCreating(true)}>
-                    {t('new.title')}
-                  </Button>
-                </span>
+                <Button variant="primary" icon={Plus} onClick={() => setAddingSupplier(true)}>
+                  {t('empty.addSupplier')}
+                </Button>
               ) : undefined
             }
           />
@@ -82,7 +78,7 @@ export default function PurchasesPage() {
     );
   }
 
-  const expected = (p: PurchaseRow) => (p.arrivedOn ? t('receivedOn', { date: dateShort(p.arrivedOn) }) : date(p.expectedOn));
+  const expected = (p: PurchaseRow) => (p.arrivedOn ? t('receivedOn', { date: date(p.arrivedOn) }) : date(p.expectedOn));
   const columns: Column<PurchaseRow>[] = [
     {
       key: 'purchase',
@@ -98,9 +94,9 @@ export default function PurchasesPage() {
         </>
       ),
     },
-    { key: 'ordered', header: t('cols.ordered'), render: (p) => <span className="nowrap">{date(p.orderedOn)}</span> },
-    { key: 'expected', header: t('cols.expected'), render: (p) => <span className={`nowrap ${p.daysLate > 0 ? 'bad' : ''}`}>{expected(p)}</span> },
-    { key: 'units', header: tc('units'), type: 'count', render: (p) => num(p.unitsReceived ?? p.totalUnits) },
+    { key: 'ordered', header: t('cols.ordered'), type: 'date', render: (p) => <bdi>{date(p.orderedOn)}</bdi> },
+    { key: 'expected', header: t('cols.expected'), type: 'date', render: (p) => <span className={p.daysLate > 0 ? 'bad' : ''}>{expected(p)}</span> },
+    { key: 'units', header: tc('units'), type: 'count', render: (p) => <bdi>{num(p.unitsReceived ?? p.totalUnits)}</bdi> },
     { key: 'toPay', header: t('cols.toPay'), type: 'amount', render: (p) => <bdi>{money(p.stillToPayCents)}</bdi> },
     { key: 'status', header: tc('status'), render: (p) => <PurchaseStatusPill p={p} /> },
     chevronColumn<PurchaseRow>(),
@@ -118,7 +114,7 @@ export default function PurchasesPage() {
         title={tc('nav.purchasing')}
         actions={
           <>
-            <div className="only-wide" style={{ width: 240 }}>
+            <div className={`only-wide ${css.search}`}>
               <Search value={q} onChange={setQ} placeholder={t('searchPlaceholder')} />
             </div>
             <span className="only-wide">{newBtn}</span>
@@ -135,7 +131,7 @@ export default function PurchasesPage() {
           </div>
           <div className="kpis only-phone">
             <KpiTile label={t('tiles.onTheWay')} value={num(tiles.onTheWayUnits)} sub={tiles.onTheWayUnits ? t('tiles.unitsCartons', { n: num(tiles.onTheWayCartons) }) : t('tiles.nothingOnTheWay')} />
-            <KpiTile label={t('tiles.toPayShort')} value={<span style={{ color: tiles.toPaySuppliersCents > 0 ? 'var(--warn)' : undefined }}>{money(tiles.toPaySuppliersCents, true)}</span>} sub={<bdi>{toPaySub}</bdi>} onClick={() => router.push('/purchasing/payables')} />
+            <KpiTile label={t('tiles.toPayShort')} value={<span className={tiles.toPaySuppliersCents > 0 ? 'warn' : undefined}>{money(tiles.toPaySuppliersCents, true)}</span>} sub={<bdi>{toPaySub}</bdi>} onClick={() => router.push('/purchasing/payables')} />
           </div>
         </>
       )}
@@ -148,7 +144,7 @@ export default function PurchasesPage() {
       ) : (
         <>
           <Card flush className="only-wide">
-            <Table columns={columns} rows={rows} rowKey={(p) => p.id} onRow={(p) => router.push(`/purchasing/${p.id}`)} />
+            <Table columns={columns} rows={rows} rowKey={(p) => p.id} onRow={(p) => router.push(`/purchasing/${p.id}`)} picker={{ id: 'purchases', locked: ['purchase', 'status', 'go'], defaults: ['expected', 'toPay'], priority: ['expected', 'toPay', 'ordered', 'units'] }} />
             <TableFoot>{t('foot')}</TableFoot>
           </Card>
           <div className="list-cards only-phone">

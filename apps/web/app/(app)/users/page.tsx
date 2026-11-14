@@ -164,7 +164,7 @@ export default function UsersPage() {
           {tab === 'team' ? (
             <>
               <Card flush className="only-wide">
-                <Table columns={teamCols} rows={current} rowKey={(m) => m.id} onRow={(m) => setMemberId(m.id)} rowClass={(m) => (m.status === 'deactivated' ? 'subtle' : '')} loading={team.isLoading} error={team.error} onRetry={() => team.refetch()} />
+                <Table columns={teamCols} rows={current} rowKey={(m) => m.id} picker={{ id: 'team', locked: ['name', 'status', 'go'], defaults: ['role', 'twoStep'], priority: ['role', 'twoStep', 'sees'] }} onRow={(m) => setMemberId(m.id)} rowClass={(m) => (m.status === 'deactivated' ? 'subtle' : '')} loading={team.isLoading} error={team.error} onRetry={() => team.refetch()} />
               </Card>
               <div className="only-phone">
                 <ListCards loading={team.isLoading} error={team.error} onRetry={() => team.refetch()}>

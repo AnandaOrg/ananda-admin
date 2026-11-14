@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import { api, errorText } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { ActionError, Bank, Button, Card, Check, Clock, ErrorState, FileText, Icon, PageHeader, PageSkeleton, Pill, Select, Signature, TextField, UploadSimple, useToast } from '@/components/ui';
+import { ActionError, Bank, FileUpload, Button, Card, Check, Clock, ErrorState, FileText, Icon, PageHeader, PageSkeleton, Pill, Select, Signature, TextField, useToast } from '@/components/ui';
 import { bankFromIban, groupIban, validIban } from '../_components/bank';
 import type { BrokerSetup } from '../_components/types';
 import s from '../brokers.module.css';
@@ -117,7 +117,7 @@ function CompanyStep({ d, email, locked, onNext }: { d: BrokerSetup; email: stri
     <Card>
       <div className={s.form}>
         <div>
-          <h2 style={{ margin: 0, font: '400 20px/26px var(--font-sans)' }}>
+          <h2 className={s.h2}>
             {t('setup.company.title')}
           </h2>
           <p className={s.muted} style={{ margin: 'var(--space-1) 0 0' }}>
@@ -223,40 +223,17 @@ function CompanyStep({ d, email, locked, onNext }: { d: BrokerSetup; email: stri
   );
 }
 
-function FileDrop({ label, busy, fileName, onFile, error }: { label: string; busy?: boolean; fileName?: string | null; onFile: (f: File) => void; error?: string | null }) {
-  const t = useTranslations('brokers');
-  const ref = useRef<HTMLInputElement>(null);
-  const [over, setOver] = useState(false);
+function FileDrop({ file, name, busy, failed, onFile, onRemove, onRetry }: { file?: File | null; name?: string | null; busy?: boolean; failed?: boolean; onFile: (f: File) => void; onRemove?: () => void; onRetry?: () => void }) {
   return (
-    <div
-      className={`${s.drop} ${over ? s.over : ''}`}
-      role="button"
-      tabIndex={0}
-      onClick={() => ref.current?.click()}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && ref.current?.click()}
-      onDragOver={(e) => (e.preventDefault(), setOver(true))}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setOver(false);
-        const f = e.dataTransfer.files?.[0];
-        if (f) onFile(f);
-      }}
-    >
-      <Icon as={UploadSimple} />
-      {busy ? (
-        <span>{t('setup.bank.uploading')}</span>
-      ) : fileName ? (
-        <span className={`${s.help} ${s.good}`}>{t('setup.bank.uploaded', { name: fileName })}</span>
-      ) : (
-        <span>
-          {label} <b>{t('setup.bank.choose')}</b>
-        </span>
-      )}
-      <span className={s.help}>{t('setup.bank.fileTypes')}</span>
-      {error && <span className={`${s.help} ${s.err}`}>{error}</span>}
-      <input ref={ref} type="file" hidden accept="application/pdf,image/jpeg,image/png,image/webp,image/heic" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
-    </div>
+    <FileUpload
+      file={file}
+      name={file ? undefined : (name ?? undefined)}
+      status={busy ? 'uploading' : failed ? 'error' : file || name ? 'ready' : 'idle'}
+      error={failed ? 'stopped' : undefined}
+      onPick={onFile}
+      onRemove={onRemove}
+      onRetry={onRetry}
+    />
   );
 }
 
@@ -267,6 +244,7 @@ function BankStep({ d, locked, onBack, onNext }: { d: BrokerSetup; locked: boole
   const saved = useSaved();
   const [f, setF] = useState({ accountHolder: det?.accountHolder ?? det?.companyName ?? '', iban: det?.iban ? groupIban(det.iban) : '', bic: det?.bic ?? '', bankName: det?.bankName ?? '', bankAddress: det?.bankAddress ?? '' });
   const [auto, setAuto] = useState(false);
+  const [last, setLast] = useState<File | null>(null);
   const [file, setFile] = useState<{ busy: boolean; name: string | null; error: string | null }>({ busy: false, name: det?.bankConfirmation ? '✓' : null, error: null });
   const set = <K extends keyof typeof f>(k: K, v: string) => setF((x) => ({ ...x, [k]: v }));
   const raw = f.iban.replace(/\s+/g, '').toUpperCase();
@@ -285,6 +263,7 @@ function BankStep({ d, locked, onBack, onNext }: { d: BrokerSetup; locked: boole
   });
   const later = useAction(() => api.post('/brokers/me/setup/draft', body()), { onDone: saved });
   async function upload(fl: File) {
+    setLast(fl);
     setFile({ busy: true, name: null, error: null });
     try {
       const fd = new FormData();
@@ -300,7 +279,7 @@ function BankStep({ d, locked, onBack, onNext }: { d: BrokerSetup; locked: boole
     <Card>
       <div className={s.form}>
         <div>
-          <h2 style={{ margin: 0, font: '400 20px/26px var(--font-sans)' }}>
+          <h2 className={s.h2}>
             {t('setup.bank.title')}
           </h2>
           <p className={s.muted} style={{ margin: 'var(--space-1) 0 0' }}>
@@ -329,7 +308,7 @@ function BankStep({ d, locked, onBack, onNext }: { d: BrokerSetup; locked: boole
             {t('setup.bank.confirmation')} <span className={s.help}>{t('setup.optional')}</span>
           </label>
           <span className={s.help}>{t('setup.bank.confirmationHelp')}</span>
-          {!locked && <FileDrop label={t('setup.bank.drop')} busy={file.busy} fileName={file.name === '✓' ? null : file.name} onFile={upload} error={file.error} />}
+          {!locked && <FileDrop file={last} name={file.name === '✓' ? null : file.name} busy={file.busy} failed={!!file.error} onFile={upload} onRemove={() => { setLast(null); setFile({ busy: false, name: null, error: null }); }} onRetry={() => last && upload(last)} />}
           {file.name === '✓' && (
             <a className="link body-sm" href={`/api/brokers/${d.broker.id}/setup/files/${det?.bankConfirmation}`} target="_blank" rel="noreferrer">
               {t('countersign.openConfirmation')}
@@ -381,7 +360,7 @@ function ContractStep({ d, onBack, onDone }: { d: BrokerSetup; onBack: () => voi
     <Card>
       <div className={s.form}>
         <div>
-          <h2 style={{ margin: 0, font: '400 20px/26px var(--font-sans)' }}>
+          <h2 className={s.h2}>
             {t('setup.contract.title')}
           </h2>
           <p className={s.muted} style={{ margin: 'var(--space-1) 0 0' }}>
@@ -445,7 +424,7 @@ function ContractStep({ d, onBack, onDone }: { d: BrokerSetup; onBack: () => voi
             <span className={s.help}>{t('setup.contract.paperHint')}</span>
             <div className="an-field">
               <label>{t('setup.contract.upload')}</label>
-              <FileDrop label={t('setup.contract.dropSigned')} fileName={scan?.name ?? null} onFile={setScan} error={signPaper.fields.file ?? null} />
+              <FileDrop file={scan} failed={!!signPaper.fields.file} onFile={setScan} onRemove={() => setScan(null)} />
             </div>
           </>
         )}

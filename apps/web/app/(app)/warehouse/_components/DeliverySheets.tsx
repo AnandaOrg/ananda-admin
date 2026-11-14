@@ -1,29 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { FLAVOURS, type CartonsByFlavour, type Flavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, Camera, FLAVOUR_VAR, Sheet, Stepper } from '@/components/ui';
-import { PhotoCapture, type PhotoCaptureHandle } from './PhotoCapture';
+import { ActionError, Button, FLAVOUR_VAR, Sheet, Stepper } from '@/components/ui';
+import { PhotoCapture } from './PhotoCapture';
 import { noteUrl, type DeliveredRow, type ShipCard } from './types';
+import css from '../warehouse.module.css';
 
-/** Footer for the photo step: Take photo, then Retake or Use photo. */
-function PhotoFooter({ file, cam, busy, onUse }: { file: File | null; cam: React.RefObject<PhotoCaptureHandle | null>; busy: boolean; onUse: () => void }) {
+/** Footer for the photo step: one main action, ready once a photo is chosen. */
+function PhotoFooter({ file, busy, onUse }: { file: File | null; busy: boolean; onUse: () => void }) {
   const t = useTranslations('warehouse');
-  return file ? (
-    <>
-      <Button onClick={() => cam.current?.open()} disabled={busy} style={{ flex: '1 1 0' }}>
-        {t('photo.retake')}
-      </Button>
-      <Button variant="primary" onClick={onUse} busy={busy} style={{ flex: '1 1 0' }}>
-        {t('photo.use')}
-      </Button>
-    </>
-  ) : (
-    <Button variant="primary" block icon={Camera} onClick={() => cam.current?.open()}>
-      {t('photo.take')}
+  return (
+    <Button variant="primary" block disabled={!file} busy={busy} onClick={onUse}>
+      {t('photo.use')}
     </Button>
   );
 }
@@ -32,7 +24,6 @@ function PhotoFooter({ file, cam, busy, onUse }: { file: File | null; cam: React
 export function SignedNoteSheet({ order, onClose }: { order: ShipCard | null; onClose: () => void }) {
   const t = useTranslations('warehouse');
   const [file, setFile] = useState<File | null>(null);
-  const cam = useRef<PhotoCaptureHandle>(null);
   useEffect(() => setFile(null), [order?.id]);
   const act = useAction((fd: FormData) => api.post(`/warehouse/orders/${order!.id}/signed-note`, fd), {
     success: () => t('note.done', { number: order?.number ?? '' }),
@@ -46,9 +37,9 @@ export function SignedNoteSheet({ order, onClose }: { order: ShipCard | null; on
     act.mutate(fd);
   };
   return (
-    <Sheet open onClose={onClose} dirty={!!file} title={t('photo.title')} sub={t('photo.sub', { customer: order.customerName, n: order.totalCartons })} footer={<PhotoFooter file={file} cam={cam} busy={act.isPending} onUse={submit} />}>
-      <PhotoCapture ref={cam} file={file} onFile={setFile} error={act.fields.file} />
-      {act.errorText && !act.fields.file && <Banner tone="bad">{act.errorText}</Banner>}
+    <Sheet open onClose={onClose} dirty={!!file} title={t('photo.title')} sub={t('photo.sub', { customer: order.customerName, n: order.totalCartons })} footer={<PhotoFooter file={file} busy={act.isPending} onUse={submit} />}>
+      <PhotoCapture file={file} onFile={setFile} onRemove={() => setFile(null)} error={act.fields.file} />
+      {!act.fields.file && <ActionError action={act} />}
     </Sheet>
   );
 }
@@ -75,7 +66,6 @@ export function PartDeliverySheet({ order, onClose }: { order: ShipCard | null; 
   const [step, setStep] = useState<'qty' | 'photo'>('qty');
   const [now, setNow] = useState<CartonsByFlavour>({});
   const [file, setFile] = useState<File | null>(null);
-  const cam = useRef<PhotoCaptureHandle>(null);
 
   const left: CartonsByFlavour = Object.fromEntries((order?.lines ?? []).map((l) => [l.flavour, l.cartons]));
   useEffect(() => {
@@ -133,10 +123,10 @@ export function PartDeliverySheet({ order, onClose }: { order: ShipCard | null; 
       dirty={!!file}
       title={t('photo.title')}
       sub={total < leftTotal ? t('photo.subPart', { customer: order.customerName, n: total }) : t('photo.sub', { customer: order.customerName, n: total })}
-      footer={<PhotoFooter file={file} cam={cam} busy={act.isPending} onUse={submit} />}
+      footer={<PhotoFooter file={file} busy={act.isPending} onUse={submit} />}
     >
-      <PhotoCapture ref={cam} file={file} onFile={setFile} error={act.fields.file} />
-      {act.errorText && !qtyError && !act.fields.file && <Banner tone="bad">{act.errorText}</Banner>}
+      <PhotoCapture file={file} onFile={setFile} onRemove={() => setFile(null)} error={act.fields.file} />
+      {!qtyError && !act.fields.file && <ActionError action={act} />}
     </Sheet>
   );
 }
@@ -158,7 +148,7 @@ export function NoteViewSheet({ row, onClose }: { row: DeliveredRow | null; onCl
         </>
       }
       footer={
-        <a className="an-btn secondary" href={url} target="_blank" rel="noreferrer" style={{ flex: '1 1 0' }}>
+        <a className={`an-btn secondary ${css.share}`} href={url} target="_blank" rel="noreferrer">
           {t('note.open')}
         </a>
       }
@@ -167,7 +157,7 @@ export function NoteViewSheet({ row, onClose }: { row: DeliveredRow | null; onCl
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt={t('photo.previewAlt')} className="photo-preview" />
       ) : (
-        <iframe src={url} title={t('note.view')} style={{ width: '100%', height: '60dvh', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', background: 'var(--paper-bg)' }} />
+        <iframe src={url} title={t('note.view')} className={css.preview} />
       )}
     </Sheet>
   );

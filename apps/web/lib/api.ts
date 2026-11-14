@@ -1,4 +1,5 @@
 // Thin client for the NestJS API, served under /api on the same origin.
+import { localizeApiMessage, localizeFieldMessage } from './api-messages';
 
 export class ApiError extends Error {
   constructor(
@@ -6,6 +7,8 @@ export class ApiError extends Error {
     message: string,
     public code?: string,
     public fields?: Record<string, string>,
+    /** Extra facts the server sent with the error (e.g. who already decided a request). */
+    public data?: Record<string, unknown>,
   ) {
     super(message);
   }
@@ -71,16 +74,17 @@ async function request<T>(method: string, path: string, body?: unknown, opts: Re
   } catch (e) {
     if ((e as Error)?.name === 'AbortError') throw e;
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ananda:network', { detail: false }));
-    throw new ApiError(0, NETWORK_MESSAGE, 'offline');
+    throw new ApiError(0, localizeApiMessage(NETWORK_MESSAGE), 'offline');
   }
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ananda:network', { detail: true }));
   const text = await res.text();
   const data = text ? safeJson(text) : null;
   if (!res.ok) {
-    const d = (data ?? {}) as { message?: string | string[]; code?: string; fields?: Record<string, string> };
+    const d = (data ?? {}) as { message?: string | string[]; code?: string; fields?: Record<string, string>; by?: string | null; outcome?: string | null };
     const msg = Array.isArray(d.message) ? d.message[0] : d.message;
     const fallback = res.status >= 500 ? SERVER_MESSAGE : 'Something went wrong. Try again.';
-    const err = new ApiError(res.status, res.status >= 500 ? SERVER_MESSAGE : msg || fallback, d.code, d.fields);
+    const fields = d.fields && Object.fromEntries(Object.entries(d.fields).map(([k, v]) => [k, localizeFieldMessage(String(v))]));
+    const err = new ApiError(res.status, localizeApiMessage(res.status >= 500 ? SERVER_MESSAGE : msg || fallback), d.code, fields, { by: d.by, outcome: d.outcome });
     if (res.status === 401 && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ananda:unauthorized', { detail: d.code }));
     throw err;
   }
@@ -114,5 +118,5 @@ export function qs(params: Record<string, string | number | boolean | null | und
 }
 
 export function errorText(e: unknown): string {
-  return e instanceof Error ? e.message : 'Something went wrong. Try again.';
+  return e instanceof Error ? e.message : localizeApiMessage('Something went wrong. Try again.');
 }

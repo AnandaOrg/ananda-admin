@@ -8,7 +8,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api, qs } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { Card, CalendarDots, Chips, EmptyState, KpiTile, LoadError, PageHeader, PageState, Plus, Table, type Column } from '@/components/ui';
+import { Card, CalendarDots, Chips, EmptyState, KpiTile, LoadError, PageHeader, PageState, Plus, TABLE_PICKERS, Table, type Column } from '@/components/ui';
 import { MonthRangeCalendar, monthName, monthPreset, monthRangeLabel, monthShort, rangeQuery, useDayRange, type MonthPreset } from '../_components/range-calendar';
 import { BankBalanceSheet, type CashOnHand } from '../_components/bank-balance-sheet';
 import css from '../money.module.css';
@@ -152,7 +152,7 @@ export default function PnlPage() {
               rowKey={(m) => m.month}
               rowClass={(m) => (!m.hasData ? css.dim : '')}
               empty={<span className="muted">{t('pnl.noMonths', { range: label })}</span>}
-              picker={{ id: 'monthly-pnl', locked: ['month', 'operating'], priority: ['net', 'dealProfit', 'expenses', 'cost', 'commission'] }}
+              picker={TABLE_PICKERS.monthlyPnl}
             />
           )}
           <div className={css.foot}>{t('pnl.rule')}</div>

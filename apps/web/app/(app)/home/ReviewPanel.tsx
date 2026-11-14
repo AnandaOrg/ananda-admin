@@ -47,7 +47,7 @@ interface Review {
 export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () => void }) {
   const t = useTranslations('home');
   const tc = useTranslations('common');
-  const { money, unit, num, dateShort } = useFmt();
+  const { money, date, unit, num } = useFmt();
   const country = useCountryName();
   const [declining, setDeclining] = useState(false);
   const [why, setWhy] = useState('');
@@ -69,7 +69,7 @@ export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () =>
   let note: ReactNode = null;
   if (r?.type === 'new_customer' && r.customer) {
     const c = r.customer;
-    sub = r.createdAt.slice(0, 10) === today ? t('review.requestedToday', { date: dateShort(r.createdAt) }) : t('review.requestedOn', { date: dateShort(r.createdAt) });
+    sub = r.createdAt.slice(0, 10) === today ? t('review.requestedToday', { date: date(r.createdAt) }) : t('review.requestedOn', { date: date(r.createdAt) });
     const vat = !c.vatNumber ? t('review.noVat') : c.vatValid === true ? t('review.vatValid', { vat: c.vatNumber }) : c.vatValid === false ? t('review.vatInvalid', { vat: c.vatNumber }) : t('review.vatUnchecked', { vat: c.vatNumber });
     rows.push([t('review.company'), c.companyName]);
     rows.push([t('review.vat'), <bdi key="v">{vat}</bdi>, !c.vatNumber ? undefined : c.vatValid === true ? 'good' : c.vatValid === false ? 'bad' : 'warn']);

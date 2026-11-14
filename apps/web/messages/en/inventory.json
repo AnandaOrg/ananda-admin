@@ -30,7 +30,7 @@
   "noCountPhone": "No stock count yet this month. The warehouse counts from their phone without seeing these numbers.",
   "status": {
     "months": "{n, plural, one {# month left} other {# months left}}",
-    "reorder_soon": "Reorder soon",
+    "reorder_soon": "Reorder",
     "reorder_now": "Reorder now",
     "noSales": "No recent sales"
   },
@@ -46,7 +46,7 @@
     "noSales": "No sales in 60 days",
     "soldPerDay": "Sold per day (60 days)",
     "counted": "Counted {date}",
-    "countedUnits": "{n} units",
+    "countedUnits": "{n, plural, one {{n} unit} other {{n} units}}",
     "nowHint": "Runs out before a new purchase could arrive.",
     "orderMore": "Order more {flavour}"
   },
@@ -59,7 +59,7 @@
     "lockedWhy": "Opens when {number} is received or stock is freed",
     "lockedWhyNone": "Opens when a purchase is received or stock is freed",
     "intro": "Suggested order: paid orders first, then the oldest. Each order gets all its cartons, so nothing ships half-filled.",
-    "cartons": "{n} cartons",
+    "cartons": "{n, plural, one {{n} carton} other {{n} cartons}}",
     "since": "since {date}",
     "paid": "Paid",
     "notPaid": "Not paid yet",
@@ -70,7 +70,7 @@
     "short": "Not enough {flavours} for every ticked order. Untick one to continue.",
     "consequence": "After allocating, paid orders become Ready to send to the warehouse. Unpaid ones hold their stock for {days} days. The broker is told either way.",
     "cta": "{n, plural, =0 {Allocate} one {Allocate to # order} other {Allocate to # orders}}",
-    "done": "{n, plural, =0 {Nothing allocated} one {# order allocated. Its broker is told.} other {# orders allocated. Their brokers are told.}}",
+    "done": "{n, plural, =0 {Nothing allocated} one {# order allocated} other {# orders allocated}}",
     "emptyTitle": "Nothing is waiting",
     "emptyText": "Every paid order has its stock."
   },
@@ -79,7 +79,7 @@
     "sub": "For breakage, samples or count differences.",
     "flavour": "Flavour",
     "change": "Change in cartons",
-    "units": "{n} units",
+    "units": "{n, plural, one {{n} unit} other {{n} units}}",
     "reason": "Reason",
     "chooseReason": "Choose a reason",
     "reasons": {
@@ -96,7 +96,7 @@
       "expired": "Past its best-before date"
     },
     "cta": "Save adjustment",
-    "done": "{flavour} adjusted by {n} cartons"
+    "done": "Stock adjusted"
   },
   "movements": {
     "title": "Stock movements",
@@ -150,8 +150,8 @@
     "acceptCta": "Mark as checked",
     "correctConsequence": "Creates one stock adjustment per flavour for the difference, reason Count difference, and marks the count as checked.",
     "acceptConsequence": "Marks the count as checked.",
-    "doneAdjusted": "{n, plural, one {Stock corrected for # flavour} other {Stock corrected for # flavours}}",
-    "doneMatched": "Count marked as checked",
+    "doneAdjusted": "Stock corrected",
+    "doneMatched": "Count checked",
     "emptyTitle": "No stock counts yet",
     "emptyText": "Counts sent from the warehouse show here for checking.",
     "pageTitle": "Stock counts",

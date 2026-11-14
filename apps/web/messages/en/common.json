@@ -67,7 +67,7 @@
   "date": "Date",
   "flavour": "Flavour",
   "cartonsOf": "Cartons of {flavour}",
-  "unitsCount": "{n} units",
+  "unitsCount": "{n, plural, one {{n} unit} other {{n} units}}",
   "upTo": "up to {n}",
   "cartonsUnits": "{c} cartons · {u} units",
   "daysLate": "{n, plural, one {# day late} other {# days late}}",
@@ -219,6 +219,7 @@
     "calendar": "Calendar"
   },
   "errors": {
+    "tryAgainSentence": "Try again.",
     "network": "Check your connection and try again.",
     "server": "Something went wrong on our side. Try again in a minute.",
     "actionFailed": "That didn't go through",
@@ -244,7 +245,17 @@
     "signedOutTitle": "You've been signed out",
     "signedOutText": "For your security, this happens after a while. Your edits are saved.",
     "signIn": "Sign in",
-    "signedInAgain": "Signed in again"
+    "signedInAgain": "Signed in again",
+    "actionInline": "That didn't go through. Try again.",
+    "conflictInline": "Someone changed this",
+    "notFoundOrder": "We can't find this order",
+    "backSales": "Back to Sales & orders",
+    "backOrders": "Back to Orders",
+    "backCustomers": "Back to Customers",
+    "uploadTooBig": "{size} MB. The limit is {limit} MB.",
+    "uploadWrongType": "Only PDF, JPG, PNG or HEIC.",
+    "uploadStopped": "The connection dropped.",
+    "chooseAnother": "Choose another file"
   },
   "unsaved": {
     "title": "Discard your changes?",
@@ -291,7 +302,6 @@
     "off": "Off",
     "account": "Account"
   },
-  "moreSub": "Grouped like the desktop sidebar.",
   "searchNone": "Nothing matches “{q}”",
   "notify": {
     "customer_approval": {
@@ -319,7 +329,7 @@
       "body": "The warehouse uploaded the signed note."
     },
     "purchase_late": {
-      "title": "{purchase} is {days} days late",
+      "title": "{purchase} is {days, plural, one {{days} day} other {{days} days}} late",
       "body": "{supplier}"
     },
     "payment_confirmed": {
@@ -327,7 +337,7 @@
       "body": "{customer} · {amount}"
     },
     "payment_late": {
-      "title": "{customer} is {days} days late",
+      "title": "{customer} is {days, plural, one {{days} day} other {{days} days}} late",
       "body": "{amount} owed on {order}"
     },
     "upload_opened": {
@@ -361,5 +371,14 @@
     "broker": "Broker",
     "warehouse": "Warehouse",
     "finance": "Finance"
+  },
+  "upload": {
+    "drop": "Drop a PDF or photo here, or <b>choose a file</b>",
+    "hint": "PDF, JPG, PNG or HEIC, up to {max}",
+    "takePhoto": "Take a photo",
+    "chooseFile": "Choose a file",
+    "remove": "Remove",
+    "uploading": "Uploading…",
+    "ready": "{size} · ready"
   }
 }

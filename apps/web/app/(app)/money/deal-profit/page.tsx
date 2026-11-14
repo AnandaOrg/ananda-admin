@@ -8,7 +8,7 @@ import { FLAVOURS, type Flavour } from '@ananda/shared';
 import { api, qs } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { Button, Card, ChartLineUp, Chips, ColumnsSlot, EmptyState, FlavourName, Info, KpiTile, LoadError, NoAccess, PageHeader, PageState, Table, X, type Column } from '@/components/ui';
+import { Button, Card, ChartLineUp, Chips, ColumnsSlot, EmptyState, FlavourName, Info, KpiTile, LoadError, NoAccess, PageHeader, PageState, TABLE_PICKERS, Table, X, type Column } from '@/components/ui';
 import { DayRangeCalendar, dayPreset, dayRangeLabel, rangeQuery, useDayRange, type DayPreset } from '../_components/range-calendar';
 import css from '../money.module.css';
 
@@ -127,7 +127,7 @@ function DealProfit() {
   const totalProfit = sum(deals).profitCents;
   const flavourRows: (FlavourGroup & { total?: boolean })[] = d && deals.length ? [...FLAVOURS.map((f) => d.byFlavour.find((g) => g.key === f) ?? { key: f, units: 0, netCents: 0, purchaseCostCents: 0, commissionCents: 0, profitCents: 0 }), { key: 'total', units: totalUnits, ...sum(deals), total: true }] : [];
 
-  const strong = (g: { total?: boolean }, v: React.ReactNode) => (g.total ? <b>{v}</b> : v);
+  const strong = (g: { total?: boolean }, v: React.ReactNode) => (g.total ? <b><bdi>{v}</bdi></b> : <bdi>{v}</bdi>);
   const dealCols: Column<Deal>[] = [
     {
       key: 'deal',
@@ -148,8 +148,8 @@ function DealProfit() {
       ),
     },
     { key: 'broker', header: t('cols.broker'), render: (r) => r.brokerName },
-    { key: 'paidOn', header: t('cols.paidOn'), render: (r) => <span className="nowrap">{date(r.paidAt)}</span> },
-    { key: 'units', header: t('cols.units'), type: 'amount', render: (r) => num(r.units) },
+    { key: 'paidOn', header: t('cols.paidOn'), type: 'date', render: (r) => <bdi>{date(r.paidAt)}</bdi> },
+    { key: 'units', header: t('cols.units'), type: 'count', render: (r) => <bdi>{num(r.units)}</bdi> },
     { key: 'net', header: t('cols.netSales'), type: 'amount', render: (r) => amount(r.netCents) },
     { key: 'cost', header: t('cols.purchaseCost'), type: 'amount', render: (r) => amount(r.purchaseCostCents) },
     { key: 'commission', header: t('cols.commission'), type: 'amount', render: (r) => amount(r.commissionCents) },
@@ -159,7 +159,7 @@ function DealProfit() {
     { key: 'customer', header: t('cols.customer'), render: (g) => (g.total ? <b>{g.name}</b> : <span className="nm nowrap">{g.name}</span>) },
     { key: 'broker', header: t('cols.broker'), render: (g) => g.other.join(', ') },
     { key: 'deals', header: t('cols.deals'), type: 'count', render: (g) => strong(g, num(g.deals)) },
-    { key: 'units', header: t('cols.units'), type: 'amount', render: (g) => strong(g, num(g.units)) },
+    { key: 'units', header: t('cols.units'), type: 'count', render: (g) => strong(g, num(g.units)) },
     { key: 'net', header: t('cols.netSales'), type: 'amount', render: (g) => strong(g, amount(g.netCents)) },
     { key: 'profit', header: t('cols.profit'), type: 'amount', render: (g) => strong(g, profit(g.profitCents)) },
     { key: 'margin', header: t('cols.margin'), type: 'amount', render: (g) => strong(g, pct(g.profitCents, g.netCents)) },
@@ -168,7 +168,7 @@ function DealProfit() {
     { key: 'broker', header: t('cols.broker'), render: (g) => (g.total ? <b>{g.name}</b> : <span className="nm nowrap">{g.name}</span>) },
     { key: 'customers', header: t('cols.customers'), type: 'count', render: (g) => strong(g, g.total ? g.other[0] : num(g.other.length)) },
     { key: 'deals', header: t('cols.deals'), type: 'count', render: (g) => strong(g, num(g.deals)) },
-    { key: 'units', header: t('cols.units'), type: 'amount', render: (g) => strong(g, num(g.units)) },
+    { key: 'units', header: t('cols.units'), type: 'count', render: (g) => strong(g, num(g.units)) },
     { key: 'net', header: t('cols.netSales'), type: 'amount', render: (g) => strong(g, amount(g.netCents)) },
     { key: 'commission', header: t('cols.commission'), type: 'amount', render: (g) => strong(g, amount(g.commissionCents)) },
     { key: 'profit', header: t('cols.profit'), type: 'amount', render: (g) => strong(g, profit(g.profitCents)) },
@@ -176,7 +176,7 @@ function DealProfit() {
   ];
   const flavourCols: Column<FlavourGroup & { total?: boolean }>[] = [
     { key: 'flavour', header: t('cols.flavour'), render: (g) => (g.total ? <b>{t('deal.total')}</b> : <FlavourName flavour={g.key as Flavour} />) },
-    { key: 'units', header: t('cols.units'), type: 'amount', render: (g) => strong(g, num(g.units)) },
+    { key: 'units', header: t('cols.units'), type: 'count', render: (g) => strong(g, num(g.units)) },
     { key: 'net', header: t('cols.netSales'), type: 'amount', render: (g) => strong(g, amount(g.netCents)) },
     { key: 'cost', header: t('cols.purchaseCost'), type: 'amount', render: (g) => strong(g, amount(g.purchaseCostCents)) },
     { key: 'commission', header: t('cols.commission'), type: 'amount', render: (g) => strong(g, amount(g.commissionCents)) },
@@ -309,14 +309,14 @@ function DealProfit() {
                   </button>
                 </div>
               )}
-              <Table columns={dealCols} rows={shown} rowKey={(r) => r.id} onRow={(r) => router.push(`/sales/${r.orderId}`)} empty={noneRow} loading={q.isFetching && !q.data} picker={{ id: 'deal-profit-deals', locked: ['deal', 'profit'], priority: ['broker', 'paidOn', 'net', 'units', 'cost', 'commission'] }} />
+              <Table columns={dealCols} rows={shown} rowKey={(r) => r.id} onRow={(r) => router.push(`/sales/${r.orderId}`)} empty={noneRow} loading={q.isFetching && !q.data} picker={TABLE_PICKERS.dealProfitDeals} />
             </>
           ) : tab === 'customers' ? (
             <Table columns={customerCols} rows={customers} rowKey={(g) => g.key} onRow={pickGroup('customer')} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={{ id: 'deal-profit-customers', locked: ['customer', 'profit'], priority: ['net', 'margin', 'deals', 'units', 'broker'] }} />
           ) : tab === 'brokers' ? (
-            <Table columns={brokerCols} rows={brokers} rowKey={(g) => g.key} onRow={pickGroup('broker')} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={{ id: 'deal-profit-brokers', locked: ['broker', 'profit'], priority: ['net', 'margin', 'deals', 'commission', 'customers', 'units'] }} />
+            <Table columns={brokerCols} rows={brokers} rowKey={(g) => g.key} onRow={pickGroup('broker')} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={TABLE_PICKERS.dealProfitBrokers} />
           ) : (
-            <Table columns={flavourCols} rows={flavourRows} rowKey={(g) => g.key} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={{ id: 'deal-profit-flavours', locked: ['flavour', 'profit'], priority: ['net', 'share', 'units', 'margin', 'cost', 'commission'] }} />
+            <Table columns={flavourCols} rows={flavourRows} rowKey={(g) => g.key} rowClass={(g) => (g.total ? css.sumRow : '')} empty={noneRow} picker={TABLE_PICKERS.dealProfitFlavours} />
           )}
           {footer}
         </Card>

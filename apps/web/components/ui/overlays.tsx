@@ -232,7 +232,28 @@ const TOAST_ICON: Record<ToastKind, PhosphorIcon | null> = { ok: Check, err: War
 export function ToastProvider({ children }: { children: ReactNode }) {
   const t = useTranslations('common');
   const [item, setItem] = useState<ToastItem | null>(null);
+  const [leaving, setLeaving] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const due = useRef({ at: 0, left: 0, key: 0 });
+  /** Saved fades after 5 s and pauses while hovered or focused. */
+  const arm = useCallback((key: number, ms: number) => {
+    clearTimeout(timer.current);
+    due.current = { at: Date.now(), left: ms, key };
+    timer.current = setTimeout(() => {
+      setLeaving(true);
+      timer.current = setTimeout(() => {
+        setItem((x) => (x?.key === key ? null : x));
+        setLeaving(false);
+      }, 120);
+    }, ms);
+  }, []);
+  const pause = () => {
+    if (!item || item.kind !== 'ok') return;
+    clearTimeout(timer.current);
+    due.current.left = Math.max(1000, due.current.left - (Date.now() - due.current.at));
+    setLeaving(false);
+  };
+  const resume = () => item && item.kind === 'ok' && arm(item.key, due.current.left);
   const dismiss = useCallback((id?: string) => {
     setItem((x) => (!id || x?.id === id ? null : x));
   }, []);
@@ -241,10 +262,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const id = opts.id ?? String(Date.now());
     const key = Date.now() + Math.random();
     clearTimeout(timer.current);
+    setLeaving(false);
     setItem({ ...opts, kind, id, key, text: cut(text, kind) });
-    if (kind === 'ok') timer.current = setTimeout(() => setItem((x) => (x?.key === key ? null : x)), 5000);
+    if (kind === 'ok') arm(key, 5000);
     return id;
-  }, []);
+  }, [arm]);
   const fn = useMemo<ToastFn>(() => Object.assign((text: string, undo?: () => void) => void show(text, { kind: 'ok', action: undo ? { label: t('undo'), onClick: undo } : undefined }), { show, dismiss }), [show, dismiss, t]);
   const ic = item ? TOAST_ICON[item.kind] : null;
   return (
@@ -252,7 +274,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="toasts" aria-live="polite">
         {item && (
-          <div key={item.key} className={`an-toast x-${item.kind}`} role={item.kind === 'err' ? 'alert' : 'status'}>
+          <div key={item.key} className={`an-toast x-${item.kind} ${leaving ? 'leaving' : ''}`} role={item.kind === 'err' ? 'alert' : 'status'} onMouseEnter={pause} onMouseLeave={resume} onFocus={pause} onBlur={resume}>
             <span className={`tic ${item.kind}`}>{ic ? <Icon as={ic} size="sm" /> : <span className="an-spin" aria-hidden />}</span>
             <span className="msg">{item.text}</span>
             {item.action &&

@@ -16,7 +16,7 @@ export const FLAVOUR_VAR: Record<Flavour, string> = {
 /** Flavour name next to its colour; the colour never stands alone. */
 export function FlavourName({ flavour }: { flavour: Flavour }) {
   return (
-    <span className="row" style={{ gap: 6 }}>
+    <span className="row flav-id">
       <i className="flav-dot" style={{ background: FLAVOUR_VAR[flavour] }} aria-hidden />
       <span className="flav-name">{flavour.toUpperCase()}</span>
     </span>
@@ -24,8 +24,9 @@ export function FlavourName({ flavour }: { flavour: Flavour }) {
 }
 
 /** Stock bars (Home, Inventory): the bars fill in the flavour colour up to the level. */
-export function StockBars({ flavour, value, max, detail, badge }: { flavour: Flavour; value: number; max: number; detail?: React.ReactNode; badge?: React.ReactNode }) {
+export function StockBars({ flavour, value, max, detail, badge, low }: { flavour: Flavour; value: number; max: number; detail?: React.ReactNode; badge?: React.ReactNode; /** Low stock: warn border and a "Reorder" pill (unless you pass your own `badge`). */ low?: boolean }) {
   const { num } = useFmt();
+  const t = useTranslations('common');
   // Bars keep 3 px width and gap; narrow columns show fewer bars so the level stays the same.
   const barsRef = useRef<HTMLDivElement>(null);
   const [bars, setBars] = useState(40);
@@ -38,11 +39,11 @@ export function StockBars({ flavour, value, max, detail, badge }: { flavour: Fla
   }, []);
   const filled = max > 0 ? Math.round((Math.max(0, value) / max) * bars) : 0;
   return (
-    <div className="an-stock">
+    <div className={`an-stock ${low ? 'low' : ''}`}>
       <div className="k">
         <i style={{ background: FLAVOUR_VAR[flavour] }} />
         {flavour.toUpperCase()}
-        {badge}
+        {badge ?? (low ? <Pill tone="warn">{t('reorder')}</Pill> : null)}
       </div>
       <div className="n">
         <bdi>{num(value)}</bdi>
@@ -56,6 +57,9 @@ export function StockBars({ flavour, value, max, detail, badge }: { flavour: Fla
     </div>
   );
 }
+
+/** Design system name for `StockBars`: stock per flavour with the 3px bars (use `low` for the Reorder state). */
+export const FlavourStock = StockBars;
 
 /** Carton entry per flavour, always in the order Aloha, Gaia, Santorini, Kyoto. */
 export function CartonsEditor({ value, onChange, max, only }: { value: CartonsByFlavour; onChange: (v: CartonsByFlavour) => void; max?: CartonsByFlavour; only?: Flavour[] }) {

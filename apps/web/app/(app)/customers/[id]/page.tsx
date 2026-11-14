@@ -85,7 +85,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
   const router = useRouter();
   const phone = useMedia('(max-width: 767px)');
   const { isBroker, isAdmin, canEdit } = useSession();
-  const { money, unit, date, dateShort, num } = useFmt();
+  const { money, unit, date, num } = useFmt();
   const country = useCountryName();
   const [tab, setTab] = useState<Tab>('orders');
   const [moving, setMoving] = useState(false);
@@ -156,7 +156,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
     t('kickerFree')
   ) : d.broker ? (
     <span className={s.head}>
-      {tc('broker')} <Pill tone="blue">{d.broker.name}</Pill> · {cu.ownedUntil ? t('keepsUntil', { date: date(cu.ownedUntil) }) : t('keepsNotSet')}
+      {tc('broker')} <Pill tone="blue">{d.broker.name}</Pill> · {cu.ownedUntil ? t('keepsUntil', { date: date(cu.ownedUntil) }) : t('keepsNotSet')}
     </span>
   ) : (
     t('kickerHouse')
@@ -187,7 +187,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
         empty={<span className="muted">{t('tabs.noOrders')}</span>}
         columns={[
           { key: 'n', header: t('cols.order'), render: (o) => <bdi className="nm">{o.number}</bdi> },
-          { key: 'd', header: tc('created'), render: (o) => dateShort(o.requestSentAt ?? o.createdAt) },
+          { key: 'd', header: tc('created'), render: (o) => date(o.requestSentAt ?? o.createdAt) },
           { key: 't', header: tc('totalInclVat'), type: 'amount', render: (o) => money(o.totalCents) },
           { key: 's', header: tc('status'), type: 'status', render: (o) => <OrderStatusPill status={o.status} daysLate={late(o)} /> },
           { key: 'go', header: '', width: 40, render: () => <Icon as={CaretRight} size="sm" className="subtle flip" /> },
@@ -227,7 +227,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
         rowKey={(r) => r.id}
         empty={<span className="muted">{t('money.none')}</span>}
         columns={[
-          { key: 'd', header: tc('date'), render: (r) => dateShort(r.on) },
+          { key: 'd', header: tc('date'), render: (r) => date(r.on) },
           {
             key: 'w',
             header: t('money.what'),
@@ -322,7 +322,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
         rowKey={(r) => r.id}
         empty={<span className="muted">{t('tabs.noDocuments')}</span>}
         columns={[
-          { key: 'w', header: t('files.when'), render: (r) => <span className="nowrap">{dateShort(r.at)}</span>, width: 140 },
+          { key: 'w', header: t('files.when'), render: (r) => <span className="nowrap">{date(r.at)}</span>, width: 140 },
           { key: 'x', header: t('files.what'), render: (r) => r.what },
           {
             key: 'e',
@@ -390,7 +390,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
         {banners}
         <div className="kpis">
           <KpiTile label={t('tiles.owes')} value={money(tiles.owesCents, true)} valueTone={tiles.lateCents ? 'bad' : undefined} sub={tiles.lateCents ? t('tiles.lateWord') : t('tiles.nothingLate')} subTone={tiles.lateCents ? 'bad' : undefined} />
-          <KpiTile label={t('tiles.lastOrder')} value={tiles.lastOrder ? dateShort(tiles.lastOrder.createdAt) : '—'} sub={t('tiles.vatShort', { vat: vatLabel })} />
+          <KpiTile label={t('tiles.lastOrder')} value={tiles.lastOrder ? date(tiles.lastOrder.createdAt) : '—'} sub={t('tiles.vatShort', { vat: vatLabel })} />
         </div>
         <div className={s.btns}>
           <a className={`an-btn secondary keep ${cu.phone ? '' : 'disabled'}`} href={cu.phone ? `tel:${cu.phone}` : undefined}>
@@ -431,7 +431,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
                 <span className="amt">
                   <bdi>{money(o.totalCents)}</bdi>
                 </span>
-                <span className="sub">{dateShort(o.requestSentAt ?? o.createdAt)}</span>
+                <span className="sub">{date(o.requestSentAt ?? o.createdAt)}</span>
                 <OrderStatusPill status={o.status} daysLate={late(o)} />
               </Link>
             ))}
@@ -450,7 +450,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
                       {tc('docType.proforma')} <bdi>{doc.number}</bdi>
                     </>
                   }
-                  sub={[dateShort(doc.createdAt), doc.totalCents != null ? money(doc.totalCents) : null].filter(Boolean).join(' · ')}
+                  sub={[date(doc.createdAt), doc.totalCents != null ? money(doc.totalCents) : null].filter(Boolean).join(' · ')}
                   actions={
                     <a className="an-iconbtn" href={docHref(doc)} target="_blank" rel="noreferrer" aria-label={`${tc('view')} ${doc.number ?? ''}`}>
                       <Icon as={Eye} />
@@ -516,14 +516,13 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
           chevron
           onClick={() => setTab('money')}
         />
-        <KpiTile label={t('tiles.lastOrder')} value={tiles.lastOrder ? dateShort(tiles.lastOrder.createdAt) : t('neverOrdered')} />
+        <KpiTile label={t('tiles.lastOrder')} value={tiles.lastOrder ? date(tiles.lastOrder.createdAt) : t('neverOrdered')} />
         <KpiTile label={t('tiles.delivered')} value={money(tiles.deliveredSalesCents)} sub={t('tiles.allTime')} />
         <KpiTile label={t('tiles.vat')} value={vatLabel} sub={vatSub} subTone={cu.vatValid === false ? 'bad' : undefined} />
       </div>
       <Chips
         value={tab}
         onChange={setTab}
-        fill={false}
         options={[
           { value: 'orders', label: t('tabs.orders'), count: orders.length },
           { value: 'money', label: t('tabs.payments') },

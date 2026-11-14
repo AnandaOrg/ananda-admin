@@ -83,11 +83,11 @@
     "note": "Note for the accountant (optional)",
     "notePh": "e.g. please pay by Friday",
     "send": "Send to the accountant",
-    "sent": "Sent to the accountant. {name} is told.",
+    "sent": "Sent to accountant",
     "noEmail": "Add the accountant's e-mail in Settings before sending.",
     "paidTitle": "Mark {name}'s commission as paid",
     "paidText": "Mark as paid once the money has left the bank. {name} sees it straight away.",
-    "paid": "{name} marked as paid · {amount}",
+    "paid": "Marked as paid",
     "entries": "{n, plural, one {# order} other {# orders}}",
     "offset": "Credit note offset",
     "eventSale": "Event sale"
@@ -114,7 +114,7 @@
     "nudgeBody": "Hi {name}, no orders yet this month. Anything I can help with? {sender}",
     "emailSubject": "Hello from ANANDA",
     "emailBody": "Hi {name},\n\n\n\n{sender}",
-    "sent": "E-mail sent to {name}",
+    "sent": "E-mail sent",
     "aiOff": "AI polishing is not set up"
   },
   "inviteSheet": {
@@ -129,7 +129,7 @@
     "body": "Hi [Name],\n\nYou're invited to join ANANDA as a broker. You'll see your own customers and orders, create new sales, and track your commission ({perUnit} a unit, paid once the customer has paid in full).\n\nClick the link below to set your password. It works for {days} days. Then add your company and bank details and sign the broker agreement in the app.\n\n{sender}",
     "hint": "They set their own password from the link.",
     "send": "Send invitation",
-    "sent": "Invitation sent. It waits under Invitations."
+    "sent": "Invitation sent"
   },
   "countersign": {
     "title": "Countersign {name}'s agreement",
@@ -146,7 +146,7 @@
     "nameHelp": "Your e-signature: type {name}",
     "agree": "I've read the agreement and I can sign for {company}.",
     "confirm": "Countersign",
-    "done": "Countersigned. {name}'s set-up is finished.",
+    "done": "Set-up finished",
     "doneOn": "Countersigned by {name} · {date}",
     "vatYes": "Registered for VAT",
     "vatNo": "Not registered for VAT",
@@ -170,7 +170,7 @@
     },
     "stepOf": "Step {n} of 3",
     "later": "Save and finish later",
-    "saved": "Saved. Pick up where you left off any time.",
+    "saved": "Saved",
     "optional": "(optional)",
     "company": {
       "title": "Company details",
@@ -246,7 +246,7 @@
       "confirmationHelp": "A bank letter or a statement header with the company name and IBAN. It speeds up the first payout.",
       "drop": "Drop a PDF or photo, or",
       "choose": "choose a file",
-      "fileTypes": "PDF, JPG or PNG · up to 15 MB",
+      "fileTypes": "PDF, JPG or PNG · up to 10 MB",
       "uploading": "Uploading…",
       "uploaded": "Uploaded · {name}",
       "replace": "Choose another file",

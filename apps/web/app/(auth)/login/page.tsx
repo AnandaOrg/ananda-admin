@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import { nextPath, type Me } from '@/lib/session';
-import { Banner, Button, Card, TextField } from '@/components/ui';
+import { ActionError, Button, Card, TextField } from '@/components/ui';
 import { setLocaleCookie } from '@/components/shell/AppShell';
 
 export default function LoginPage() {
@@ -49,9 +49,9 @@ export default function LoginPage() {
   return (
     <Card title={t('signIn')}>
       <form className="stack" onSubmit={submit}>
-        {error && <Banner tone="bad">{error}</Banner>}
         <TextField label={t('email')} type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <TextField label={t('password')} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <ActionError error={error} message={error} />
         <Button variant="primary" type="submit" busy={busy} block size="lg">
           {t('signIn')}
         </Button>

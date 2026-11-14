@@ -2,7 +2,7 @@
   "kicker": "{n, plural, one {# customer} other {# customers}} · every broker",
   "kickerMine": "{n, plural, one {# customer} other {# customers}} · yours and free to claim",
   "noneYet": "No customers yet",
-  "searchPlaceholder": "Search name or VAT number",
+  "searchPlaceholder": "Name or VAT number",
   "couldntLoad": "Couldn't load the customers",
   "filters": { "all": "All", "needs_approval": "Needs approval", "late": "Late", "free": "Free to claim", "archived": "Archived" },
   "cols": { "customer": "Customer", "ownsUntil": "Owns it until", "lastOrder": "Last order", "owes": "Owes", "order": "Order" },
@@ -33,7 +33,7 @@
     }
   },
   "claim": "Claim",
-  "claimed": "Customer claimed. It's yours for 6 months.",
+  "claimed": "Customer claimed",
   "freeText": "Ownership of this customer has ended. Any broker may claim it and keep it for {n} months from each order.",
   "noBroker": "No broker",
   "kickerFree": "No broker · free to claim",
@@ -44,7 +44,7 @@
   "changeBroker": "Change broker",
   "newBroker": "New broker",
   "chooseBroker": "Choose a broker",
-  "brokerChanged": "Broker changed. Both brokers were told.",
+  "brokerChanged": "Broker changed",
   "change": {
     "now": "{name} · now {broker}",
     "noneYet": "{name} · no broker yet",
@@ -115,7 +115,7 @@
     "payment": "Payment",
     "distributor": "Distributor · {range} by volume",
     "minimum": "Minimum order",
-    "minimumValue": "{n} cartons",
+    "minimumValue": "{n, plural, one {{n} carton} other {{n} cartons}}",
     "bulgarian": "Bulgarian",
     "english": "English",
     "before_shipping": "100% before shipping",
@@ -222,10 +222,10 @@
     "manyMissing": "{n} details are missing.",
     "brokerFoot": "An Admin checks it and approves it; you get a notification to start the sale.",
     "brokerFootFound": "An Admin approves it; you get a notification to start the sale.",
-    "notAdded": "Customer not added.",
+    "notAdded": "Customer not added. Try again.",
     "submit": "Add customer",
     "sendForApproval": "Send for approval",
-    "added": "{name} added",
-    "sent": "Sent for approval. You'll get a notification when it's approved."
+    "added": "Customer added",
+    "sent": "Sent for approval"
   }
 }

@@ -8,10 +8,11 @@ import { isoDate, type Flavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { Button, Card, EmptyState, ErrorState, FLAVOUR_VAR, IconButton, KpiTile, List, Package, PageHeader, PageSkeleton, Pill, ShoppingCart, SlidersHorizontal } from '@/components/ui';
+import { Button, Card, EmptyState, ErrorState, FlavourStock as StockCard, KpiTile, List, Package, PageHeader, PageSkeleton, Pill, ShoppingCart, SlidersHorizontal } from '@/components/ui';
 import { AllocateButton, AllocateSheet } from './_components/AllocateSheet';
 import { AdjustSheet } from './_components/AdjustSheet';
 import type { FlavourStock, InventoryOverview } from './_components/types';
+import css from './inventory.module.css';
 
 /** Inventory (PRD §5.6): four totals, one card per flavour that says how long it lasts, Allocate and Stock adjustment. */
 export default function InventoryPage() {
@@ -54,7 +55,7 @@ export default function InventoryPage() {
       {' · '}
       {now > 0 && <span className="bad">{t('kicker.now', { n: now })}</span>}
       {now > 0 && soon > 0 && ' · '}
-      {soon > 0 && <span className="warn">{t('kicker.soon', { n: soon })}</span>}
+      {soon > 0 && <span className="warn-dot">{t('kicker.soon', { n: soon })}</span>}
       {now + soon === 0 && t('kicker.none')}
       {' · '}
       {t('kicker.warehouses', { n: 1 })}
@@ -122,14 +123,14 @@ export default function InventoryPage() {
             {now + soon > 0 && `${t('toReorder', { n: now + soon })} · `}
             {t('byFlavour')}
           </div>
-          <div className="kpis one-on-phone" style={{ alignItems: 'stretch' }}>
+          <div className={`kpis one-on-phone ${css.stretch}`}>
             {d.flavours.map((f) => (
               <FlavourCard key={f.flavour} f={f} counted={d.lastCount?.units[f.flavour] ?? null} countedOn={d.lastCount?.createdAt ?? null} onOrder={canOrder ? () => router.push(`/purchasing?new=1&flavour=${f.flavour}`) : undefined} />
             ))}
           </div>
           {d.lastCount ? (
             d.openCounts > 0 && (
-              <div className="row between" style={{ background: 'var(--surface-1)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2) var(--space-3)' }}>
+              <div className={`row between ${css.strip}`}>
                 <span className="caption muted">{t('counts.banner', { n: d.openCounts })}</span>
                 <Button size="sm" onClick={() => router.push('/inventory/counts')}>
                   {t('counts.review')}
@@ -137,7 +138,7 @@ export default function InventoryPage() {
               </div>
             )
           ) : (
-            <div className="caption muted" style={{ background: 'var(--surface-1)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2) var(--space-3)' }}>
+            <div className={`caption muted ${css.strip}`}>
               <span className="only-wide">{t('noCount')}</span>
               <span className="only-phone">{t('noCountPhone')}</span>
             </div>
@@ -176,29 +177,28 @@ function FlavourCard({ f, counted, countedOn, onOrder }: { f: FlavourStock; coun
     ) : (
       <Pill tone="mute">{t('status.noSales')}</Pill>
     );
-  const border = r.status === 'reorder_now' ? 'var(--bad-line)' : r.status === 'reorder_soon' ? 'color-mix(in srgb, var(--warn) 35%, transparent)' : undefined;
+  const tint = r.status === 'reorder_now' ? css.cardBad : r.status === 'reorder_soon' ? css.cardWarn : '';
   const name = f.flavour.toUpperCase() as Uppercase<Flavour>;
   return (
-    <section className="an-card" style={{ gap: 'var(--space-2)', minWidth: 0, ...(border ? { borderColor: border } : {}) }}>
-      <div className="row wrap" style={{ minHeight: 'var(--pill-height)', rowGap: 'var(--space-1)' }}>
-        <i aria-hidden style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: FLAVOUR_VAR[f.flavour], flex: 'none' }} />
-        <span className="body-strong" style={{ letterSpacing: '.12em' }}>
-          {name}
-        </span>
-        <span className="ms-auto row" style={{ gap: 'var(--space-1)' }}>
-          {status}
-          {low && onOrder && <IconButton icon={ShoppingCart} label={t('card.orderMore', { flavour: name })} title={t('card.orderMore', { flavour: name })} onClick={onOrder} style={{ width: 26, height: 26, borderRadius: 'var(--radius-sm)' }} />}
-        </span>
-      </div>
-      <div className="row wrap" style={{ alignItems: 'baseline', columnGap: 'var(--space-2)', rowGap: 0 }}>
-        <span className="display num">
-          <bdi>{num(f.available)}</bdi>
-        </span>
-        <span className="caption muted only-wide" style={{ flexBasis: '100%', marginBlockEnd: 'var(--space-4)' }}>
-          {t('card.availableCaption')}
-        </span>
-        <span className="caption muted only-phone">{t('card.availablePhone')}</span>
-      </div>
+    <section className={`an-card ${css.card} ${tint}`}>
+      <StockCard
+        flavour={f.flavour}
+        value={f.available}
+        max={Math.max(f.inStock, f.available)}
+        low={low}
+        badge={status}
+        detail={
+          <>
+            <span className="only-wide">{t('card.availableCaption')}</span>
+            <span className="only-phone">{t('card.availablePhone')}</span>
+          </>
+        }
+      />
+      {low && onOrder && (
+        <Button size="sm" icon={ShoppingCart} onClick={onOrder}>
+          {t('card.orderMore', { flavour: name })}
+        </Button>
+      )}
       <hr className="divider only-phone" />
       <Rows
         lines={[
@@ -233,9 +233,9 @@ function FlavourCard({ f, counted, countedOn, onOrder }: { f: FlavourStock; coun
 /** Label and figure rows inside a flavour card. */
 function Rows({ lines }: { lines: [ReactNode, ReactNode][] }) {
   return (
-    <div className="stack" style={{ gap: 'var(--space-2)' }}>
+    <div className={css.lines}>
       {lines.map(([k, v], i) => (
-        <div key={i} className="row between body" style={{ fontVariantNumeric: 'tabular-nums' }}>
+        <div key={i} className={`row between body ${css.line}`}>
           <span className="muted">{k}</span>
           <bdi>{v}</bdi>
         </div>

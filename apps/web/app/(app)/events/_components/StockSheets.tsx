@@ -5,8 +5,8 @@ import { useTranslations } from 'next-intl';
 import { FLAVOURS, UNITS_PER_CARTON, type CartonsByFlavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
-import { useFmt } from '@/lib/format';
-import { Banner, Button, CartonsEditor, MoneyField, Segmented, Select, Sheet } from '@/components/ui';
+import { useFmt, iso } from '@/lib/format';
+import { ActionError, Banner, Button, CartonsEditor, MoneyField, Segmented, Select, Sheet } from '@/components/ui';
 import type { EventDetail } from './types';
 
 const total = (c: CartonsByFlavour) => FLAVOURS.reduce((s, f) => s + (c[f] ?? 0), 0);
@@ -22,7 +22,7 @@ export function MoveStockSheet({ data, direction, onDirection, open, onClose }: 
   const max: CartonsByFlavour =
     direction === 'to_event' ? (data.warehouseAvailableCartons ?? {}) : Object.fromEntries(data.stock.map((s) => [s.flavour, s.cartons]));
   const act = useAction(() => api.post<{ cartons: number }>(`/events/${data.event.id}/stock`, { direction, cartons }), {
-    success: (r) => (direction === 'to_event' ? t('move.doneTo', { n: r.cartons, name: data.event.name }) : t('move.doneBack', { n: r.cartons })),
+    success: (r) => (direction === 'to_event' ? t('move.doneTo', { n: r.cartons, name: iso(data.event.name) }) : t('move.doneBack', { n: r.cartons })),
     onDone: onClose,
   });
   if (!open) return null;
@@ -61,7 +61,7 @@ export function MoveStockSheet({ data, direction, onDirection, open, onClose }: 
         <bdi className="strong num">{t('move.total', { n, u: num(n * UNITS_PER_CARTON) })}</bdi>
       </div>
       {err && <span className="an-help error">{err}</span>}
-      {act.errorText && <Banner tone="bad">{act.errorText}</Banner>}
+      <ActionError action={act} />
     </Sheet>
   );
 }
@@ -84,7 +84,7 @@ export function SaleSheet({ data, open, onClose }: { data: EventDetail; open: bo
   const max: CartonsByFlavour = Object.fromEntries(data.stock.map((s) => [s.flavour, s.cartons]));
   const name = data.brokers.find((a) => a.id === brokerId)?.name ?? '';
   const act = useAction(() => api.post<{ cartons: number; commissionCents: number }>(`/events/${data.event.id}/sales`, { brokerId, cartons, amountNetCents: amount }), {
-    success: (r) => t('sale.done', { n: r.cartons, name, amount: money(r.commissionCents) }),
+    success: (r) => t('sale.done', { n: r.cartons, name: iso(name), amount: iso(money(r.commissionCents)) }),
     onDone: onClose,
   });
   if (!open) return null;
@@ -121,7 +121,7 @@ export function SaleSheet({ data, open, onClose }: { data: EventDetail; open: bo
           {err && <span className="an-help error">{err}</span>}
         </>
       )}
-      {act.errorText && <Banner tone="bad">{act.errorText}</Banner>}
+      <ActionError action={act} />
     </Sheet>
   );
 }

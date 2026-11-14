@@ -74,7 +74,7 @@ export function MemberSheet({ member, onClose, roles, editable, isSelf }: { memb
             {rt.name(member.role)}
             <span className="sub">{t('users.member.brokerFixed')}</span>
           </span>
-          <Pill tone="blue">{t('users.member.fixed')}</Pill>
+          <Pill tone="mute">{t('users.member.fixed')}</Pill>
         </div>
       ) : canChange && !invited && member.status === 'active' ? (
         <Select label={t('users.member.roleGroup')} value={roleId} onChange={(e) => setRoleId(e.target.value)} options={options.map((r) => ({ value: r.id, label: rt.name(r) }))} error={saveRole.fields.roleId} />

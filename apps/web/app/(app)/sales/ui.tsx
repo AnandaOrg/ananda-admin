@@ -42,7 +42,7 @@ export function SumBox({ rows, children, plain }: { rows: [ReactNode, ReactNode,
       {rows.map(([k, v, x], i) => (
         <div key={i} className={`sales-tot ${x === 'big' ? 'big' : ''}`}>
           <span>{k}</span>
-          <bdi className={x && x !== 'big' ? `tone-${x}` : undefined}>{v}</bdi>
+          <bdi className={x === 'warn' ? 'warn-dot' : x && x !== 'big' ? `tone-${x}` : undefined}>{v}</bdi>
         </div>
       ))}
       {children}

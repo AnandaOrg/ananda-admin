@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNotNull, notInArray, sql } from 'drizzle-orm';
-import { VAT_RATE, isoDate, vatOf } from '@ananda/shared';
+import { VAT_RATE, formatMoney, isoDate, vatOf } from '@ananda/shared';
 import { InjectDb, type Db, type Tx } from '../db/db.module';
 import { brokerNudges, brokerProfiles, commissionEntries, customers, events, orders, roles, users } from '../db/schema';
 import { AuditService } from '../core/audit.service';
@@ -21,7 +21,7 @@ function monthStart(now = new Date()) {
 function dayStart(now = new Date()) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
-const euros = (cents: number) => `€${(cents / 100).toFixed(2)}`;
+const euros = (cents: number) => formatMoney(cents, 'en');
 const from0 = (rows: { status: string }[]) => (rows.every((r) => r.status === 'sent') ? 'sent' : 'ready');
 
 /** Orders that count as a sale: the payment request went out and the order was not cancelled. */

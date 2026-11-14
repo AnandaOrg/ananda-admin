@@ -12,6 +12,7 @@ import { Card, EmptyState, ErrorState, Eye, Icon, KpiTile, ListCard, PageHeader,
 import { NoteViewSheet } from './DeliverySheets';
 import { useWhen } from './ToShip';
 import { daysAgo, type DeliveredRow, type WarehouseOverview } from './types';
+import css from '../warehouse.module.css';
 
 const sameMonth = (iso: string) => {
   const a = new Date(iso);
@@ -28,9 +29,9 @@ export function Overview() {
   const t = useTranslations('warehouse');
   const tc = useTranslations('common');
   const router = useRouter();
-  const { dateShort, num } = useFmt();
+  const { dateShort, date, num } = useFmt();
   const { canEdit, readOnly } = useSession();
-  const when = useWhen();
+  const when = useWhen(true);
   const [view, setView] = useState<DeliveredRow | null>(null);
   const q = useQuery({ queryKey: ['warehouse', 'overview'], queryFn: () => api.get<WarehouseOverview>('/warehouse') });
 
@@ -66,7 +67,7 @@ export function Overview() {
 
   const rows: Row[] = [
     ...d.toShip.map((o) => ({ kind: 'ship' as const, key: `s-${o.id}`, orderId: o.id, number: o.number, customerName: o.customerName, city: o.city, when: when(o.sentAt), cartons: o.totalCartons, rest: o.partDelivered, note: null })),
-    ...d.delivered.map((n) => ({ kind: 'done' as const, key: `d-${n.id}`, orderId: n.orderId, number: n.number, customerName: n.customerName, city: n.city, when: dateShort(n.deliveredAt), cartons: n.deliveredCartons, rest: n.part, note: n })),
+    ...d.delivered.map((n) => ({ kind: 'done' as const, key: `d-${n.id}`, orderId: n.orderId, number: n.number, customerName: n.customerName, city: n.city, when: date(n.deliveredAt), cartons: n.deliveredCartons, rest: n.part, note: n })),
   ];
 
   const status = (r: Row) =>
@@ -86,8 +87,8 @@ export function Overview() {
       ),
     },
     { key: 'to', header: t('cols.deliversTo'), render: (r) => r.city ?? '—' },
-    { key: 'when', header: t('cols.when'), render: (r) => <span className="nowrap">{r.when}</span> },
-    { key: 'cartons', header: t('cols.cartons'), type: 'count', render: (r) => num(r.cartons) },
+    { key: 'when', header: t('cols.when'), type: 'date', render: (r) => r.when },
+    { key: 'cartons', header: t('cols.cartons'), type: 'count', render: (r) => <bdi>{num(r.cartons)}</bdi> },
     { key: 'status', header: t('cols.status'), type: 'status', render: status },
     {
       key: 'note',
@@ -126,8 +127,8 @@ export function Overview() {
       </div>
 
       <Card flush className="only-wide">
-        <Table columns={columns} rows={rows} rowKey={(r) => r.key} onRow={(r) => router.push(`/sales/${r.orderId}`)} />
-        <div className="body-sm muted" style={{ padding: 'var(--space-4) var(--card-padding)', borderTop: '1px solid var(--line)' }}>
+        <Table columns={columns} rows={rows} rowKey={(r) => r.key} picker={{ id: 'warehouse', locked: ['order', 'status', 'note'], defaults: ['when', 'cartons'], priority: ['when', 'cartons', 'to'] }} onRow={(r) => router.push(`/sales/${r.orderId}`)} />
+        <div className={`body-sm muted ${css.strip}`}>
           {t('foot')}
         </div>
       </Card>

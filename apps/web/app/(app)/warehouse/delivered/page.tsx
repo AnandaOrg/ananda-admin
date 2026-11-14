@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { Card, CheckCircle, EmptyState, ErrorState, ListCard, PageHeader, PageSkeleton, Pill } from '@/components/ui';
+import css from '../warehouse.module.css';
 import { NoteViewSheet } from '../_components/DeliverySheets';
 import type { DeliveredRow } from '../_components/types';
 
@@ -15,7 +16,7 @@ export default function DeliveredPage() {
   const t = useTranslations('warehouse');
   const tc = useTranslations('common');
   const { isWarehouse } = useSession();
-  const { dateShort } = useFmt();
+  const { date } = useFmt();
   const [view, setView] = useState<DeliveredRow | null>(null);
   const list = useQuery({ queryKey: ['warehouse', 'delivered', 'all'], queryFn: () => api.get<DeliveredRow[]>('/warehouse/delivered') });
   const rows = list.data ?? [];
@@ -23,7 +24,7 @@ export default function DeliveredPage() {
   if (list.isLoading) return <PageSkeleton />;
 
   return (
-    <div className="page" style={{ maxWidth: 640 }}>
+    <div className={`page ${css.narrow}`}>
       <PageHeader crumbs={isWarehouse ? undefined : [{ label: tc('nav.warehouse'), href: '/warehouse' }, { label: t('deliveredPage.title') }]} title={t('deliveredPage.title')} />
       {list.error ? (
         <ErrorState error={list.error} retry={() => list.refetch()} />
@@ -39,7 +40,7 @@ export default function DeliveredPage() {
                 key={r.id}
                 onClick={() => setView(r)}
                 title={r.customerName}
-                amount={dateShort(r.deliveredAt)}
+                amount={date(r.deliveredAt)}
                 sub={
                   <>
                     <bdi>{r.number}</bdi> · {t('card.cartons', { n: r.deliveredCartons })}

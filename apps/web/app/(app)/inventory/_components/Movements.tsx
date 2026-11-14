@@ -31,7 +31,7 @@ export interface Movement {
 export function Movements() {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
-  const { num, dateShort } = useFmt();
+  const { num, date } = useFmt();
   const [limit, setLimit] = useState(100);
   const query = qs({ limit });
   const q = useQuery({ queryKey: ['inventory', 'movements', query], queryFn: () => api.get<{ items: Movement[]; next: string | null }>(`/inventory/movements${query}`), placeholderData: (prev) => prev });
@@ -82,10 +82,10 @@ export function Movements() {
   };
 
   const cols: Column<Movement>[] = [
-    { key: 'when', header: t('movements.when'), render: (m) => <span className="nowrap">{dateShort(m.at)}</span> },
+    { key: 'when', header: t('movements.when'), type: 'date', render: (m) => <bdi>{date(m.at)}</bdi> },
     { key: 'flavour', header: tc('flavour'), render: flavours },
     { key: 'units', header: tc('units'), type: 'count', render: (m) => <bdi className={m.units < 0 ? 'bad' : 'good'}>{signed(m.units)}</bdi> },
-    { key: 'why', header: t('movements.whyCol'), render: why },
+    { key: 'why', header: t('movements.whyCol'), main: true, render: why },
     { key: 'by', header: t('movements.by'), render: (m) => (m.by ? <bdi>{m.by}</bdi> : <span className="muted">{t('movements.system')}</span>) },
   ];
   const items = q.data?.items ?? [];
@@ -111,7 +111,7 @@ export function Movements() {
             amount={<span className={m.units < 0 ? 'bad' : 'good'}>{signed(m.units)}</span>}
             sub={
               <>
-                {dateShort(m.at)} · {flavours(m)}
+                {date(m.at)} · {flavours(m)}
                 {m.by && (
                   <>
                     {' · '}

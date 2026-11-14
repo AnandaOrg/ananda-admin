@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { isoDate } from '@ananda/shared';
+import { formatDateShort, isoDate } from '@ananda/shared';
 import { useAsOf } from '@/lib/asof';
 import { Button, CalendarBlank, CaretDown, CaretLeft, CaretRight, Icon } from '@/components/ui';
 import css from '../money.module.css';
@@ -108,13 +108,13 @@ export function useDayRange<P extends string>(make: (p: Exclude<P, 'custom'>, no
 /* ---------- labels ---------- */
 
 function dayMonth(d: Date, locale: string) {
-  if (locale === 'bg') return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`;
   if (locale === 'he') return new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'short' }).format(d);
   return `${d.getDate()} ${MONTHS_EN[d.getMonth()]}`;
 }
 
 function fullDay(d: Date, locale: string) {
-  return locale === 'bg' ? `${dayMonth(d, locale)}.${d.getFullYear()}` : `${dayMonth(d, locale)} ${d.getFullYear()}`;
+  // Compact control: BG is DD.MM.YY (design system); other languages keep day, month, year.
+  return locale === 'bg' ? formatDateShort(d, 'bg') : `${dayMonth(d, locale)} ${d.getFullYear()}`;
 }
 
 /** Short month name: "Nov" · "ноем." · "נוב׳". */
@@ -136,12 +136,13 @@ export function monthName(v: string | number, locale: string) {
   return `${monthShort(i, locale)} ${Math.floor(i / 12)}`;
 }
 
-/** "1 Jan – 14 Nov 2026" · "01.01 – 14.11.2026" · "14 Nov 2026" for one day. */
+/** "1 Jan – 14 Nov 2026" · "01.01.26 – 14.11.26" · "14 Nov 2026" for one day. */
 export function dayRangeLabel(from: string, to: string, locale: string) {
   const a = parse(from);
   const b = parse(to);
   if (from === to) return fullDay(a, locale);
   const sep = ' – ';
+  if (locale === 'bg') return formatDateShort(a, 'bg') + sep + formatDateShort(b, 'bg');
   if (a.getFullYear() !== b.getFullYear()) return fullDay(a, locale) + sep + fullDay(b, locale);
   if (locale === 'en' && a.getMonth() === b.getMonth()) return `${a.getDate()}${sep}${fullDay(b, locale)}`;
   return dayMonth(a, locale) + sep + fullDay(b, locale);

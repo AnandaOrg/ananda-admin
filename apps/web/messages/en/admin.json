@@ -62,7 +62,7 @@
         "formal": "More formal"
       },
       "foot": "They set their own password from the link.",
-      "sentToast": "Invitation sent. It waits under Invitations.",
+      "sentToast": "Invitation sent",
       "namePlaceholder": "[Name]",
       "body": "Hi {name},\n\nYou're invited to join ANANDA as {role}. {line}\n\nClick the link to set your password{tfa}. It works for {days, plural, one {# day} other {# days}}.\n\n{me}",
       "tfa": " and turn on two-step verification",
@@ -131,9 +131,9 @@
       "suspend": "Suspend access",
       "restore": "Restore access",
       "save": "Save",
-      "savedRole": "{name} is now {role}.",
-      "suspended": "Access suspended. {name} is signed out on every device.",
-      "restored": "Access restored for {name}.",
+      "savedRole": "Role changed",
+      "suspended": "Access suspended",
+      "restored": "Access restored",
       "cancelInvite": "Cancel invitation"
     },
     "kickerActive": "{n, plural, one {# active member} other {# active members}}",
@@ -263,7 +263,7 @@
     },
     "customName": "{name} (custom)",
     "customDesc": "Based on {name}.",
-    "created": "{name} created. Rename and adjust it.",
+    "created": "Role created",
     "nameLabel": "Role name"
   },
   "audit": {
@@ -650,7 +650,7 @@
     },
     "rulePanel": {
       "save": "Save rule",
-      "saved": "Rule saved. It applies to new orders.",
+      "saved": "Rule saved",
       "value": "Value",
       "months": "Months after the last order",
       "holdDays": "Days an unpaid order holds stock",
@@ -671,7 +671,7 @@
       "getsTextNone": "If the customer doesn't order by then, {end, select, stay_with_broker {it stays with the broker until an Admin moves it} other {it becomes free for any broker to claim}}. Push notification and e-mail."
     },
     "cardPanel": {
-      "saved": "{card} settings saved.",
+      "saved": "Settings saved",
       "proformaLanguage": "Proforma language",
       "validDays": "Proforma valid for (days)",
       "orderPrefix": "Order prefix",
@@ -682,8 +682,8 @@
       "logoHelp": "Shown top left on proformas, invoices and credit notes",
       "upload": "Upload a logo (SVG or PNG)",
       "remove": "Remove",
-      "logoUploaded": "Logo uploaded.",
-      "logoRemoved": "Logo removed.",
+      "logoUploaded": "Logo uploaded",
+      "logoRemoved": "Logo removed",
       "footer": "Footer on every document",
       "companyTitle": "Company on documents",
       "copyBroker": "Copy the broker on reminders",
@@ -748,8 +748,8 @@
       "thisDevice": "This device",
       "signOut": "Sign out",
       "signOutAll": "Sign out everywhere else",
-      "signedOut": "Signed out on that device.",
-      "signedOutAll": "Signed out everywhere else."
+      "signedOut": "Device signed out",
+      "signedOutAll": "Other devices signed out"
     },
     "pwd": {
       "title": "Change password",
@@ -761,7 +761,7 @@
       "mismatch": "The passwords don't match",
       "note": "Other devices are signed out after the change.",
       "save": "Change password",
-      "saved": "Password changed. Other devices signed out."
+      "saved": "Password changed"
     }
   }
 }

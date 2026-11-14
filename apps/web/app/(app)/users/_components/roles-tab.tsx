@@ -7,7 +7,7 @@ import { AREAS, SENSITIVE_ACTIONS, type AccessLevel, type Area, type AreaMatrix,
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
-import { ActionError, CaretLeft, Button, Card, CaretRight, Count, Eye, Icon, ListCard, ListCards, ListRow, Lock, PageState, Pill, Plus, Segmented, ShieldCheck, Switch, Table, Users, type Column } from '@/components/ui';
+import { ActionError, CaretLeft, Button, Card, Chips, CaretRight, Count, Eye, Icon, ListCard, ListCards, ListRow, Lock, PageState, Pill, Plus, Segmented, ShieldCheck, Switch, Table, Users, type Column } from '@/components/ui';
 import { useRoleText, type RoleSummary } from './shared';
 import css from '../users.module.css';
 
@@ -186,13 +186,11 @@ export function RoleDetailView({ id, onBack, onOpenRole, onOpenMember }: { id: s
         </Card>
         <div className="stack loose">
           <Card title={t('roles.records')}>
-            <div className={`an-chips ${css.wrapChips}`} role="group" aria-label={t('roles.records')}>
-              {SCOPES.map((s) => (
-                <button key={s} type="button" className="an-chip" aria-pressed={role.scope === s} disabled={!editable || isBroker || role.baseRole === 'broker' || save.isPending} onClick={() => role.scope !== s && push({ scope: s })}>
-                  {t(`roles.scope.${s}`)}
-                </button>
-              ))}
-            </div>
+            {!editable || isBroker || role.baseRole === 'broker' || save.isPending ? (
+              <span><Pill tone="mute">{t(`roles.scope.${role.scope}`)}</Pill></span>
+            ) : (
+              <Chips label={t('roles.records')} value={role.scope} onChange={(s) => role.scope !== s && push({ scope: s })} options={SCOPES.map((s) => ({ value: s, label: t(`roles.scope.${s}`) }))} />
+            )}
             {save.fields.scope && <p className="an-help error">{save.fields.scope}</p>}
           </Card>
           <Card title={t('roles.sensitive')}>

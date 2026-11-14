@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { isoDate } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, Sheet, TextField } from '@/components/ui';
+import { ActionError, Button, DateField, Sheet, TextField } from '@/components/ui';
 import type { EventKind } from './types';
 
 /** A row of choice chips; `multi` lets several be on at once. */
@@ -27,7 +26,6 @@ function PickChips({ label, options, isOn, onPick }: { label: string; options: {
 export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations('events');
   const tc = useTranslations('common');
-  const router = useRouter();
   const today = isoDate();
   const [name, setName] = useState('');
   const [startsOn, setStartsOn] = useState(today);
@@ -47,10 +45,8 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
   }, [open, today]);
   const act = useAction(() => api.post<{ id: string }>('/events', { name, startsOn, endsOn, place, kind, brokerIds }), {
     success: () => t('form.created'),
-    onDone: (r) => {
-      onClose();
-      router.push(`/events/${r.id}`);
-    },
+    successAction: (r) => ({ label: tc('view'), href: `/events/${r.id}` }),
+    onDone: () => onClose(),
   });
   if (!open) return null;
   const f = act.fields;
@@ -68,17 +64,16 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
     >
       <TextField label={t('form.name')} placeholder={t('form.namePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} error={f.name} />
       <div className="form-grid">
-        <TextField
+        <DateField
           label={t('form.from')}
-          type="date"
           value={startsOn}
-          onChange={(e) => {
-            setStartsOn(e.target.value);
-            if (endsOn < e.target.value) setEndsOn(e.target.value);
+          onChange={(v) => {
+            setStartsOn(v);
+            if (endsOn < v) setEndsOn(v);
           }}
           error={f.startsOn}
         />
-        <TextField label={t('form.to')} type="date" value={endsOn} min={startsOn} onChange={(e) => setEndsOn(e.target.value)} error={f.endsOn} />
+        <DateField label={t('form.to')} value={endsOn} min={startsOn} onChange={setEndsOn} error={f.endsOn} />
       </div>
       <TextField label={t('form.place')} placeholder={t('form.placePlaceholder')} value={place} onChange={(e) => setPlace(e.target.value)} error={f.place} />
       <span className="overline">{t('form.kind')}</span>
@@ -96,7 +91,7 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
         />
       )}
       {f.brokerIds && <span className="an-help error">{f.brokerIds}</span>}
-      {act.errorText && <Banner tone="bad">{act.errorText}</Banner>}
+      <ActionError action={act} />
     </Sheet>
   );
 }

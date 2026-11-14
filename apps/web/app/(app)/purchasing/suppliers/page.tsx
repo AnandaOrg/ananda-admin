@@ -12,6 +12,7 @@ import { PurchasingTabs, TableFoot, chevronColumn } from '../_components/Purchas
 import { NewPurchaseSheet } from '../_components/NewPurchaseSheet';
 import { SUPPLIER_TONE, SupplierSheet, SupplierView, useCountryName, useFlavourList } from './SupplierSheet';
 import type { Supplier, SupplierList } from '../_lib/types';
+import css from '../purchasing.module.css';
 
 /** FR-PUR-3: suppliers; /purchasing/suppliers?new=1 opens New supplier. */
 export default function SuppliersPage() {
@@ -79,7 +80,7 @@ export default function SuppliersPage() {
         title={tc('nav.purchasing')}
         actions={
           <>
-            <div className="only-wide" style={{ width: 240 }}>
+            <div className={`only-wide ${css.search}`}>
               <Search value={q} onChange={setQ} placeholder={t('suppliers.search')} />
             </div>
             <span className="only-wide">{newBtn}</span>
@@ -96,7 +97,7 @@ export default function SuppliersPage() {
       ) : (
         <>
           <Card flush className="only-wide">
-            <Table columns={columns} rows={rows} rowKey={(s) => s.id} onRow={(s) => setViewing(s)} empty={<span className="muted">{t('empty.searchText', { q })}</span>} />
+            <Table columns={columns} rows={rows} rowKey={(s) => s.id} picker={{ id: 'suppliers', locked: ['supplier', 'status', 'go'], defaults: ['approved', 'last'], priority: ['approved', 'last', 'default', 'lead'] }} onRow={(s) => setViewing(s)} empty={<span className="muted">{t('empty.searchText', { q })}</span>} />
             <TableFoot>{t('suppliers.foot')}</TableFoot>
           </Card>
           <div className="list-cards only-phone">

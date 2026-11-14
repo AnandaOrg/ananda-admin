@@ -7,7 +7,7 @@ import { UNITS_PER_CARTON, type Flavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, Card, EmptyState, ErrorState, FlavourName, Package, Pill, Sheet, Skeleton, Table, TextArea, type Column } from '@/components/ui';
+import { ActionError, Button, Card, EmptyState, ErrorState, FlavourName, Package, Pill, Sheet, Skeleton, Table, TextArea, type Column } from '@/components/ui';
 
 interface CountLine {
   flavour: Flavour;
@@ -43,8 +43,8 @@ export function Counts({ editable }: { editable: boolean }) {
   const signed = (n: number) => (n > 0 ? `+${num(n)}` : num(n));
   const cols: Column<CountLine>[] = [
     { key: 'f', header: tc('flavour'), render: (l) => <FlavourName flavour={l.flavour} /> },
-    { key: 'c', header: t('counts.counted'), type: 'count', render: (l) => num(l.counted) },
-    { key: 'e', header: t('counts.expected'), type: 'count', render: (l) => num(l.expected) },
+    { key: 'c', header: t('counts.counted'), type: 'count', render: (l) => <bdi>{num(l.counted)}</bdi> },
+    { key: 'e', header: t('counts.expected'), type: 'count', render: (l) => <bdi>{num(l.expected)}</bdi> },
     { key: 'd', header: t('counts.difference'), type: 'count', render: (l) => (l.difference === 0 ? <span className="muted">0</span> : <span className={l.difference < 0 ? 'bad' : 'warn'}>{signed(l.difference)}</span>) },
   ];
 
@@ -119,7 +119,7 @@ export function Counts({ editable }: { editable: boolean }) {
           )}
           <TextArea label={tc('noteOptional')} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
           <p className="body-sm muted">{diffs(open).length ? t('counts.correctConsequence') : t('counts.acceptConsequence')}</p>
-          {fix.errorText && <Banner tone="bad">{fix.errorText}</Banner>}
+          <ActionError action={fix} />
         </Sheet>
       )}
     </>

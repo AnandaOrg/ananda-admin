@@ -67,7 +67,7 @@
   "date": "תאריך",
   "flavour": "טעם",
   "cartonsOf": "קרטונים של {flavour}",
-  "unitsCount": "{n} יחידות",
+  "unitsCount": "{n, plural, one {יחידה אחת} other {{n} יחידות}}",
   "upTo": "עד {n}",
   "cartonsUnits": "{c} קרטונים · {u} יחידות",
   "daysLate": "{n, plural, one {יום אחד באיחור} other {# ימים באיחור}}",
@@ -106,7 +106,7 @@
     "purchasing": "רכש",
     "inventory": "מלאי",
     "warehouse": "מחסן",
-    "brokers": "סוכנים ועמלות",
+    "brokers": "ברוקרים ועמלות",
     "earnings": "ההכנסות שלי",
     "events": "אירועים ופסטיבלים",
     "deal_profit": "רווחיות עסקה",
@@ -219,6 +219,7 @@
     "calendar": "לוח שנה"
   },
   "errors": {
+    "tryAgainSentence": "נסו שוב.",
     "network": "כדאי לבדוק את החיבור ולנסות שוב.",
     "server": "משהו השתבש אצלנו. כדאי לנסות שוב בעוד דקה.",
     "actionFailed": "הפעולה לא הושלמה",
@@ -244,7 +245,17 @@
     "signedOutTitle": "התנתקת מהמערכת",
     "signedOutText": "מטעמי אבטחה, זה קורה אחרי זמן מה. השינויים שלך נשמרו.",
     "signIn": "התחברות",
-    "signedInAgain": "התחברת מחדש"
+    "signedInAgain": "התחברת מחדש",
+    "actionInline": "הפעולה לא הושלמה. אפשר לנסות שוב.",
+    "conflictInline": "מישהו שינה את זה",
+    "notFoundOrder": "לא מצאנו את ההזמנה הזו",
+    "backSales": "חזרה למכירות והזמנות",
+    "backOrders": "חזרה להזמנות",
+    "backCustomers": "חזרה ללקוחות",
+    "uploadTooBig": "{size} MB. המגבלה היא {limit} MB.",
+    "uploadWrongType": "רק PDF, JPG, PNG או HEIC.",
+    "uploadStopped": "החיבור נותק.",
+    "chooseAnother": "בחירת קובץ אחר"
   },
   "unsaved": {
     "title": "לבטל את השינויים?",
@@ -291,7 +302,6 @@
     "off": "כבוי",
     "account": "חשבון"
   },
-  "moreSub": "מקובץ כמו בסרגל הצד במחשב.",
   "searchNone": "אין תוצאות עבור “{q}”",
   "notify": {
     "customer_approval": {
@@ -319,7 +329,7 @@
       "body": "המחסן העלה את תעודת המשלוח החתומה."
     },
     "purchase_late": {
-      "title": "{purchase} באיחור של {days} ימים",
+      "title": "{purchase} באיחור של {days, plural, one {יום אחד} other {{days} ימים}}",
       "body": "{supplier}"
     },
     "payment_confirmed": {
@@ -327,7 +337,7 @@
       "body": "{customer} · {amount}"
     },
     "payment_late": {
-      "title": "{customer} באיחור של {days} ימים",
+      "title": "{customer} באיחור של {days, plural, one {יום אחד} other {{days} ימים}}",
       "body": "{amount} חוב על {order}"
     },
     "upload_opened": {
@@ -361,5 +371,14 @@
     "broker": "ברוקר",
     "warehouse": "מחסן",
     "finance": "כספים"
+  },
+  "upload": {
+    "drop": "גררו לכאן PDF או תמונה, או <b>בחרו קובץ</b>",
+    "hint": "\u2066PDF, JPG, PNG\u2069 או \u2066HEIC\u2069, עד \u2066{max}\u2069",
+    "takePhoto": "צילום",
+    "chooseFile": "בחירת קובץ",
+    "remove": "הסרה",
+    "uploading": "מעלה…",
+    "ready": "{size} · מוכן"
   }
 }

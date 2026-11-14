@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorText } from '@/lib/api';
-import { Banner, Button, Pill } from '@/components/ui';
+import { ActionError, Button, Pill } from '@/components/ui';
 import s from '../brokers.module.css';
 
 export type Tone = 'friendly' | 'short' | 'formal';
@@ -65,7 +65,7 @@ export function PolishableText({ label, value, onChange, subject, rows = 7, lang
       {subject !== undefined ? (
         <div className={`${s.draft} ${orig !== null ? s.polished : ''}`}>
           <span className={s.subjLine}>{t('inviteSheet.subjectLine', { subject })}</span>
-          <textarea aria-label={label} className={s.draftArea} style={{ border: 0, padding: 0, minHeight: rows * 20, background: 'transparent' }} value={value} onChange={(e) => onChange(e.target.value)} rows={rows} />
+          <textarea aria-label={label} className={`${s.draftArea} ${s.bare}`} style={{ minHeight: rows * 20 }} value={value} onChange={(e) => onChange(e.target.value)} rows={rows} />
         </div>
       ) : (
         <textarea aria-label={label} className={`${s.draftArea} ${orig !== null ? s.polished : ''}`} value={value} onChange={(e) => onChange(e.target.value)} rows={rows} />
@@ -77,7 +77,7 @@ export function PolishableText({ label, value, onChange, subject, rows = 7, lang
           </button>
         ))}
       </div>
-      {error && <Banner tone="bad">{error}</Banner>}
+      {error && <ActionError error={error} message={error} />}
     </div>
   );
 }

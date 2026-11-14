@@ -33,11 +33,11 @@ export const NOTIFY_KINDS = {
   /** Admin + broker: delivered with the signed note. data: order, customer */
   delivered: { title: (d: D) => (d.customer ? `${d.order} delivered to ${d.customer}` : `${d.order} delivered`), body: () => 'The warehouse uploaded the signed note.' },
   /** Admin: a purchase is late. data: purchase, days, supplier, waiting (orders waiting for it) */
-  purchase_late: { title: (d: D) => `${d.purchase} is ${d.days} days late`, body: (d: D) => (Number(d.waiting) > 0 ? `${d.supplier} · ${d.waiting} orders wait for this stock` : String(d.supplier)) },
+  purchase_late: { title: (d: D) => `${d.purchase} is ${plural(d.days, 'day')} late`, body: (d: D) => (Number(d.waiting) > 0 ? `${d.supplier} · ${plural(d.waiting, 'order')} waiting for this stock` : String(d.supplier)) },
   /** Admin + broker: payment confirmed. data: order, customer, amountCents */
   payment_confirmed: { title: (d: D) => `Payment confirmed for ${d.order}`, body: (d: D) => `${d.customer} · ${eur(d.amountCents)}` },
   /** Broker: a customer is late paying. data: customer, days, order, amountCents */
-  payment_late: { title: (d: D) => `${d.customer} is ${d.days} days late`, body: (d: D) => `${eur(d.amountCents)} owed on ${d.order}` },
+  payment_late: { title: (d: D) => `${d.customer} is ${plural(d.days, 'day')} late`, body: (d: D) => `${eur(d.amountCents)} owed on ${d.order}` },
   /** Broker: the Admin opened the broker's upload. data: doc, order, customer */
   upload_opened: { title: () => 'The Admin opened your upload', body: (d: D) => `${d.doc} · ${d.order} · ${d.customer}` },
   /** Broker: commission paid. data: amountCents, order, customer */
@@ -54,6 +54,7 @@ export const NOTIFY_KINDS = {
 
 type D = Record<string, string | number>;
 export type NotifyKind = keyof typeof NOTIFY_KINDS;
+const plural = (n: string | number, word: string) => `${n} ${word}${Number(n) === 1 ? '' : 's'}`;
 const eur = (c: string | number | undefined) => formatMoney(Number(c ?? 0), 'en');
 
 /** In-app notifications inbox (header tray / phone bell with unread count). */

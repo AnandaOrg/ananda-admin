@@ -53,7 +53,7 @@ export default function EventsPage() {
     {
       key: 'stock',
       header: t('cols.stock'),
-      type: 'amount',
+      type: 'count',
       render: (e) =>
         e.stockUnits > 0 ? (
           <bdi>{num(e.stockUnits)}</bdi>

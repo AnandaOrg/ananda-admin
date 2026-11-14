@@ -10,6 +10,7 @@ import { useSession } from '@/lib/session';
 import {
   Briefcase,
   Button,
+  RowActions,
   CaretRight,
   Card,
   EmptyState,
@@ -36,7 +37,7 @@ export function BrokersAdmin() {
   const tc = useTranslations('common');
   const router = useRouter();
   const params = useSearchParams();
-  const { money, date, dateShort, unit } = useFmt();
+  const { money, date, unit } = useFmt();
   const { canEdit, can, readOnly } = useSession();
   const q = useQuery({ queryKey: ['brokers', 'overview'], queryFn: () => api.get<BrokersOverview>('/brokers') });
   const [invite, setInvite] = useState(false);
@@ -64,7 +65,7 @@ export function BrokersAdmin() {
   const d = q.data;
   const perUnit = unit(d.terms.commissionPerUnitCents);
   const didntSell = d.brokers.filter((a) => d.didntSellIds.includes(a.id));
-  const kicker = t('range', { from: dateShort(d.range.from), to: date(d.range.to) });
+  const kicker = t('range', { from: date(d.range.from), to: date(d.range.to) });
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const lastOrder = (a: BrokerRow) => (a.lastOrderAt ? t('didntSell.lastOrder', { date: date(a.lastOrderAt) }) : t('didntSell.noOrders'));
   const invitePrimary = mayEdit ? (
@@ -91,6 +92,22 @@ export function BrokersAdmin() {
           {t('markPaid')}
         </Button>
       </>
+    );
+  };
+  // Desktop row: Send to pay and Mark as paid share one menu button.
+  const payMenu = (a: BrokerRow) => {
+    if (!mayPay || a.setup !== 'done') return null;
+    const sent = a.sentCents > 0;
+    if (!sent && a.readyCents <= 0) return null;
+    if (sent) return payButtons(a);
+    return (
+      <RowActions
+        label={t('table.actions')}
+        actions={[
+          { key: 'send', label: t('sendToPay'), icon: EnvelopeSimple, onSelect: () => setSend(a) },
+          { key: 'paid', label: t('markPaid'), icon: Money, onSelect: () => setPaid(a) },
+        ]}
+      />
     );
   };
   const countersignButton = (a: BrokerRow, phone = false) =>
@@ -123,7 +140,7 @@ export function BrokersAdmin() {
       render: (a) => (
         <span className={s.acts} onClick={(e) => e.stopPropagation()}>
           {countersignButton(a)}
-          {payButtons(a)}
+          {payMenu(a)}
         </span>
       ),
     },
@@ -199,7 +216,7 @@ export function BrokersAdmin() {
           <div className={s.nudges}>
             {didntSell.map((a) => (
               <span key={a.id} className={s.nudge}>
-                <span style={{ minWidth: 0 }}>
+                <span className="grow">
                   {a.name}
                   <span className={s.sub}>{lastOrder(a)}</span>
                 </span>

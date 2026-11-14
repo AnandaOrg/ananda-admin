@@ -7,8 +7,9 @@ import { FLAVOURS, UNITS_PER_CARTON, type Flavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, Check, EmptyState, FLAVOUR_VAR, Lock, Package, Pill, Sheet, Skeleton } from '@/components/ui';
+import { ActionError, Banner, Button, Check, EmptyState, Icon, Lock, Package, Pill, Sheet, Skeleton } from '@/components/ui';
 import type { AllocationData, InventoryOverview } from './types';
+import css from '../inventory.module.css';
 
 type ByFlavour = Record<Flavour, number>;
 type Order = AllocationData['orders'][number];
@@ -90,7 +91,6 @@ export function AllocateSheet({ open, onClose }: { open: boolean; onClose: () =>
     setPicked(next);
   };
   const d = q.data;
-  const box = { background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3) var(--space-4)' } as const;
 
   return (
     <Sheet open={open} onClose={onClose} title={d?.fromPurchase ? t('allocate.titleFrom', { number: d.fromPurchase }) : t('allocate.title')}>
@@ -100,7 +100,7 @@ export function AllocateSheet({ open, onClose }: { open: boolean; onClose: () =>
         <EmptyState done title={t('allocate.emptyTitle')} text={t('allocate.emptyText')} />
       ) : (
         <>
-          <p className="body-sm muted" style={{ margin: 0 }}>
+          <p className={`body-sm muted ${css.para}`}>
             {t('allocate.intro')}
           </p>
           {sorted(d).map((o) => {
@@ -113,36 +113,29 @@ export function AllocateSheet({ open, onClose }: { open: boolean; onClose: () =>
                 role="checkbox"
                 aria-checked={on}
                 onClick={() => toggle(o.id)}
-                style={{ ...box, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 'var(--space-1) var(--space-3)', textAlign: 'start', cursor: 'pointer', color: 'var(--text)', font: 'inherit', borderColor: on ? 'var(--accent-line)' : 'var(--line)' }}
+                className={`${css.box} ${css.opt} ${on ? css.optOn : ''}`}
               >
-                <span className="row" style={{ minWidth: 0 }}>
-                  <span
-                    aria-hidden
-                    style={{ width: 22, height: 22, flex: 'none', borderRadius: 'var(--radius-sm)', display: 'grid', placeItems: 'center', ...(on ? { background: 'var(--accent)', color: 'var(--on-accent)' } : { border: '2px solid var(--line)' }) }}
-                  >
-                    {on && <Check size={14} weight="bold" />}
+                <span className={`row ${css.optMain}`}>
+                  <span aria-hidden className={`${css.check} ${on ? css.checkOn : ''}`}>
+                    {on && <Icon as={Check} size="sm" />}
                   </span>
-                  <bdi className="body-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {o.customerName ?? o.number}
-                  </bdi>
+                  <bdi className={`body-strong ${css.optName}`}>{o.customerName ?? o.number}</bdi>
                 </span>
-                <span className="body-sm strong" style={{ textAlign: 'end' }}>
-                  {t('allocate.cartons', { n: num(cartons) })}
-                </span>
-                <span className="body-sm muted" style={{ paddingInlineStart: 'var(--space-8)' }}>
+                <span className={`body-sm strong ${css.optEnd}`}>{t('allocate.cartons', { n: num(cartons) })}</span>
+                <span className={`body-sm muted ${css.optSub}`}>
                   <bdi>{o.number}</bdi>
                   {o.since && ` · ${t('allocate.since', { date: dateShort(o.since) })}`}
                 </span>
-                <span style={{ justifySelf: 'end' }}>{o.paidAt ? <Pill tone="good">{t('allocate.paid')}</Pill> : <Pill tone="warn">{t('allocate.notPaid')}</Pill>}</span>
+                <span className={css.optEnd}>{o.paidAt ? <Pill tone="good">{t('allocate.paid')}</Pill> : <Pill tone="warn">{t('allocate.notPaid')}</Pill>}</span>
               </button>
             );
           })}
-          <div style={{ ...box, display: 'grid', gap: 'var(--space-2)' }}>
+          <div className={`${css.box} ${css.avail}`}>
             <span className="overline">{d.fromPurchase ? t('allocate.fromCartons', { number: d.fromPurchase }) : t('allocate.availableCartons')}</span>
             {FLAVOURS.map((f) => (
               <div key={f} className="row between body">
                 <span className="row">
-                  <i aria-hidden style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: FLAVOUR_VAR[f] }} />
+                  <i aria-hidden className={`${css.dot} ${css[f]}`} />
                   {f.toUpperCase()}
                 </span>
                 <span className={used[f] > availCartons(f) ? 'bad' : ''}>
@@ -153,10 +146,10 @@ export function AllocateSheet({ open, onClose }: { open: boolean; onClose: () =>
             ))}
           </div>
           {short.length > 0 && <Banner tone="bad">{t('allocate.short', { flavours: short.map((f) => f.toUpperCase()).join(', ') })}</Banner>}
-          <p className="caption muted" style={{ margin: 0 }}>
+          <p className={`caption muted ${css.para}`}>
             {t('allocate.consequence', { days: d.stockHoldDays })}
           </p>
-          {allocate.errorText && <Banner tone="bad">{allocate.errorText}</Banner>}
+          <ActionError action={allocate} />
           <Button variant="primary" block size="lg" disabled={picked.size === 0 || short.length > 0} busy={allocate.isPending} onClick={() => allocate.mutate(undefined)}>
             {t('allocate.cta', { n: picked.size })}
           </Button>

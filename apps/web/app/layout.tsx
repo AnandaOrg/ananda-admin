@@ -5,6 +5,7 @@ import { getLocale } from 'next-intl/server';
 import { isRtl } from '@ananda/shared';
 import { Providers } from '@/components/providers/Providers';
 import { THEME_BOOT } from '@/lib/theme';
+import themeColors from './styles/theme-colors.json';
 import './styles/tokens.css';
 import './styles/components.css';
 import './styles/app.css';
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   description: 'Operations and finance',
 };
 
-export const viewport: Viewport = { themeColor: '#0A0A0B', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: themeColors.dark, width: 'device-width', initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();

@@ -8,6 +8,7 @@ import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { ActionError, Button, Card, EmptyState, PageHeader } from '@/components/ui';
+import css from '../warehouse.module.css';
 import { StepRow } from '../_components/DeliverySheets';
 
 const empty = (): CartonsByFlavour => Object.fromEntries(FLAVOURS.map((f) => [f, 0]));
@@ -28,7 +29,7 @@ export default function CountPage() {
   const canSend = canEdit('warehouse') && !readOnly;
 
   return (
-    <div className="page" style={{ maxWidth: 640 }}>
+    <div className={`page ${css.narrow}`}>
       <PageHeader crumbs={isWarehouse ? undefined : [{ label: tc('nav.warehouse'), href: '/warehouse' }, { label: t('count.title') }]} title={t('count.title')} />
       {sent ? (
         <Card>

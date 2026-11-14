@@ -14,11 +14,11 @@ export function eventDates(startsOn: string, endsOn: string, locale: string, sho
     const f = new Intl.DateTimeFormat('he-IL', short ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
     return startsOn === endsOn ? f.format(a) : f.formatRange(a, b);
   }
-  const end = (d: Date) => (short ? (locale === 'bg' ? `${pad(d.getDate())}.${pad(d.getMonth() + 1)}` : formatDateShort(d, locale)) : formatDate(d, locale));
+  const end = (d: Date) => (short ? (formatDateShort(d, locale)) : formatDate(d, locale));
   if (startsOn === endsOn) return end(b);
   const sameYear = a.getFullYear() === b.getFullYear();
   const sameMonth = sameYear && a.getMonth() === b.getMonth();
   if (sameMonth) return `${locale === 'bg' ? pad(a.getDate()) : a.getDate()}–${end(b)}`;
-  if (sameYear || short) return `${locale === 'bg' ? `${pad(a.getDate())}.${pad(a.getMonth() + 1)}` : formatDateShort(a, locale)} – ${end(b)}`;
+  if (sameYear || short) return `${formatDateShort(a, locale)} – ${end(b)}`;
   return `${formatDate(a, locale)} – ${formatDate(b, locale)}`;
 }

@@ -19,6 +19,8 @@ export interface ActionOptions<TResult> {
    * or `true` to use the reason from the server.
    */
   errorToast?: boolean | string;
+  /** Info toast text (with Reload) when someone else already changed the record; replaces the server's raw message. */
+  conflictToast?: string | ((e: ApiError) => string | undefined);
 }
 
 /**
@@ -58,7 +60,7 @@ export function useAction<TVars, TResult = unknown>(fn: (v: TVars) => Promise<TR
       const o = optsRef.current;
       if (!o.errorToast) return;
       const err = e instanceof ApiError ? e : new ApiError(0, e.message);
-      if (err.isConflict) toast.show(typeof o.errorToast === 'string' ? o.errorToast : messageOf(err, t), { kind: 'info', action: { label: t('reload'), onClick: () => qc.invalidateQueries() } });
+      if (err.isConflict) toast.show((typeof o.conflictToast === 'function' ? o.conflictToast(err) : o.conflictToast) ?? (typeof o.errorToast === 'string' ? o.errorToast : messageOf(err, t)), { kind: 'info', action: { label: t('reload'), onClick: () => qc.invalidateQueries() } });
       else toast.show(typeof o.errorToast === 'string' ? o.errorToast : messageOf(err, t), { kind: 'err', action: err.isLookingBack ? undefined : { label: t('retry'), onClick: () => last.current && m.mutate(last.current.v) } });
     },
   });

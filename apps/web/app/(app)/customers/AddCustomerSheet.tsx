@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
-import { useFmt } from '@/lib/format';
+import { useFmt, iso } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { ActionError, Button, Check, Clock, Icon, MagnifyingGlass, Pill, Sheet, ShieldCheck, TextField, Warning } from '@/components/ui';
 import { DropdownField } from './Dropdown';
@@ -164,7 +164,7 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
         submit: true,
       }),
     {
-      success: (r) => (r.status === 'needs_approval' ? t('add.sent') : t('add.added', { name: r.companyName })),
+      success: (r) => (r.status === 'needs_approval' ? t('add.sent') : t('add.added', { name: iso(r.companyName) })),
       onDone: (r) => {
         close();
         router.push(r.status === 'needs_approval' ? '/home' : '/customers');
@@ -331,7 +331,7 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
             </div>
             <div className={s.card}>
               <div className={s.kv}>
-                <span className={s.grp} style={{ margin: 0 }}>
+                <span className={`${s.grp} ${s.flush}`}>
                   {t('add.inAnanda')}
                 </span>
                 <Pill tone={existing.freeToClaim ? 'good' : existing.status === 'archived' ? 'mute' : 'blue'}>

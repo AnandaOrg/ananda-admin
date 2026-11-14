@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { FLAVOURS, PAYMENT_METHODS, isoDate, orderFlowIndex, tierFor, type Flavour, type OrderStatus, type OrderUploadKind } from '@ananda/shared';
 import { api } from '@/lib/api';
-import { useFmt } from '@/lib/format';
+import { iso, useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { useAction } from '@/lib/hooks';
 import {
@@ -38,6 +38,7 @@ import {
   Truck,
   TwoStepField,
   UploadSimple,
+  DateField,
 } from '@/components/ui';
 import { SalesStatus, Picker, SumBox, firstName } from '../ui';
 import { NewSaleSheet } from '../NewSaleSheet';
@@ -146,7 +147,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const router = useRouter();
   const search = useSearchParams();
   const { canView, isBroker } = useSession();
-  const { money, unit, num, date, dateShort } = useFmt();
+  const { money, unit, num, date } = useFmt();
   const [action, setAction] = useState<ActionKey | null>(null);
   const [doc, setDoc] = useState<DocItem | null>(null);
   const [upload, setUpload] = useState(false);
@@ -177,8 +178,8 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
       setBankReference('');
     },
   });
-  const toWarehouse = useAction(() => api.post(`/orders/${id}/send-to-warehouse`), { success: t('flow.toast.sentWh') });
-  const invoice = useAction(() => api.post<{ invoice: string }>(`/orders/${id}/invoice`), { success: (r) => t('flow.toast.invoiced', { number: r.invoice }) });
+  const toWarehouse = useAction(() => api.post(`/orders/${id}/send-to-warehouse`), { success: t('flow.toast.sentWh'), errorToast: true });
+  const invoice = useAction(() => api.post<{ invoice: string }>(`/orders/${id}/invoice`), { success: (r) => t('flow.toast.invoiced', { number: iso(r.invoice) }), errorToast: true });
   const uncancel = useAction(() => api.post(`/orders/${id}/uncancel`), { success: t('order.undone', { number: q.data?.order.number ?? '' }), errorToast: true });
 
   if (!q.data) return <PageState query={q} notFound={{ title: t('order.notFound'), text: t('order.notFoundText'), back: { label: t('order.back'), href: '/sales' } }} />;
@@ -206,18 +207,18 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
     const at = x.createdAt;
     if (x.type === 'proforma') {
       const corrected = !!x.replaces;
-      items.push({ kind: 'doc', doc: x, replacedBy: numberOf(x.supersededById), at, icon: FileText, title: corrected ? t('docs.correctedProforma', { number: x.number ?? '' }) : t('docs.proforma', { number: x.number ?? '' }), sub: x.supersededById ? t('docs.replacedBy', { date: dateShort(at) }) : t('docs.sentToCustomer', { date: dateShort(at) }) });
-    } else if (x.type === 'invoice') items.push({ kind: 'doc', doc: x, at, icon: FileText, title: t('docs.invoice', { number: x.number ?? '' }), sub: t('docs.emailed', { date: dateShort(at) }) });
+      items.push({ kind: 'doc', doc: x, replacedBy: numberOf(x.supersededById), at, icon: FileText, title: corrected ? t('docs.correctedProforma', { number: x.number ?? '' }) : t('docs.proforma', { number: x.number ?? '' }), sub: x.supersededById ? t('docs.replacedBy', { date: date(at) }) : t('docs.sentToCustomer', { date: date(at) }) });
+    } else if (x.type === 'invoice') items.push({ kind: 'doc', doc: x, at, icon: FileText, title: t('docs.invoice', { number: x.number ?? '' }), sub: t('docs.emailed', { date: date(at) }) });
     else if (x.type === 'credit_note') items.push({ kind: 'doc', doc: x, at, icon: MinusCircle, title: t('docs.creditNote', { number: x.number ?? '' }), sub: t('docs.creditSub', { reason: t.has(`docs.reasons.${x.reason}`) ? t(`docs.reasons.${x.reason}`) : (x.reason ?? ''), amount: money(x.totalCents ?? 0) }) });
-    else if (x.type === 'delivery_note') items.push({ kind: 'file', doc: x, at, icon: CheckCircle, title: t('docs.deliveryNote'), sub: t('docs.byWarehouse', { date: dateShort(at) }) });
+    else if (x.type === 'delivery_note') items.push({ kind: 'file', doc: x, at, icon: CheckCircle, title: t('docs.deliveryNote'), sub: t('docs.byWarehouse', { date: date(at) }) });
     else if (x.type === 'upload') {
       const kind = x.uploadKind ? t(`docs.kinds.${x.uploadKind}`) : (x.label ?? x.fileName ?? '');
-      items.push({ kind: 'file', doc: x, at, icon: x.uploadKind === 'payment_proof' ? Bank : FileText, title: x.uploadKind === 'other' && x.description ? x.description : kind, sub: t('docs.uploadedBy', { date: dateShort(at), name: x.createdByName ?? '' }) });
+      items.push({ kind: 'file', doc: x, at, icon: x.uploadKind === 'payment_proof' ? Bank : FileText, title: x.uploadKind === 'other' && x.description ? x.description : kind, sub: t('docs.uploadedBy', { date: date(at), name: x.createdByName ?? '' }) });
     }
   }
   const proformaNo = d.documents.filter((x) => x.type === 'proforma' && !x.supersededById).at(-1)?.number ?? null;
-  for (const p of d.payments) items.push({ kind: 'payment', payment: p, proforma: proformaNo, at: p.createdAt, icon: Bank, title: t('docs.payment', { amount: money(p.amountCents) }), sub: t('docs.confirmedBy', { date: dateShort(p.receivedOn), name: p.confirmedByName ?? '' }) });
-  if (o.sentToWarehouseAt) items.push({ kind: 'warehouse', at: o.sentToWarehouseAt, icon: Truck, title: t('docs.warehouse'), sub: t('docs.noPrices', { date: dateShort(o.sentToWarehouseAt) }) });
+  for (const p of d.payments) items.push({ kind: 'payment', payment: p, proforma: proformaNo, at: p.createdAt, icon: Bank, title: t('docs.payment', { amount: money(p.amountCents) }), sub: t('docs.confirmedBy', { date: date(p.receivedOn), name: p.confirmedByName ?? '' }) });
+  if (o.sentToWarehouseAt) items.push({ kind: 'warehouse', at: o.sentToWarehouseAt, icon: Truck, title: t('docs.warehouse'), sub: t('docs.noPrices', { date: date(o.sentToWarehouseAt) }) });
   items.sort((a, b) => a.at.localeCompare(b.at));
 
   // ---------- Flow ----------
@@ -230,7 +231,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const confirmForm = (
     <div className="act">
       <div className="sales-grid2">
-        <TextField label={t('flow.dateReceived')} type="date" value={receivedOn} max={isoDate()} onChange={(e) => setReceivedOn(e.target.value)} />
+        <DateField label={t('flow.dateReceived')} value={receivedOn} max={isoDate()} onChange={setReceivedOn} />
         <MoneyField label={t('flow.amount')} cents={amountCents} onCents={setAmountCents} error={confirm.fields.amountCents} />
       </div>
       <Picker label={t('flow.paidBy')} value={method} options={methodOptions} placeholder={t('flow.paidBy')} onChange={setMethod} />
@@ -247,7 +248,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const steps: FlowStep[] = [
     {
       title: t('flow.payment_request'),
-      detail: o.requestSentAt ? (corrected ? t('flow.correctedOn', { date: dateShort(o.requestSentAt), corrected: dateShort(corrected.createdAt) }) : t('flow.sentOn', { date: dateShort(o.requestSentAt) })) : t('flow.notSent'),
+      detail: o.requestSentAt ? (corrected ? t('flow.correctedOn', { date: date(o.requestSentAt), corrected: date(corrected.createdAt) }) : t('flow.sentOn', { date: date(o.requestSentAt) })) : t('flow.notSent'),
       act: can('send_payment_request') ? (
         <div className="act">
           <Button variant="primary" block busy={sendRequest.isPending} onClick={() => sendRequest.mutate(undefined)}>
@@ -260,9 +261,9 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
       title: t('flow.confirm_payment'),
       detail:
         paidFull && lastPay
-          ? t('flow.paidDone', { amount: money(o.paidCents), date: dateShort(lastPay.receivedOn), name: lastPay.confirmedByName ?? '' })
+          ? t('flow.paidDone', { amount: money(o.paidCents), date: date(lastPay.receivedOn), name: lastPay.confirmedByName ?? '' })
           : (() => {
-              const rule = after ? (o.paymentDueOn ? t('flow.dueAfter', { date: dateShort(o.paymentDueOn) }) : t('flow.afterDelivery')) : half ? t('flow.minimumHalf') : t('flow.minimum');
+              const rule = after ? (o.paymentDueOn ? t('flow.dueAfter', { date: date(o.paymentDueOn) }) : t('flow.afterDelivery')) : half ? t('flow.minimumHalf') : t('flow.minimum');
               const paid = depositIn ? t('flow.depositIn', { amount: money(o.paidCents), left: money(o.outstandingCents) }) : o.paidCents > 0 ? t('flow.partPaid', { amount: money(o.paidCents), left: money(o.outstandingCents) }) : null;
               if (!can('confirm_payment') && o.requestSentAt) return o.daysLate > 0 ? t('flow.lateNotPaid', { late: t('status.late', { n: o.daysLate }) }) : (paid ?? (after ? rule : t('flow.waitingCustomer')));
               return paid ? `${rule} · ${paid}` : rule;
@@ -272,7 +273,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
     {
       title: t('flow.send_to_warehouse'),
       detail: o.sentToWarehouseAt
-        ? t('flow.sentWh', { date: dateShort(o.sentToWarehouseAt) })
+        ? t('flow.sentWh', { date: date(o.sentToWarehouseAt) })
         : o.status === 'waiting_for_stock'
           ? d.waitingFor.find((w) => w.purchase)
             ? t('flow.waitingStockFrom', { purchase: d.waitingFor.find((w) => w.purchase)!.purchase!.number })
@@ -303,7 +304,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
     },
     {
       title: t('flow.delivered'),
-      detail: o.deliveredAt ? (o.status === 'delivered_part' || deliveredDoc?.reason ? t('flow.deliveredPart', { date: dateShort(o.deliveredAt) }) : t('flow.deliveredOn', { date: dateShort(o.deliveredAt) })) : o.status === 'at_warehouse' ? t('flow.waitingNote') : t('flow.afterNote'),
+      detail: o.deliveredAt ? (o.status === 'delivered_part' || deliveredDoc?.reason ? t('flow.deliveredPart', { date: date(o.deliveredAt) }) : t('flow.deliveredOn', { date: date(o.deliveredAt) })) : o.status === 'at_warehouse' ? t('flow.waitingNote') : t('flow.afterNote'),
     },
     {
       title: t('flow.invoice'),
@@ -328,7 +329,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   if (after) steps.push(...steps.splice(1, 1)); // the payment comes last
 
   const flow = (
-    <ol className="an-steps sales-flow" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ol className="an-steps sales-flow">
       {steps.map((s, i) => {
         const done = i < step;
         const now = i === step && !cancelled;
@@ -366,7 +367,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
     [t('money.total'), money(o.totalCents)],
     ...(half ? [[t('money.deposit'), money(deposit), depositIn ? 'good' : undefined] as [string, string, 'good' | undefined]] : []),
     [t('money.paid'), money(o.paidCents), o.paidCents > 0 && o.paidCents >= o.totalCents - o.creditedCents ? 'good' : undefined],
-    ...(after && o.paymentDueOn && o.outstandingCents > 0 ? [[t('money.due'), dateShort(o.paymentDueOn), o.daysLate > 0 ? 'bad' : undefined] as [string, string, 'bad' | undefined]] : []),
+    ...(after && o.paymentDueOn && o.outstandingCents > 0 ? [[t('money.due'), date(o.paymentDueOn), o.daysLate > 0 ? 'bad' : undefined] as [string, string, 'bad' | undefined]] : []),
     ...(o.paidCents > 0 && o.outstandingCents > 0 ? [[t('money.stillToPay'), money(o.outstandingCents)] as [string, string]] : []),
     ...credits.map((c) => [`${c.number} · ${t.has(`docs.reasons.${c.reason}`) ? t(`docs.reasons.${c.reason}`) : (c.reason ?? '')}`, `−${money(c.totalCents ?? 0)}`, 'bad'] as [string, string, 'bad']),
   ];
@@ -380,7 +381,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
             <hr className="sales-rule" />
             <div className="sales-tot">
               <span style={{ color: 'var(--text)' }}>{t('money.toRefund')}</span>
-              <b className="tone-warn" style={{ fontWeight: 500 }}>
+              <b className="warn-dot">
                 <bdi>{money(refund)}</bdi>
               </b>
             </div>
@@ -416,10 +417,10 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const pending = d.pendingApproval;
   const lastDecline = d.approvals.find((a) => a.status === 'declined');
   const kicker = d.houseSale ? (
-    t('order.kickerHouse', { number: o.number, date: dateShort(o.createdAt) })
+    t('order.kickerHouse', { number: o.number, date: date(o.createdAt) })
   ) : (
     <span className="sales-kick">
-      <span>{t('order.kicker', { number: o.number, date: dateShort(o.createdAt) })}</span>
+      <span>{t('order.kicker', { number: o.number, date: date(o.createdAt) })}</span>
       <Pill tone="blue">{d.broker.name}</Pill>
     </span>
   );
@@ -443,7 +444,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
               <span className="ico">
                 <Icon as={it.icon} />
               </span>
-              <span style={{ minWidth: 0 }}>
+              <span className="grow">
                 <span className="t">{it.title}</span>
                 <span className="sub">{it.sub}</span>
               </span>
@@ -487,7 +488,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
           )
         }
       />
-      <p className="sales-sub only-phone">{d.houseSale ? t('order.kickerHouse', { number: o.number, date: dateShort(o.createdAt) }) : t('order.kickerPhone', { number: o.number, date: dateShort(o.createdAt), broker: d.broker.name })}</p>
+      <p className="sales-sub only-phone">{d.houseSale ? t('order.kickerHouse', { number: o.number, date: date(o.createdAt) }) : t('order.kickerPhone', { number: o.number, date: date(o.createdAt), broker: d.broker.name })}</p>
 
       {cancelled && (
         <div className="sales-cancelled" role="status">
@@ -532,8 +533,8 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
                 rows={linesByFlavour}
                 columns={[
                   { key: 'f', header: t('order.colFlavour'), render: (l) => flav(l.flavour) },
-                  { key: 'c', header: t('order.colCartons'), type: 'amount', render: (l) => <>{l.deliveredCartons != null && l.deliveredCartons !== l.cartons ? `${num(l.deliveredCartons)} / ${num(l.cartons)}` : num(l.cartons)}</> },
-                  { key: 'u', header: t('order.colUnits'), type: 'amount', render: (l) => num(l.units) },
+                  { key: 'c', header: t('order.colCartons'), type: 'count', render: (l) => <>{l.deliveredCartons != null && l.deliveredCartons !== l.cartons ? `${num(l.deliveredCartons)} / ${num(l.cartons)}` : num(l.cartons)}</> },
+                  { key: 'u', header: t('order.colUnits'), type: 'count', render: (l) => num(l.units) },
                   { key: 'p', header: t('order.colPrice'), type: 'amount', render: (l) => unit(l.unitPriceCents) },
                   { key: 't', header: t('order.colLine'), type: 'amount', render: (l) => money(l.lineNetCents) },
                 ]}

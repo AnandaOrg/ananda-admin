@@ -13,6 +13,7 @@ import { NewPurchaseSheet } from '../_components/NewPurchaseSheet';
 import { useKindLabel, useMonthName } from '../_components/PurchaseStatus';
 import { RecordPaymentSheet } from '../_components/RecordPaymentSheet';
 import type { Payable } from '../_lib/types';
+import css from '../purchasing.module.css';
 
 interface PayableList {
   items: Payable[];
@@ -76,7 +77,7 @@ export default function PayablesPage() {
       ),
     },
     { key: 'for', header: t('payables.cols.for'), render: forLabel },
-    { key: 'due', header: t('payables.cols.due'), render: (p) => (p.stillToPayCents > 0 ? <span className={`nowrap ${p.overdue ? 'bad' : ''}`}>{date(p.dueOn)}</span> : t('payables.status.paid')) },
+    { key: 'due', header: t('payables.cols.due'), type: 'date', render: (p) => (p.stillToPayCents > 0 ? <span className={p.overdue ? 'bad' : ''}>{date(p.dueOn)}</span> : t('payables.status.paid')) },
     { key: 'amount', header: t('payables.cols.amount'), type: 'amount', render: (p) => <bdi>{money(p.stillToPayCents)}</bdi> },
     { key: 'act', header: <span className="sr-only">{t('pay.title')}</span>, type: 'amount', render: action },
   ];
@@ -121,17 +122,17 @@ export default function PayablesPage() {
       ) : (
         <>
           <Card flush className="only-wide">
-            <Table columns={columns} rows={rows} rowKey={(p) => p.id} />
+            <Table columns={columns} rows={rows} rowKey={(p) => p.id} picker={{ id: 'payables', locked: ['party', 'amount', 'act'], defaults: ['due'], priority: ['due', 'for'] }} />
             <TableFoot>{t('payables.foot')}</TableFoot>
           </Card>
           <div className="list-cards only-phone">
             {rows.map((p) => (
-              <div key={p.id} className="an-card" style={{ gap: 'var(--space-1)', padding: 'var(--space-4)' }}>
+              <div key={p.id} className={`an-card ${css.payCard}`}>
                 <div className="row between">
-                  <b style={{ fontWeight: 500 }}>
+                  <b className="strong">
                     <bdi>{p.party}</bdi>
                   </b>
-                  <b style={{ fontWeight: 500 }}>
+                  <b className="strong">
                     <bdi>{money(p.stillToPayCents)}</bdi>
                   </b>
                 </div>
@@ -147,7 +148,7 @@ export default function PayablesPage() {
                   </span>
                   <span className={p.overdue ? 'bad' : 'muted'}>{p.stillToPayCents > 0 ? t('payables.dueOn', { date: date(p.dueOn) }) : t('payables.status.paid')}</span>
                 </div>
-                {(p.stillToPayCents > 0 ? canPay : true) && <div style={{ marginTop: 'var(--space-2)' }}>{action(p)}</div>}
+                {(p.stillToPayCents > 0 ? canPay : true) && <div className={css.payAction}>{action(p)}</div>}
               </div>
             ))}
           </div>

@@ -43,7 +43,7 @@ export default function CustomersPage() {
   const params = useSearchParams();
   const phone = useMedia('(max-width: 767px)');
   const { canEdit, isBroker, isAdmin } = useSession();
-  const { money, date, dateShort } = useFmt();
+  const { money, date } = useFmt();
   const [filter, setFilter] = useState<Filter>((params.get('filter') as Filter) ?? 'all');
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(params.get('new') === '1' || params.get('add') === '1');
@@ -63,8 +63,8 @@ export default function CustomersPage() {
 
   const brokerName = (c: CustomerRow) => (c.status === 'free_to_claim' || !c.brokerName ? t('noBroker') : c.brokerName);
   const ownsUntil = (c: CustomerRow) =>
-    c.status === 'needs_approval' || c.status === 'draft' ? t('onApproval') : c.status === 'free_to_claim' && c.ownedUntil ? t('freeSince', { date: dateShort(c.ownedUntil) }) : c.ownedUntil ? date(c.ownedUntil) : '—';
-  const lastOrder = (c: CustomerRow) => (c.lastOrderAt ? dateShort(c.lastOrderAt) : t('neverOrdered'));
+    c.status === 'needs_approval' || c.status === 'draft' ? t('onApproval') : c.status === 'free_to_claim' && c.ownedUntil ? t('freeSince', { date: date(c.ownedUntil) }) : c.ownedUntil ? date(c.ownedUntil) : '—';
+  const lastOrder = (c: CustomerRow) => (c.lastOrderAt ? date(c.lastOrderAt) : t('neverOrdered'));
   const status = (c: CustomerRow) => <Pill tone={STATUS_TONE[c.status] ?? 'info'}>{tc(`customerStatus.${c.status}`)}</Pill>;
   const open = (c: CustomerRow) => {
     if (c.status === 'needs_approval' && c.approvalId && isAdmin) return setReview(c.approvalId);
@@ -72,7 +72,7 @@ export default function CustomersPage() {
     router.push(`/customers/${c.id}`);
   };
   const requested = (c: CustomerRow) =>
-    c.requestedBy && c.requestedAt ? (c.requestedAt.slice(0, 10) === today ? t('requestedToday', { name: c.requestedBy }) : t('requestedOn', { name: c.requestedBy, date: dateShort(c.requestedAt) })) : null;
+    c.requestedBy && c.requestedAt ? (c.requestedAt.slice(0, 10) === today ? t('requestedToday', { name: c.requestedBy }) : t('requestedOn', { name: c.requestedBy, date: date(c.requestedAt) })) : null;
 
   const columns: Column<CustomerRow>[] = [
     {
@@ -164,7 +164,7 @@ export default function CustomersPage() {
         }
       />
       {phone && <Search phone value={q} onChange={setQ} placeholder={t('searchPlaceholder')} />}
-      <Chips value={filter} onChange={setFilter} fill={false} label={tc('filters')} options={chipKeys.map((f) => ({ value: f, label: t(`filters.${f}`), count: counts?.[f] }))} />
+      <Chips value={filter} onChange={setFilter} label={tc('filters')} options={chipKeys.map((f) => ({ value: f, label: t(`filters.${f}`), count: counts?.[f] }))} />
       <Card flush className="only-wide">
         <Table columns={columns} rows={rows} rowKey={(c) => c.id} onRow={open} picker={{ id: 'customers', locked: ['customer', 'owes', 'status'], priority: ['broker', 'owns', 'last'] }} loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('couldntLoad')} empty={empty} />
         {rows.length > 0 && <div className={s.foot2}>{t('rule', { n: months })}</div>}
@@ -179,7 +179,7 @@ export default function CustomersPage() {
               amount={c.owesCents == null ? '' : money(c.owesCents)}
               sub={
                 <>
-                  {brokerName(c)} · {c.lastOrderAt ? t('lastOrderOn', { date: dateShort(c.lastOrderAt) }) : t('neverOrdered')}
+                  {brokerName(c)} · {c.lastOrderAt ? t('lastOrderOn', { date: date(c.lastOrderAt) }) : t('neverOrdered')}
                 </>
               }
               status={status(c)}
@@ -201,7 +201,7 @@ export default function CustomersPage() {
               </div>
               <div className={s.kv}>
                 <span>{peek.status === 'free_to_claim' ? t('cols.lastOrder') : t('cols.ownsUntil')}</span>
-                <span>{peek.status === 'free_to_claim' ? `${lastOrder(peek)} · ${t('freeSince', { date: dateShort(peek.ownedUntil) }).toLowerCase()}` : ownsUntil(peek)}</span>
+                <span>{peek.status === 'free_to_claim' ? `${lastOrder(peek)} · ${t('freeSince', { date: date(peek.ownedUntil) }).toLowerCase()}` : ownsUntil(peek)}</span>
               </div>
               <div className={s.kv}>
                 <span>{t('cols.owes')}</span>

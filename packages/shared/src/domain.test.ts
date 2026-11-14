@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateOrder, tierFor, commissionFor, exciseCentsForUnits, runway } from './domain.ts';
-import { formatMoney, formatDate } from './format.ts';
+import { formatMoney, formatDate, formatDateShort } from './format.ts';
 
 test('tiers follow the distributor price list', () => {
   assert.equal(tierFor(41), null);
@@ -50,4 +50,6 @@ test('money and dates per language', () => {
   assert.equal(formatMoney(682272, 'bg'), '€6 822,72');
   assert.equal(formatDate('2026-11-03', 'en'), '3 Nov 2026');
   assert.equal(formatDate('2026-11-03', 'bg'), '03.11.2026');
+  assert.equal(formatDateShort('2026-11-03', 'bg'), '03.11.26');
+  assert.equal(formatDateShort('2026-11-03', 'en'), '3 Nov');
 });

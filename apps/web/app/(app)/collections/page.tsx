@@ -1,32 +1,39 @@
 'use client';
 
 import Link from 'next/link';
+import s from './collections.module.css';
 import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import type { OrderStatus } from '@ananda/shared';
 import { api, qs } from '@/lib/api';
-import { useFmt } from '@/lib/format';
+import { useFmt, iso } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { useAction } from '@/lib/hooks';
 import {
-  Banner,
+  ActionError,
   Button,
+  Sheet,
+  Table,
+  TABLE_PICKERS,
+  type Column,
+  Bell,
   CaretDown,
+  EnvelopeSimple,
+  Phone,
+  RowActions,
   CaretRight,
   Card,
   Chips,
   DownloadSimple,
   EmptyState,
-  EnvelopeSimple,
   ErrorState,
   Icon,
   MenuButton,
   Money,
   PageHeader,
   PageSkeleton,
-  Phone,
   Pill,
   SelectPill,
   Skeleton,
@@ -76,7 +83,7 @@ function Tile({ label, value, sub, bad, onClick }: { label: string; value: React
     </>
   );
   return onClick ? (
-    <button type="button" className="an-kpi clk" onClick={onClick} style={{ textAlign: 'start', font: 'inherit', color: 'inherit' }}>
+    <button type="button" className={`an-kpi clk ${s.tileBtn}`} onClick={onClick}>
       {body}
     </button>
   ) : (
@@ -93,56 +100,71 @@ function useReminder(row: Row, copyBroker: boolean, onDone: () => void) {
     if (draft.data && text === null) setText(draft.data.message);
   }, [draft.data, text]);
   const send = useAction(() => api.post(`/collections/${row.orderId}/reminder`, { subject: draft.data!.subject, message: text ?? '' }), {
-    success: copyBroker ? t('reminderSent', { name: row.customerName, broker: first(row.brokerName) }) : t('reminderSentNoCopy', { name: row.customerName }),
+    success: copyBroker ? t('reminderSent', { name: iso(row.customerName), broker: iso(first(row.brokerName)) }) : t('reminderSentNoCopy', { name: iso(row.customerName) }),
     onDone,
   });
   return { draft, text, setText, send };
 }
 
-function DraftBox({ row, copyBroker, onDone, phone }: { row: Row; copyBroker: boolean; onDone: () => void; phone?: boolean }) {
+/** Row actions as one menu: Get in touch with Call, Email and Remind (every width). */
+function GetInTouch({ row, onRemind, block }: { row: Row; onRemind: () => void; block?: boolean }) {
+  const t = useTranslations('collections');
+  const tc = useTranslations('common');
+  return (
+    <RowActions
+      label={t('getInTouch')}
+      block={block}
+      size={block ? 'md' : 'sm'}
+      actions={[
+        { key: 'call', label: tc('call'), icon: Phone, href: telHref(row.phone) },
+        { key: 'email', label: t('emailAction'), icon: EnvelopeSimple, href: `mailto:${row.email}` },
+        { key: 'remind', label: t('remindAction'), icon: Bell, onSelect: onRemind },
+      ]}
+    />
+  );
+}
+
+/** The reminder, read and edited in a Sheet before it goes out. The broker is copied (FR-COLL-3). */
+function ReminderSheet({ row, copyBroker, onDone }: { row: Row; copyBroker: boolean; onDone: () => void }) {
   const t = useTranslations('collections');
   const tc = useTranslations('common');
   const { draft, text, setText, send } = useReminder(row, copyBroker, onDone);
-  if (draft.error) return <ErrorState error={draft.error} retry={() => draft.refetch()} />;
-  const box =
-    text === null ? (
-      <Skeleton h={phone ? 76 : 40} />
-    ) : (
-      <textarea
-        className="an-area"
-        dir="auto"
-        aria-label={t('draftLabel', { email: draft.data?.to ?? '' })}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={phone ? 5 : 2}
-        style={{ minHeight: 0 }}
-      />
-    );
-  const buttons = (
-    <>
-      <Button size={phone ? 'md' : 'sm'} onClick={onDone} style={phone ? { flex: '1 1 0' } : undefined}>
-        {tc('discard')}
-      </Button>
-      <Button size={phone ? 'md' : 'sm'} variant="primary" busy={send.busy} disabled={!text?.trim()} onClick={() => send.mutate(undefined)} style={phone ? { flex: '1 1 0' } : undefined}>
-        {t('sendReminder')}
-      </Button>
-    </>
-  );
   return (
-    <div className="stack tight">
-      {phone ? (
+    <Sheet
+      open
+      onClose={onDone}
+      dirty={text !== null && text !== draft.data?.message}
+      title={t('sendReminder')}
+      sub={
         <>
-          {box}
-          <div className="row">{buttons}</div>
+          {row.customerName} · <bdi>{row.number}</bdi>
         </>
+      }
+      footer={
+        <>
+          <ActionError action={send} />
+          <div className={s.sheetBtns}>
+            <Button onClick={onDone} className={s.share}>
+              {tc('discard')}
+            </Button>
+            <Button variant="primary" className={s.share} busy={send.busy} disabled={!text?.trim()} onClick={() => send.mutate(undefined)}>
+              {t('sendReminder')}
+            </Button>
+          </div>
+        </>
+      }
+    >
+      {draft.error ? (
+        <ErrorState error={draft.error} retry={() => draft.refetch()} />
+      ) : text === null ? (
+        <Skeleton h={160} />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 'var(--space-4)', alignItems: 'center' }}>
-          {box}
-          <div className="row">{buttons}</div>
+        <div className="an-field">
+          <label>{t('draftLabel', { email: draft.data?.to ?? '' })}</label>
+          <textarea className={`an-area ${s.draft}`} dir="auto" aria-label={t('draftLabel', { email: draft.data?.to ?? '' })} value={text} onChange={(e) => setText(e.target.value)} rows={8} />
         </div>
       )}
-      {send.errorText && <Banner tone="bad">{send.errorText}</Banner>}
-    </div>
+    </Sheet>
   );
 }
 
@@ -151,7 +173,7 @@ export default function CollectionsPage() {
   const tc = useTranslations('common');
   const params = useSearchParams();
   const { isBroker } = useSession();
-  const { money, num, dateShort } = useFmt();
+  const { money, date, num } = useFmt();
   const initial = params.get('filter');
   const [filter, setFilter] = useState<Filter>(initial === 'week' || initial === 'all' ? initial : 'late');
   const [brokerId, setBrokerId] = useState<string | null>(params.get('brokerId'));
@@ -177,8 +199,42 @@ export default function CollectionsPage() {
   const brokerLabel = broker?.name ?? t('allBrokers');
 
   const when = (r: Row) =>
-    r.daysLate > 0 ? <Pill tone="bad">{tc('daysLate', { n: r.daysLate })}</Pill> : r.paymentDueOn ? <Pill tone="warn">{t('dueOn', { date: dateShort(r.paymentDueOn) })}</Pill> : null;
+    r.daysLate > 0 ? <Pill tone="bad">{tc('daysLate', { n: r.daysLate })}</Pill> : r.paymentDueOn ? <Pill tone="warn">{t('dueOn', { date: date(r.paymentDueOn) })}</Pill> : null;
   const toggle = (r: Row) => setOpen(open === r.orderId ? null : r.orderId);
+
+  const sheetRow = items.find((r) => r.orderId === open) ?? null;
+  const columns: Column<Row>[] = [
+    {
+      key: 'customer',
+      header: t('cols.customer'),
+      render: (r) => (
+        <>
+          <Link href={`/customers/${r.customerId}`} className="nm">
+            {r.customerName}
+          </Link>
+          <span className="sb">
+            <Link href={`/sales/${r.orderId}`}>
+              <bdi>{r.number}</bdi>
+            </Link>
+          </span>
+        </>
+      ),
+    },
+    ...(showBroker ? [{ key: 'broker', header: tc('broker'), render: (r: Row) => r.brokerName } as Column<Row>] : []),
+    { key: 'amount', header: tc('amount'), type: 'amount', render: (r) => <bdi>{money(r.outstandingCents)}</bdi> },
+    { key: 'when', header: t('cols.when'), type: 'status', render: (r) => when(r) },
+    {
+      key: 'actions',
+      header: <span className="sr-only">{t('cols.actions')}</span>,
+      type: 'amount',
+      render: (r) =>
+        r.remindedToday ? (
+          <span className={`body-sm ${s.sent}`}>{copyBroker ? t('sentToday', { name: first(r.brokerName) }) : t('sentTodayNoCopy')}</span>
+        ) : (
+          <GetInTouch row={r} onRemind={() => toggle(r)} />
+        ),
+    },
+  ];
 
   const kicker = empty ? t('nothingUnpaid') : isBroker ? t('kickerOwn', { n: tiles.allCount }) : t('kicker', { n: tiles.allCount, who: broker?.name ?? t('everyBroker') });
   const allSub = broker && tiles.everyCents != null ? t('tiles.share', { name: first(broker.name), total: money(tiles.everyCents, true) }) : t('tiles.sameAsOverview');
@@ -218,21 +274,22 @@ export default function CollectionsPage() {
         )}
       </div>
       {/* Phone tiles: three compact figures in one row. */}
-      <div className="only-phone" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--space-2)' }}>
+      <div className={`only-phone ${s.tiles3}`}>
         {[
           { k: 'late', label: t('tiles.late'), v: empty ? num(0) : money(tiles.lateCents, true), bad: !empty && tiles.lateCents > 0, go: () => pick('late') },
           { k: 'week', label: t('tiles.weekShort'), v: empty ? num(0) : money(tiles.dueWeekCents, true), go: () => pick('week') },
           { k: 'all', label: t('tiles.all'), v: empty ? num(0) : money(tiles.allCents, true), go: () => pick('all') },
         ].map((x) => (
-          <button key={x.k} type="button" className="an-kpi clk" onClick={empty ? undefined : x.go} style={{ padding: 'var(--space-3)', textAlign: 'start', font: 'inherit', color: 'inherit', minWidth: 0 }}>
+          <button key={x.k} type="button" className={`an-kpi clk ${s.tile}`} onClick={empty ? undefined : x.go}>
             <span className="caption muted">{x.label}</span>
-            <bdi className="body-lg tnum" style={{ color: x.bad ? 'var(--bad)' : undefined, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <bdi className={`body-lg tnum ${s.tileV} ${x.bad ? s.bad : ''}`}>
               {x.v}
             </bdi>
           </button>
         ))}
       </div>
 
+      {sheetRow && <ReminderSheet row={sheetRow} copyBroker={copyBroker} onDone={() => setOpen(null)} />}
       {empty ? (
         <Card>
           <EmptyState icon={Money} title={t('empty.title')} text={t('empty.text')} />
@@ -240,7 +297,6 @@ export default function CollectionsPage() {
       ) : (
         <>
           <Chips
-            fill={false}
             label={tc('nav.collections')}
             value={filter}
             onChange={pick}
@@ -251,12 +307,12 @@ export default function CollectionsPage() {
             ]}
           />
           {showBroker && (
-            <div className="only-phone" style={{ display: 'grid' }}>
+            <div className={`only-phone ${s.pickGrid}`}>
               <MenuButton
                 align="start"
                 items={brokerItems}
                 trigger={({ open: o, toggle: tg, ref }) => (
-                  <button ref={ref} type="button" className="an-input an-dd" aria-expanded={o} aria-haspopup="menu" aria-label={`${tc('broker')}: ${brokerLabel}`} onClick={tg} style={{ minHeight: 44 }}>
+                  <button ref={ref} type="button" className={`an-input an-dd ${s.dd}`} aria-expanded={o} aria-haspopup="menu" aria-label={`${tc('broker')}: ${brokerLabel}`} onClick={tg}>
                     <span>{brokerLabel}</span>
                     <Icon as={CaretDown} size="sm" />
                   </button>
@@ -266,85 +322,22 @@ export default function CollectionsPage() {
           )}
 
           <Card flush className="only-wide">
-            <div className="tbl-wrap">
-              <table className="an-tbl">
-                <thead>
-                  <tr>
-                    <th>{t('cols.customer')}</th>
-                    {showBroker && <th>{tc('broker')}</th>}
-                    <th className="amt">{tc('amount')}</th>
-                    <th>{t('cols.when')}</th>
-                    <th className="amt">
-                      <span className="sr-only">{t('cols.actions')}</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.length === 0 && (
-                    <tr>
-                      <td colSpan={showBroker ? 5 : 4} className="muted">
-                        {broker ? t('nothingFor', { name: broker.name }) : t('nothingHere')}
-                      </td>
-                    </tr>
-                  )}
-                  {items.map((r) => (
-                    <Fragment key={r.orderId}>
-                      <tr>
-                        <td>
-                          <Link href={`/customers/${r.customerId}`} className="nm">
-                            {r.customerName}
-                          </Link>
-                          <span className="sb">
-                            <Link href={`/sales/${r.orderId}`}>
-                              <bdi>{r.number}</bdi>
-                            </Link>
-                          </span>
-                        </td>
-                        {showBroker && <td>{r.brokerName}</td>}
-                        <td className="amt">
-                          <bdi>{money(r.outstandingCents)}</bdi>
-                        </td>
-                        <td>{when(r)}</td>
-                        <td className="amt">
-                          {open === r.orderId ? (
-                            <span className="body-sm muted">{t('draftBelow')}</span>
-                          ) : r.remindedToday ? (
-                            <span className="body-sm" style={{ color: 'var(--good)' }}>
-                              {copyBroker ? t('sentToday', { name: first(r.brokerName) }) : t('sentTodayNoCopy')}
-                            </span>
-                          ) : (
-                            <span className="row end">
-                              <a className="an-btn secondary sm" href={telHref(r.phone)}>
-                                <Phone className="an-ic sm" aria-hidden /> {tc('call')}
-                              </a>
-                              <Button size="sm" icon={EnvelopeSimple} onClick={() => toggle(r)}>
-                                {t('remind')}
-                              </Button>
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                      {open === r.orderId && (
-                        <tr>
-                          <td colSpan={showBroker ? 5 : 4}>
-                            <DraftBox row={r} copyBroker={copyBroker} onDone={() => setOpen(null)} />
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="caption muted" style={{ padding: 'var(--space-4) var(--card-padding)', borderBlockStart: '1px solid var(--line)' }}>
-              {copyBroker ? t('foot') : t('footNoCopy')}
-            </div>
+            <Table
+              columns={columns}
+              rows={items}
+              rowKey={(r) => r.orderId}
+              picker={TABLE_PICKERS.collections}
+              error={q.error}
+              onRetry={() => q.refetch()}
+              empty={<span className="muted">{broker ? t('nothingFor', { name: broker.name }) : t('nothingHere')}</span>}
+            />
+            <div className={`caption muted ${s.foot}`}>{copyBroker ? t('foot') : t('footNoCopy')}</div>
           </Card>
 
           <div className="list-cards only-phone">
             {items.length === 0 && <span className="body-sm muted">{broker ? t('nothingFor', { name: broker.name }) : t('nothingHere')}</span>}
             {items.map((r) => (
-              <div key={r.orderId} className="an-card" style={{ gap: 'var(--space-1)' }}>
+              <div key={r.orderId} className={`an-card ${s.cardGap}`}>
                 <div className="row between">
                   <Link href={`/sales/${r.orderId}`} className="strong">
                     {r.customerName}
@@ -358,20 +351,13 @@ export default function CollectionsPage() {
                   </span>
                   {when(r)}
                 </div>
-                {open === r.orderId ? (
-                  <DraftBox row={r} copyBroker={copyBroker} phone onDone={() => setOpen(null)} />
-                ) : r.remindedToday ? (
-                  <span className="body-sm" style={{ color: 'var(--good)' }}>
+                {r.remindedToday ? (
+                  <span className={`body-sm ${s.sent}`}>
                     {copyBroker ? t('sentTodayCard', { name: first(r.brokerName) }) : t('sentTodayCardNoCopy')}
                   </span>
                 ) : (
-                  <div className="row" style={{ marginBlockStart: 'var(--space-1)' }}>
-                    <a className="an-btn secondary" href={telHref(r.phone)} style={{ flex: '1 1 0' }}>
-                      <Phone className="an-ic sm" aria-hidden /> {tc('call')}
-                    </a>
-                    <Button icon={EnvelopeSimple} onClick={() => toggle(r)} style={{ flex: '1 1 0' }}>
-                      {t('remind')}
-                    </Button>
+                  <div className={`row ${s.cardActs}`}>
+                    <GetInTouch row={r} block onRemind={() => toggle(r)} />
                   </div>
                 )}
               </div>

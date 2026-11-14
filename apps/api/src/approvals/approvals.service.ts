@@ -179,14 +179,20 @@ export class ApprovalsService {
     };
   }
 
+  /** 409 that says who decided and how, so the page can say "Oren already approved this". */
+  private async alreadyDecided(id: string) {
+    const [x] = await this.db.select({ status: approvalRequests.status, by: users.name }).from(approvalRequests).leftJoin(users, eq(users.id, approvalRequests.decidedById)).where(eq(approvalRequests.id, id));
+    return new ConflictException({ message: 'This request was already decided', code: 'conflict', by: x?.by?.split(' ')[0] ?? null, outcome: x?.status ?? null });
+  }
+
   async approve(auth: AuthContext, id: string) {
     const r = await this.get(id);
-    if (r.status !== 'pending') throw new ConflictException({ message: 'This request was already decided' });
+    if (r.status !== 'pending') throw await this.alreadyDecided(r.id);
     let corrected: Awaited<ReturnType<OrdersService['applyCorrection']>> | null = null;
     let label = '';
     await this.db.transaction(async (tx) => {
       const [locked] = await tx.select().from(approvalRequests).where(eq(approvalRequests.id, id)).for('update');
-      if (locked.status !== 'pending') throw new ConflictException({ message: 'This request was already decided' });
+      if (locked.status !== 'pending') throw await this.alreadyDecided(r.id);
       if (r.type === 'new_customer') {
         const [c] = await tx.select().from(customers).where(eq(customers.id, r.customerId!));
         const rules = await this.settings.rules(tx);
@@ -218,12 +224,12 @@ export class ApprovalsService {
 
   async decline(auth: AuthContext, id: string, reason: string, message?: string) {
     const r = await this.get(id);
-    if (r.status !== 'pending') throw new ConflictException({ message: 'This request was already decided' });
+    if (r.status !== 'pending') throw await this.alreadyDecided(r.id);
     let label = '';
     const why = reasonText(r.type, reason);
     await this.db.transaction(async (tx) => {
       const [locked] = await tx.select().from(approvalRequests).where(eq(approvalRequests.id, id)).for('update');
-      if (locked.status !== 'pending') throw new ConflictException({ message: 'This request was already decided' });
+      if (locked.status !== 'pending') throw await this.alreadyDecided(r.id);
       await tx.update(approvalRequests).set({ status: 'declined', decidedById: auth.user.id, decidedAt: new Date(), declineReason: reason, declineMessage: message }).where(eq(approvalRequests.id, id));
       if (r.type === 'new_customer') {
         const [c] = await tx.select().from(customers).where(eq(customers.id, r.customerId!));

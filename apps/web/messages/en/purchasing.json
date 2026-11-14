@@ -1,8 +1,8 @@
 {
   "kicker": "{n, plural, one {# purchase} other {# purchases}} · {s, plural, one {# approved supplier} other {# approved suppliers}}",
-  "searchPlaceholder": "Search purchase or supplier",
+  "searchPlaceholder": "Purchase or supplier",
   "receivedOn": "Received {date}",
-  "unitsShort": "{n} units",
+  "unitsShort": "{n, plural, one {{n} unit} other {{n} units}}",
   "foot": "Landed unit cost (purchase, transport, excise) is worked out when the goods are received and feeds Deal profit.",
   "tabs": {
     "label": "Purchasing pages",
@@ -61,7 +61,7 @@
     "title": "New purchase",
     "cta": "Create purchase",
     "ctaNumber": "Create purchase {number}",
-    "done": "Purchase created and e-mailed to the supplier.",
+    "done": "Purchase created",
     "supplier": "Supplier",
     "supplierPlaceholder": "Choose a supplier",
     "defaultAll": "Default for all four flavours",
@@ -114,7 +114,7 @@
     "onArrival": "Worked out on arrival"
   },
   "lines": {
-    "cartons": "{n} cartons"
+    "cartons": "{n, plural, one {{n} carton} other {{n} cartons}}"
   },
   "costs": {
     "cost": "Cost",
@@ -188,10 +188,10 @@
     "title": "Record payment",
     "cta": "Record payment",
     "ctaPart": "Record part payment",
-    "done": "Payment recorded and logged.",
-    "donePart": "Part payment recorded · {amount} still to pay",
+    "done": "Payment recorded",
+    "donePart": "Part payment recorded",
     "payable": "Payable",
-    "paid": "Paid",
+    "paid": "Marked as paid",
     "due": "Due",
     "stillToPay": "Still to pay",
     "paidOn": "Paid on",
@@ -208,9 +208,9 @@
     "lead": "Goods go into stock and the landed cost is worked out.",
     "cta": "Mark as received",
     "ctaNoInvoice": "Mark as received without invoice",
-    "done": "Received. Stock and landed cost are updated.",
-    "doneNoInvoice": "Received. Add the invoice when it comes.",
-    "doneWaiting": "{n, plural, one {Received. # waiting order can now be allocated.} other {Received. # waiting orders can now be allocated.}}",
+    "done": "Purchase received",
+    "doneNoInvoice": "Purchase received",
+    "doneWaiting": "Purchase received",
     "arrived": "Arrived",
     "counted": "Units counted",
     "countDiffers": "Counted a different number? Enter it per flavour.",
@@ -226,7 +226,7 @@
     "lead": "Goods arrived. Add {supplier}'s invoice so the cost and what you owe are on record.",
     "upload": "Upload invoice",
     "cta": "Save invoice",
-    "done": "Supplier invoice saved on {number}.",
+    "done": "Invoice saved",
     "number": "Invoice number",
     "amountInclVat": "Amount, incl. VAT"
   },
@@ -234,7 +234,7 @@
     "titleNumber": "Freight · {number}",
     "lead": "Transport from {supplier}. Changing it updates the landed unit cost; deals already paid keep the cost they were counted with.",
     "cta": "Save freight",
-    "done": "Freight saved. Landed unit cost recalculated.",
+    "done": "Freight saved",
     "carrier": "Carrier",
     "amount": "Freight, before VAT",
     "upload": "Carrier invoice (optional)",
@@ -243,7 +243,7 @@
   "onTheWay": {
     "title": "Mark as on the way",
     "cta": "Mark as on the way",
-    "done": "Marked as on the way",
+    "done": "Marked on the way",
     "expectedOn": "Expected on",
     "addShipment": "Add the shipment",
     "departOn": "Left on"
@@ -252,7 +252,7 @@
     "title": "Ask supplier",
     "mailTitle": "New e-mail",
     "cta": "Send",
-    "done": "E-mail sent. A copy stays on the purchase.",
+    "done": "E-mail sent",
     "fromNote": "Sent from ANANDA's address. A copy stays on the purchase; if there is no answer, a follow-up shows in Needs attention.",
     "subject": {
       "arrival_date": "Purchase {number} · update",
@@ -267,7 +267,7 @@
   },
   "docs": {
     "uploadDocument": "Upload document",
-    "done": "Document uploaded and kept here.",
+    "done": "Document uploaded",
     "uploadedBy": "Uploaded {date} by {by}"
   },
   "file": {
@@ -318,8 +318,8 @@
     "edit": "Edit supplier",
     "email": "E-mail",
     "createCta": "Add supplier",
-    "created": "Supplier approved. It's now in New purchase.",
-    "saved": "{name} saved",
+    "created": "Supplier approved",
+    "saved": "Supplier saved",
     "allFlavours": "All four",
     "noFlavours": "None",
     "never": "No purchases yet",

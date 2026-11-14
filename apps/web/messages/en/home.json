@@ -4,8 +4,8 @@
   "openOrders": "Open orders",
   "addCustomer": "Add customer",
   "and": "and",
-  "daysLate": "{n} days late",
-  "issuedAll": "{n, plural, one {# invoice issued and e-mailed} other {# invoices issued and e-mailed}}",
+  "daysLate": "{n, plural, one {{n} day} other {{n} days}} late",
+  "issuedAll": "{n, plural, one {# invoice sent} other {# invoices sent}}",
   "tiles": {
     "salesMonth": "Sales this month",
     "confirmed": "confirmed",
@@ -80,14 +80,14 @@
     "newTitle": "Nothing needs you yet",
     "newText": "Late payments, orders to invoice and stock to reorder appear here once you're selling.",
     "overdue": "Overdue invoices",
-    "oldest": "Oldest {n} days",
+    "oldest": "Oldest {n, plural, one {{n} day} other {{n} days}}",
     "delivered_not_invoiced": "Delivered, no invoice yet",
     "fullyPaid": "{n} are fully paid",
     "issueAll": "Issue all {n} paid ones",
     "late_purchases": "Late purchases",
-    "lateSub": "{number} · {n} days late",
+    "lateSub": "{number} · {n, plural, one {{n} day} other {{n} days}} late",
     "reorder": "Flavours to reorder",
-    "monthsLeft": "{n} months left",
+    "monthsLeft": "{n, plural, one {{n} month} other {{n} months}} left",
     "runsOut": "runs out {date}, before a purchase could arrive",
     "waiting_for_stock": "Orders waiting for stock",
     "waitingFor": "Waiting for purchase {number}",
@@ -100,7 +100,7 @@
     "drafts": "Drafts",
     "since": "since {date}",
     "bank_balance": "No bank balance recorded",
-    "bankOld": "Bank balance is {n} days old",
+    "bankOld": "Bank balance is {n, plural, one {{n} day} other {{n} days}} old",
     "lastBalance": "Last recorded {date}",
     "noBalance": "Cash on hand starts from it",
     "record": "Record"
@@ -118,7 +118,7 @@
     "title": "Delivered, no invoice yet · {n}",
     "sub": "Only fully paid orders can be invoiced.",
     "issue": "Issue invoice",
-    "issuedOne": "Invoice issued and e-mailed",
+    "issuedOne": "Invoice sent",
     "invoiced": "Invoiced",
     "paid": "Paid",
     "notPaid": "Not fully paid",
@@ -158,14 +158,14 @@
   "mail": {
     "title": "New e-mail",
     "send": "Send",
-    "sent": "E-mail sent to {name}",
+    "sent": "E-mail sent",
     "note": "Sent from ANANDA's address. A copy is kept in the e-mail log."
   },
   "stock": {
     "title": "Available stock by flavour",
     "aria": "Available stock by flavour, opens Inventory",
     "inventory": "Inventory",
-    "reorder_soon": "Reorder soon",
+    "reorder_soon": "Reorder",
     "reorder_now": "Reorder now",
     "reserved": "Reserved {n}",
     "inTransit": "In transit {n}"
@@ -216,8 +216,8 @@
     "tierChanges": "price tier changes",
     "commissionOf": "{name}'s commission",
     "stock": "Stock",
-    "stockBack": "{n} units go back to available",
-    "stockNeeded": "{n} more units are needed",
+    "stockBack": "{n, plural, one {{n} unit} other {{n} units}} go back to available",
+    "stockNeeded": "{n, plural, one {{n} unit} other {{n} units}} more are needed",
     "replaces": "A corrected proforma replaces the old one; nothing is edited.",
     "after": {
       "new_customer": "{name} is notified and can start the sale.",
@@ -235,7 +235,10 @@
     "reasonNotified": "{name} gets your reason as a notification.",
     "approvedToast": "{name} approved",
     "declinedToast": "{name} declined",
-    "undone": "{name} is waiting for your OK again",
-    "approveFailedFor": "Couldn't approve {name}. Check your connection and try again."
+    "alreadyApprovedBy": "{name} already approved this",
+    "alreadyDeclinedBy": "{name} already declined this",
+    "alreadyDecided": "Someone already decided this",
+    "undone": "Decision undone",
+    "approveFailedFor": "{name} not approved. Try again."
   }
 }

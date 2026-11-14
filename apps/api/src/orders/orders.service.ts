@@ -11,6 +11,8 @@ import {
   addDays,
   addMonths,
   calculateOrder,
+  formatDate,
+  formatMoney,
   isoDate,
   tierFor,
   type CartonsByFlavour,
@@ -1138,8 +1140,8 @@ export function lateDays(dueOn: string | null, outstandingCents: number, status:
   return Math.floor((new Date(today).getTime() - new Date(dueOn).getTime()) / 86_400_000);
 }
 
-function money(cents: number) {
-  return `€${(cents / 100).toFixed(2)}`;
+function money(cents: number, lang: 'en' | 'bg' = 'en') {
+  return formatMoney(cents, lang);
 }
 
 function paymentRequestBody(d: Awaited<ReturnType<DocumentsService['customerDocData']>>) {
@@ -1148,7 +1150,7 @@ function paymentRequestBody(d: Awaited<ReturnType<DocumentsService['customerDocD
       `Здравейте, ${d.customer.contactName},`,
       '',
       `Изпращаме проформа ${d.number} за поръчка ${d.orderNumber}.`,
-      `Сума с ДДС: ${money(d.totalCents)}. Плащане до ${d.dueOn}.`,
+      `Сума с ДДС: ${money(d.totalCents, 'bg')}. Плащане до ${formatDate(d.dueOn, 'bg')}.`,
       `IBAN ${d.bank.iban} · BIC ${d.bank.bic} · Основание: ${d.number}`,
       '',
       'Изпращаме стоката след получаване на пълното плащане.',
@@ -1160,7 +1162,7 @@ function paymentRequestBody(d: Awaited<ReturnType<DocumentsService['customerDocD
     `Hello ${d.customer.contactName},`,
     '',
     `Please find proforma ${d.number} for order ${d.orderNumber} attached.`,
-    `Total incl. VAT: ${money(d.totalCents)}. Please pay by ${d.dueOn}.`,
+    `Total incl. VAT: ${money(d.totalCents)}. Please pay by ${formatDate(d.dueOn, 'en')}.`,
     `IBAN ${d.bank.iban} · BIC ${d.bank.bic} · Reference: ${d.number}`,
     '',
     'We ship once the full payment has arrived.',
@@ -1173,6 +1175,6 @@ function invoiceBody(d: Awaited<ReturnType<DocumentsService['customerDocData']>>
   const bg = d.language === 'bg';
   const what = type === 'invoice' ? (bg ? 'фактура' : 'invoice') : bg ? 'кредитно известие' : 'credit note';
   return bg
-    ? [`Здравейте, ${d.customer.contactName},`, '', `Прилагаме ${what} ${d.number} за поръчка ${d.orderNumber}: ${money(d.totalCents)} с ДДС.`, '', d.company.name].join('\n')
+    ? [`Здравейте, ${d.customer.contactName},`, '', `Прилагаме ${what} ${d.number} за поръчка ${d.orderNumber}: ${money(d.totalCents, 'bg')} с ДДС.`, '', d.company.name].join('\n')
     : [`Hello ${d.customer.contactName},`, '', `Please find ${what} ${d.number} for order ${d.orderNumber} attached: ${money(d.totalCents)} incl. VAT.`, '', d.company.name].join('\n');
 }

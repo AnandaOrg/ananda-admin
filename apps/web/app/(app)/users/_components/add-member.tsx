@@ -133,7 +133,7 @@ export function AddMemberSheet({ open, onClose, roles, validityDays }: { open: b
           </Button>
         </div>
         <div className={`${css.draft} ${polished ? css.draftOn : ''}`}>
-          <span className="muted caption">{t('users.add.subjectLine', { subject })}</span>
+          <span className="muted caption">{t('users.add.subjectLine', { subject: `\u2066${subject}\u2069` })}</span>
           <textarea
             id="invite-letter"
             className={css.draftText}

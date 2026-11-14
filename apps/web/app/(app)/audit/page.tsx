@@ -30,6 +30,7 @@ import {
   Search,
   SelectPill,
   Sheet,
+  SkeletonRows,
   Switch,
   Users,
 } from '@/components/ui';
@@ -135,7 +136,7 @@ export default function AuditPage() {
 
   const time = (at: string) => new Intl.DateTimeFormat(locale === 'bg' ? 'bg-BG' : locale === 'he' ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit' }).format(new Date(at));
   const dayLabel = (d: string, short = false) => {
-    const txt = short ? dayRangeLabel(d, d, locale).replace(/\s\d{4}$|\.\d{4}$/, '') : date(d);
+    const txt = short ? dayRangeLabel(d, d, locale).replace(/\s\d{4}$|\.\d{2,4}$/, '') : date(d);
     return d === today ? t('audit.todayGroup', { date: txt }) : txt;
   };
   const roleName = (r: Person['role'] | AuditEntry['actorRole']) => (r ? (r.isSystem && t.has(`roles.names.${r.key}`) ? t(`roles.names.${r.key}`) : (r.name ?? '')) : '');
@@ -246,18 +247,16 @@ export default function AuditPage() {
                   {t('audit.col.time')}
                 </th>
                 <th scope="col">{t('audit.col.who')}</th>
-                <th scope="col">{t('audit.col.what')}</th>
+                <th scope="col" className="c-main">
+                  {t('audit.col.what')}
+                </th>
                 <th scope="col">{t('audit.col.record')}</th>
                 <th scope="col" className={css.chev} aria-hidden />
               </tr>
             </thead>
             <tbody>
               {list.isLoading ? (
-                <tr>
-                  <td colSpan={5} className="muted">
-                    {tc('loading')}
-                  </td>
-                </tr>
+                <SkeletonRows cells={['text', 'text', 'text', 'status', 'empty']} />
               ) : list.error ? (
                 <tr className="err-row">
                   <td colSpan={5}>
@@ -287,7 +286,7 @@ export default function AuditPage() {
                             {e.actorName ?? t('audit.system')}
                             {e.actorRole && <span className="sb">{roleName(e.actorRole)}</span>}
                           </td>
-                          <td>
+                          <td className="c-main">
                             <bdi>{f.sentence(e)}</bdi>
                             {ba && (
                               <span className={`sb ${css.ba}`}>
@@ -295,7 +294,7 @@ export default function AuditPage() {
                               </span>
                             )}
                           </td>
-                          <td>{typePill(e)}</td>
+                          <td className="st">{typePill(e)}</td>
                           <td className={css.chev}>
                             <Icon as={CaretRight} size="sm" className="subtle" />
                           </td>

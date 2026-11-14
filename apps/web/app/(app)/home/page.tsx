@@ -34,7 +34,7 @@ import {
   Pill,
   Plus,
   Sheet,
-  StockBars,
+  FlavourStock,
   Tag,
   TrendDown,
   Truck,
@@ -65,14 +65,14 @@ export default function HomePage() {
   const phone = useMedia('(max-width: 767px)');
   const { isBroker, can, canView, canEdit, isWarehouse } = useSession();
   const { day } = useAsOf();
-  const { money, num, dateShort } = useFmt();
+  const { money, date, num } = useFmt();
   const [panel, setPanel] = useState<Panel>(null);
   const [adding, setAdding] = useState(false);
   const [selling, setSelling] = useState(false);
   const [mail, setMail] = useState<{ brokerId: string; brokerName: string; brokerEmail?: string | null; subject: string; body: string } | null>(null);
   const review = params.get('review');
   const home = useQuery({ queryKey: ['home', day], queryFn: () => api.get<HomeData>('/home') });
-  const { approve, undo } = useDecision();
+  const { approve, undo } = useDecision(undefined, true);
 
   useEffect(() => {
     if (isWarehouse) router.replace('/warehouse');
@@ -121,7 +121,7 @@ export default function HomePage() {
         <span className={`${s.ico} ${decided ? '' : s.y}`}>
           <Icon as={ICON[r.kind]} />
         </span>
-        <div style={{ minWidth: 0 }}>
+        <div className="grow">
           <div className={s.t1}>
             {title}
             {decided ? <Pill tone={r.status === 'approved' ? 'good' : 'bad'}>{r.status === 'approved' ? t('ok.approved') : t('ok.declined')}</Pill> : <Pill tone="blue">{r.brokerName}</Pill>}
@@ -185,7 +185,7 @@ export default function HomePage() {
         if (!f) return null;
         const rest = items.length > 1 ? ` +${items.length - 1}` : '';
         return f.status === 'reorder_now' && f.runsOutOn
-          ? `${f.flavour.toUpperCase()}${rest} · ${t('attention.runsOut', { date: dateShort(f.runsOutOn) })}`
+          ? `${f.flavour.toUpperCase()}${rest} · ${t('attention.runsOut', { date: date(f.runsOutOn) })}`
           : `${f.flavour.toUpperCase()}${rest} · ${t('attention.monthsLeft', { n: num(Math.round(f.monthsLeft ?? 0)) })}`;
       }
       case 'waiting_for_stock':
@@ -195,9 +195,9 @@ export default function HomePage() {
         return n.length <= 2 ? n.join(` ${t('and')} `) : t('attention.andMore', { list: n.slice(0, 2).join(', '), n: n.length - 2 });
       }
       case 'drafts':
-        return a.oldest ? `${a.oldest.customerName ?? '—'} · ${t('attention.since', { date: dateShort(a.oldest.createdAt) })}` : null;
+        return a.oldest ? `${a.oldest.customerName ?? '—'} · ${t('attention.since', { date: date(a.oldest.createdAt) })}` : null;
       case 'bank_balance':
-        return a.detail ? t('attention.lastBalance', { date: dateShort(a.detail) }) : t('attention.noBalance');
+        return a.detail ? t('attention.lastBalance', { date: date(a.detail) }) : t('attention.noBalance');
       default:
         return null;
     }
@@ -414,12 +414,13 @@ export default function HomePage() {
       </span>
       <span className="stock-grid">
         {d.stock.map((st) => (
-          <StockBars
+          <FlavourStock
             key={st.flavour}
             flavour={st.flavour}
             value={st.available}
             max={maxFor(st)}
-            badge={st.status !== 'ok' ? <Pill tone={st.status === 'reorder_now' ? 'bad' : 'warn'}>{t(`stock.${st.status}`)}</Pill> : undefined}
+            low={st.status === 'reorder_soon'}
+            badge={st.status === 'reorder_now' ? <Pill tone="bad">{t('stock.reorder_now')}</Pill> : undefined}
             detail={
               phone ? (
                 <>
@@ -466,7 +467,7 @@ export default function HomePage() {
         return (
           <div key={st.key} className={`${s.ar} ${st.done ? s.dashed : ''}`}>
             <span className={`${s.ico} ${st.done ? '' : s.y}`}>{st.done ? <Icon as={Check} size="sm" /> : <span className={s.stepNo}>{i + 1}</span>}</span>
-            <div style={{ minWidth: 0 }}>
+            <div className="grow">
               <div className={s.t1}>
                 {t(`setup.steps.${st.key}`)}
                 {st.done && <Pill tone="good">{t('setup.done')}</Pill>}
@@ -582,8 +583,8 @@ export default function HomePage() {
     sm.cents === sm.lastYearCents ? t('whatToDo.same', { month: monthName, amount: money(sm.lastYearCents, true) }) : sm.cents > sm.lastYearCents ? t('whatToDo.up', { month: monthName, amount: money(sm.lastYearCents, true) }) : t('whatToDo.down', { month: monthName, amount: money(sm.lastYearCents, true) }),
     lastSaleDays != null && lastSaleDays > 14
       ? sm.couldCloseCents > 0
-        ? t('whatToDo.noSaleReach', { date: dateShort(d.whatToDo.lastSaleAt), amount: money(sm.couldCloseCents, true) })
-        : t('whatToDo.noSale', { date: dateShort(d.whatToDo.lastSaleAt) })
+        ? t('whatToDo.noSaleReach', { date: date(d.whatToDo.lastSaleAt), amount: money(sm.couldCloseCents, true) })
+        : t('whatToDo.noSale', { date: date(d.whatToDo.lastSaleAt) })
       : sm.couldCloseCents > 0
         ? t('whatToDo.reach', { amount: money(sm.couldCloseCents, true) })
         : null,
@@ -613,7 +614,7 @@ export default function HomePage() {
       };
     } else if (st.kind === 'draft' || st.kind === 'send_draft') {
       title = `${st.label} · ${money(st.cents, true)}`;
-      sub = st.kind === 'send_draft' ? t('whatToDo.yourDraft', { date: dateShort(st.since) }) : t('whatToDo.draftOf', { name, date: dateShort(st.since) });
+      sub = st.kind === 'send_draft' ? t('whatToDo.yourDraft', { date: date(st.since) }) : t('whatToDo.draftOf', { name, date: date(st.since) });
       act =
         st.kind === 'send_draft' ? (
           <Link href={st.link} className="an-btn secondary sm keep">
@@ -628,7 +629,7 @@ export default function HomePage() {
                 brokerName: st.brokerName ?? '',
                 brokerEmail: st.brokerEmail,
                 subject: t('whatToDo.draftSubject', { customer: st.label }),
-                body: t('whatToDo.draftBody', { name, customer: st.label, number: st.number ?? '', amount: money(st.cents, true), date: dateShort(st.since) }),
+                body: t('whatToDo.draftBody', { name, customer: st.label, number: st.number ?? '', amount: money(st.cents, true), date: date(st.since) }),
               })
             }
           >
@@ -638,7 +639,7 @@ export default function HomePage() {
     } else {
       icon = ClockCounterClockwise;
       tone = 'info';
-      sub = t('whatToDo.dueReorder', { date: dateShort(st.since) });
+      sub = t('whatToDo.dueReorder', { date: date(st.since) });
       act =
         st.brokerId && !isBroker ? (
           <Button
@@ -649,7 +650,7 @@ export default function HomePage() {
                 brokerName: st.brokerName ?? '',
                 brokerEmail: st.brokerEmail,
                 subject: st.label,
-                body: t('whatToDo.reorderBody', { name, customer: st.label, date: dateShort(st.since) }),
+                body: t('whatToDo.reorderBody', { name, customer: st.label, date: date(st.since) }),
               })
             }
           >

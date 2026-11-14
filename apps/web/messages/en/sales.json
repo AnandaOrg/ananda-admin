@@ -3,7 +3,7 @@
   "kickerOwn": "{n, plural, one {# order} other {# orders}} · your customers",
   "kickerEmpty": "No orders yet",
   "phoneTitle": "Orders",
-  "searchPlaceholder": "Search customer or number",
+  "searchPlaceholder": "Customer or number",
   "searchPhone": "Search orders",
   "noCustomer": "No customer yet",
   "noBroker": "No broker",
@@ -36,6 +36,7 @@
   "cols": {
     "customer": "Customer",
     "broker": "Broker",
+    "ordered": "Ordered",
     "created": "Created",
     "total": "Total incl. VAT",
     "status": "Status"
@@ -85,7 +86,7 @@
     "freeHint": "Free to claim: the broker you pick keeps the customer for 6 months from this order.",
     "houseHint": "A house customer: no broker, no commission.",
     "cartons": "Cartons",
-    "units": "{n} units",
+    "units": "{n, plural, one {{n} unit} other {{n} units}}",
     "minimum": "Minimum {min} cartons. Add {n} more to send it.",
     "price": "Price",
     "priceLine": "{price} a unit · {tier}",
@@ -103,8 +104,8 @@
     "advance": "From 834 cartons this price needs payment in advance or a volume commitment.",
     "saveDraft": "Save draft",
     "send": "Send payment request",
-    "saved": "{number} saved as a draft.",
-    "sent": "{number} sent to {customer}.",
+    "saved": "Draft saved",
+    "sent": "{number} sent",
     "sentCommission": "Commission: {first}.",
     "sentNoCommission": "No commission.",
     "termsKind": {
@@ -133,7 +134,7 @@
     "specialNote": "{n} cartons at a special price of {price} a unit (list price {list}).",
     "phoneLinesFoot": "{c} cartons · {u} units",
     "phoneUnit": "{price} a unit",
-    "phoneCartons": "{n} cartons",
+    "phoneCartons": "{n, plural, one {{n} carton} other {{n} cartons}}",
     "money": "Money",
     "inclVat": "Incl. 20% VAT · {n, plural, one {# carton} other {# cartons}}",
     "customer": "Customer",
@@ -163,7 +164,7 @@
     "cancelledText": "The customer, {broker} and the warehouse were told. Reserved stock went back to available.",
     "cancelledReason": "Reason: {reason}",
     "undo": "Undo",
-    "undone": "{number} is open again.",
+    "undone": "Order reopened",
     "waitingTitle": "Paid, waiting for stock",
     "short": "needs {need} units, {have} available",
     "expected": "expected {date}",
@@ -226,12 +227,12 @@
     "invoiced": "{number} · e-mailed to the customer, the broker, the Admins and the accountant",
     "partOutcome": "Decide on the part delivery",
     "toast": {
-      "paid": "Payment confirmed. The order can go to the warehouse.",
-      "partPaid": "Part payment recorded.",
-      "sentWh": "Sent to the warehouse.",
-      "invoiced": "Invoice {number} issued and e-mailed.",
-      "sent": "Payment request sent to the customer.",
-      "paidAfter": "Payment confirmed. The invoice is paid."
+      "paid": "Payment confirmed",
+      "partPaid": "Payment recorded",
+      "sentWh": "Sent to warehouse",
+      "invoiced": "Invoice {number} sent",
+      "sent": "Request sent",
+      "paidAfter": "Payment confirmed"
     },
     "minimumHalf": "50% now to confirm, the rest before shipping",
     "afterDelivery": "30 days after delivery, on the commercial invoice",
@@ -309,7 +310,7 @@
     "foot": "Sent from ANANDA's address. A copy stays on the order.",
     "discard": "Discard",
     "send": "Send",
-    "sent": "E-mail sent to {to}."
+    "sent": "E-mail sent"
   },
   "upload": {
     "title": "Upload a document",
@@ -331,14 +332,14 @@
     "takePhoto": "Take a photo",
     "chooseFileBtn": "Choose a file",
     "another": "Choose another file",
-    "tooBig": "That file is {size} MB. The limit is 10 MB.",
-    "wrongType": "That's a {kind} file. Use a PDF, JPG, PNG or HEIC.",
-    "wrongTypeAny": "Use a PDF, JPG, PNG or HEIC.",
+    "tooBig": "{size} MB. The limit is 10 MB.",
+    "wrongType": "Only PDF, JPG, PNG or HEIC.",
+    "wrongTypeAny": "Only PDF, JPG, PNG or HEIC.",
     "privacy": "Only you and the Admins see it. The customer doesn't.",
     "cta": "Upload",
     "uploading": "Uploading…",
-    "done": "Uploaded. The Admin is told.",
-    "stopped": "The upload stopped. Check your connection and try again.",
+    "done": "File uploaded",
+    "stopped": "The connection dropped.",
     "needType": "Choose the type",
     "needDescription": "Say what it is",
     "needFile": "Choose a file"
@@ -364,8 +365,8 @@
       "consequenceBroker": "An Admin approves it first. Then the customer gets a corrected proforma and the old one stays in the history.",
       "cta": "Send correction",
       "ctaBroker": "Send for approval",
-      "done": "Corrected proforma {number} sent to the customer.",
-      "doneBroker": "Correction sent for approval."
+      "done": "Correction sent",
+      "doneBroker": "Sent for approval"
     },
     "cancel": {
       "title": "Cancel order",
@@ -385,7 +386,7 @@
       "whyPh": "A short reason",
       "keep": "Keep order",
       "cta": "Cancel order",
-      "done": "{number} cancelled.",
+      "done": "{number} cancelled",
       "textHouse": "The order is closed, reserved stock goes back to available, and the customer and the warehouse are told."
     },
     "credit_note": {
@@ -413,7 +414,7 @@
         "price": "Stock doesn't change."
       },
       "cta": "Issue credit note",
-      "done": "Credit note {number} issued."
+      "done": "Credit note issued"
     },
     "special_price": {
       "title": "Ask for a special price",
@@ -423,7 +424,7 @@
       "priceHelp": "Below the list price. The difference comes out of your commission.",
       "reason": "Reason",
       "reasonHelp": "Why this customer needs it. The Admin sees this.",
-      "done": "Special price sent for approval."
+      "done": "Sent for approval"
     },
     "part_outcome": {
       "title": "Decide on the part delivery",
@@ -436,8 +437,8 @@
       "consequence_credit_note": "The invoice covers the order and a credit note covers the cartons that came back.",
       "consequence_redeliver": "The warehouse delivers the missing cartons again before the invoice.",
       "note": "Note (optional)",
-      "done_credit_note": "The returned cartons will be credited with the invoice.",
-      "done_redeliver": "Sent to the warehouse again."
+      "done_credit_note": "Credit recorded",
+      "done_redeliver": "Sent to warehouse"
     },
     "delete": {
       "title": "Delete draft",
@@ -445,7 +446,7 @@
       "consequence": "The draft is removed. Nothing was sent to the customer.",
       "keep": "Keep draft",
       "cta": "Delete draft",
-      "done": "Draft deleted."
+      "done": "Draft deleted"
     },
     "send_to_warehouse": {
       "cta": "Send to warehouse"

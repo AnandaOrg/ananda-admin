@@ -52,7 +52,7 @@
     "brokersHelp": "Invited brokers see the event and can sell there.",
     "noBrokers": "There are no brokers yet.",
     "create": "Create event",
-    "created": "Event created. Invited brokers are told.",
+    "created": "Event created",
     "namePlaceholder": "e.g. Varna Wine Fair",
     "placePlaceholder": "e.g. Varna, Sea Garden"
   },
@@ -61,6 +61,7 @@
     "moveBack": "Bring stock back",
     "recordSale": "Record sales",
     "stockTitle": "Stock there",
+    "stockEmptyTitle": "No stock there yet",
     "stockEmpty": "No stock at the event. Move cartons here from the warehouse.",
     "moved": "Moved in {c}",
     "sold": "Sold {c}",
@@ -108,8 +109,8 @@
     "total": "{n, plural, one {# carton} other {# cartons}} · {u} units",
     "submitTo": "Move to event",
     "submitBack": "Bring back",
-    "doneTo": "{n, plural, one {# carton} other {# cartons}} moved to {name}",
-    "doneBack": "{n, plural, one {# carton} other {# cartons}} back at the warehouse"
+    "doneTo": "{n, plural, one {# carton} other {# cartons}} moved",
+    "doneBack": "{n, plural, one {# carton} other {# cartons}} returned"
   },
   "sale": {
     "title": "Record sales",
@@ -117,7 +118,7 @@
     "brokerPlaceholder": "Choose a broker",
     "help": "Cartons sold at the event, per flavour. Up to the stock at the event.",
     "submit": "Record sales",
-    "done": "{n, plural, one {# carton} other {# cartons}} recorded for {name} · {amount} commission ready to pay",
+    "done": "Sale recorded",
     "noBrokers": "Invite a broker to the event before recording sales.",
     "amount": "Taken, excl. VAT",
     "amountHelp": "What was taken for these cartons at the event."

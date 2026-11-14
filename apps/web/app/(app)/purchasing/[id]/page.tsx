@@ -38,6 +38,7 @@ import { PurchaseStatusPill } from '../_components/PurchaseStatus';
 import { RecordPaymentSheet } from '../_components/RecordPaymentSheet';
 import { PurchaseSheet, type SheetKey } from './PurchaseSheets';
 import { formWith, type PurchaseDetail, type PurchaseFile } from '../_lib/types';
+import css from '../purchasing.module.css';
 
 interface StepView {
   label: string;
@@ -58,19 +59,19 @@ function Progress({ steps, horizontal }: { steps: StepView[]; horizontal?: boole
             <span className="c">{mark(s, i)}</span>
             <span className="t">{s.label}</span>
             <span className="d">{s.detail}</span>
-            {i === now && s.action && <span style={{ marginTop: 'var(--space-2)' }}>{s.action}</span>}
+            {i === now && s.action && <span className={css.stepAction}>{s.action}</span>}
           </div>
         ))}
       </div>
     );
   return (
-    <ol className="an-steps" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ol className={`an-steps ${css.steps}`}>
       {steps.map((s, i) => (
         <li key={i} className={`an-ps ${s.done ? 'done' : i === now ? 'now' : ''}`} aria-current={i === now ? 'step' : undefined}>
           <span className="c">{mark(s, i)}</span>
           <span className="t">{s.label}</span>
           <span className="d">{s.detail}</span>
-          {i === now && s.action && <span className="d" style={{ marginTop: 'var(--space-2)' }}>{s.action}</span>}
+          {i === now && s.action && <span className={`d ${css.stepAction}`}>{s.action}</span>}
         </li>
       ))}
     </ol>
@@ -140,8 +141,8 @@ export default function PurchasePage() {
 
   const lineCols: Column<PurchaseDetail['lines'][number]>[] = [
     { key: 'flavour', header: tc('flavour'), render: (l) => <FlavourName flavour={l.flavour} /> },
-    { key: 'cartons', header: tc('cartons'), type: 'count', render: (l) => num(l.cartons) },
-    { key: 'units', header: tc('units'), type: 'amount', render: (l) => num(l.unitsReceived ?? l.units) },
+    { key: 'cartons', header: tc('cartons'), type: 'count', render: (l) => <bdi>{num(l.cartons)}</bdi> },
+    { key: 'units', header: tc('units'), type: 'count', render: (l) => <bdi>{num(l.unitsReceived ?? l.units)}</bdi> },
   ];
   const exciseRule = t('costs.exciseRule', { rate: unit(EXCISE_EUR_PER_HL_PURE * 100), litres: num(PACK_LITRES, 2), abv: Math.round(ALCOHOL_BY_VOLUME * 100) });
   type CostRow = { key: string; label: ReactNode; sub?: string; amount: string; strong?: boolean };
@@ -150,7 +151,7 @@ export default function PurchasePage() {
     {
       key: 'freight',
       label: (
-        <span className="row" style={{ gap: 'var(--space-2)' }}>
+        <span className="row">
           {t('costs.freight')}
           {has('freight') && (
             <Button size="sm" writes onClick={() => setSheet('freight')}>
@@ -162,7 +163,7 @@ export default function PurchasePage() {
       amount: money(fig.freightCents),
     },
     { key: 'excise', label: t('costs.exciseAuto'), sub: exciseRule, amount: money(fig.exciseCents) },
-    { key: 'inventory', label: <b style={{ fontWeight: 500 }}>{t('costs.inventory')}</b>, sub: t('costs.vatOnTop', { rate: Math.round(fig.supplierVatRate * 100) || 20 }), amount: money(fig.inventoryCostCents), strong: true },
+    { key: 'inventory', label: <b className="strong">{t('costs.inventory')}</b>, sub: t('costs.vatOnTop', { rate: Math.round(fig.supplierVatRate * 100) || 20 }), amount: money(fig.inventoryCostCents), strong: true },
   ];
   const costCols: Column<CostRow>[] = [
     {
@@ -175,7 +176,7 @@ export default function PurchasePage() {
         </>
       ),
     },
-    { key: 'amount', header: t('costs.beforeVat'), type: 'amount', render: (r) => (r.strong ? <b style={{ fontWeight: 500 }}>{r.amount}</b> : r.amount) },
+    { key: 'amount', header: t('costs.beforeVat'), type: 'amount', render: (r) => (r.strong ? <b className="strong">{r.amount}</b> : r.amount) },
   ];
 
   const waitingCols: Column<PurchaseDetail['waiting'][number]>[] = [
@@ -194,7 +195,7 @@ export default function PurchasePage() {
       ),
     },
     { key: 'broker', header: t('waiting.broker'), render: (o) => <bdi>{o.brokerName ?? '—'}</bdi> },
-    { key: 'cartons', header: tc('cartons'), render: (o) => num(o.cartons) },
+    { key: 'cartons', header: tc('cartons'), type: 'count', render: (o) => <bdi>{num(o.cartons)}</bdi> },
     { key: 'status', header: tc('status'), type: 'status', render: (o) => <Pill tone="mute">{o.since ? t('waiting.since', { date: dateShort(o.since) }) : t('waiting.waiting')}</Pill> },
     { key: 'go', header: <span className="sr-only" />, type: 'amount', render: () => <CaretRight className="an-ic sm subtle" aria-hidden /> },
   ];
@@ -227,8 +228,8 @@ export default function PurchasePage() {
             <span className="ico">
               <Ic className="an-ic" aria-hidden />
             </span>
-            <span style={{ minWidth: 0 }}>
-              <span className="t" style={{ display: 'block', fontWeight: 500 }}>
+            <span className={css.fileText}>
+              <span className={`t ${css.fileTitle}`}>
                 <bdi>{fileTitle(f)}</bdi>
               </span>
               <span className="sub">
@@ -288,19 +289,19 @@ export default function PurchasePage() {
       <PageHeader
         crumbs={[{ label: tc('nav.purchasing'), href: '/purchasing' }, { label: p.number }]}
         kicker={
-          <span className="row between wrap" style={{ gap: 'var(--space-2)' }}>
+          <span className={`row between wrap ${css.kicker}`}>
             <span>
               <bdi>{d.supplier.company}</bdi> · {t('detail.orderedOn', { date: date(p.orderedOn) })}
             </span>
-            <span className="only-phone" style={{ marginInlineStart: 'auto' }}>
+            <span className={`only-phone ${css.startEnd}`}>
               <PurchaseStatusPill p={{ ...p, stillToPayCents: fig.stillToPayCents }} />
             </span>
           </span>
         }
         title={
-          <span className="row" style={{ gap: 'var(--space-3)', alignItems: 'center' }}>
+          <span className={`row ${css.titleRow}`}>
             <bdi>{p.number}</bdi>
-            <span className="only-wide" style={{ display: 'inline-flex' }}>
+            <span className={`only-wide ${css.titleStatus}`}>
               <PurchaseStatusPill p={{ ...p, stillToPayCents: fig.stillToPayCents }} />
             </span>
           </span>
@@ -311,7 +312,7 @@ export default function PurchasePage() {
       {/* ---------- Phone ---------- */}
       <div className="only-phone stack">
         {open && editable && (
-          <div className="row" style={{ gap: 'var(--space-2)' }}>
+          <div className="row">
             {has('ask') && (
               <Button writes icon={EnvelopeSimple} onClick={() => setSheet('ask')} className="grow">
                 {t('ask.title')}
@@ -326,7 +327,7 @@ export default function PurchasePage() {
         )}
         <div className="kpis">
           <KpiTile label={t('tiles.landed')} value={received ? unit(fig.landedUnitCostCents) : t('tiles.onArrival')} sub={received ? t('tiles.landedPhoneSub') : t('steps.onArrival')} />
-          <KpiTile label={t('tiles.stillToPay')} value={<span style={{ color: fig.stillToPayCents > 0 ? 'var(--warn)' : 'var(--good)' }}>{money(fig.stillToPayCents, true)}</span>} sub={fig.stillToPayCents > 0 ? t('tiles.paid', { amount: money(fig.paidCents) }) : t('steps.paidInFull')} />
+          <KpiTile label={t('tiles.stillToPay')} value={<span className={fig.stillToPayCents > 0 ? 'warn' : 'good'}>{money(fig.stillToPayCents, true)}</span>} sub={fig.stillToPayCents > 0 ? t('tiles.paid', { amount: money(fig.paidCents) }) : t('steps.paidInFull')} />
         </div>
         <Card title={<span className="overline">{t('detail.progress')}</span>}>
           <Progress steps={steps} />
@@ -339,9 +340,9 @@ export default function PurchasePage() {
                 <bdi>{r.amount}</bdi>
               </div>
             ))}
-            <div className="row between" style={{ borderTop: '1px solid var(--line)', paddingTop: 'var(--space-2)' }}>
+            <div className={`row between ${css.total}`}>
               <span>{t('costs.inventory')}</span>
-              <b style={{ fontWeight: 500 }}>
+              <b className="strong">
                 <bdi>{money(fig.inventoryCostCents)}</bdi>
               </b>
             </div>
@@ -400,7 +401,7 @@ export default function PurchasePage() {
           <KpiTile label={t('tiles.landed')} value={received ? unit(fig.landedUnitCostCents) : t('tiles.onArrival')} sub={received ? t('tiles.landedSub', { cost: money(fig.inventoryCostCents), n: num(fig.units) }) : t('tiles.landedHow')} />
           <KpiTile label={t('tiles.inventoryCost')} value={money(fig.inventoryCostCents)} sub={t('costs.beforeVat')} />
           <KpiTile label={t('tiles.payable')} value={money(fig.payableCents)} sub={t('tiles.inclVat')} />
-          <KpiTile label={t('tiles.stillToPay')} value={<span style={{ color: fig.stillToPayCents > 0 ? 'var(--warn)' : 'var(--good)' }}>{money(fig.stillToPayCents)}</span>} sub={fig.stillToPayCents > 0 ? t('tiles.paid', { amount: money(fig.paidCents) }) : t('steps.paidInFull')} />
+          <KpiTile label={t('tiles.stillToPay')} value={<span className={fig.stillToPayCents > 0 ? 'warn' : 'good'}>{money(fig.stillToPayCents)}</span>} sub={fig.stillToPayCents > 0 ? t('tiles.paid', { amount: money(fig.paidCents) }) : t('steps.paidInFull')} />
         </div>
         <div className="cols side">
           <div className="stack loose">
@@ -416,15 +417,15 @@ export default function PurchasePage() {
               </Card>
             </div>
             {d.waiting.length > 0 && (
-              <Card flush title={<span className="row" style={{ gap: 'var(--space-2)' }}>{t('detail.waiting')}<Count n={d.waiting.length} tone="r" /></span>}>
+              <Card flush title={<span className="row">{t('detail.waiting')}<Count n={d.waiting.length} tone="r" /></span>}>
                 <Table columns={waitingCols} rows={d.waiting} rowKey={(o) => o.id} onRow={(o) => router.push(`/sales/${o.id}`)} />
                 {waitingNote && (
-                  <div className="body-sm muted" style={{ padding: 'var(--space-3) var(--card-padding) var(--card-padding)' }}>
+                  <div className={`body-sm muted ${css.cardPad}`}>
                     {waitingNote}
                   </div>
                 )}
                 {received && canEdit('inventory') && (
-                  <div style={{ padding: 'var(--space-3) var(--card-padding) var(--card-padding)' }}>
+                  <div className={css.cardPad}>
                     <Link href="/inventory?allocate=1" className="an-btn secondary sm">
                       {t('detail.allocate')}
                     </Link>
@@ -433,7 +434,7 @@ export default function PurchasePage() {
               </Card>
             )}
           </div>
-          <Card title={<span className="row" style={{ gap: 'var(--space-2)', width: '100%', justifyContent: 'space-between' }}>{t('detail.documents')}<Count n={d.files.length} /></span>}>
+          <Card title={<span className={`row ${css.cardTitle}`}>{t('detail.documents')}<Count n={d.files.length} /></span>}>
             <div>{documents()}</div>
           </Card>
         </div>

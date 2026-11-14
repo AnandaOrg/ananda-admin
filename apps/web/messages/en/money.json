@@ -122,7 +122,7 @@
     "title": "Record bank balance",
     "sub": "Cash on hand and the cash forecast start from this figure.",
     "save": "Save balance",
-    "saved": "Bank balance saved. The forecast starts from it.",
+    "saved": "Balance saved",
     "account": "Account",
     "accountHelp": "Add your accounts in Settings › Bank and sign-in to pick them from a list.",
     "date": "Balance on",
@@ -180,7 +180,7 @@
       "attached": "Attached",
       "remove": "Remove",
       "save": "Save expense",
-      "saved": "Expense saved to {month} in Monthly P&L."
+      "saved": "Expense saved"
     },
     "detail": {
       "status": "Status",

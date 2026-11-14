@@ -79,7 +79,7 @@ export function useAuditFormat() {
     if (!e.changes || !Object.keys(e.changes).length) return <span className="subtle">—</span>;
     const list = Object.entries(e.changes).flatMap(([k, c]) => pairs(k, c));
     return (
-      <span className="stack tight" style={{ gap: 2 }}>
+      <span className="stack tight">
         {list.slice(0, 6).map((p, i) => (
           <span key={i} className="body-sm">
             <span className="muted">{p.label}: </span>

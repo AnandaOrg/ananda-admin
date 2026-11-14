@@ -7,10 +7,11 @@ import { isoDate } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Bank, Banner, Button, MoneyField, Select, Sheet, TextField, Totals, TwoStepField } from '@/components/ui';
+import { ActionError, Bank, Button, MoneyField, Select, Sheet, TextField, Totals, TwoStepField } from '@/components/ui';
 import { FilePick } from './FilePick';
 import { useKindLabel, useMonthName } from './PurchaseStatus';
 import { formWith, type Payable } from '../_lib/types';
+import { DateField } from '../../money/_components/date-field';
 
 /**
  * FR-PUR-4 Record payment. A smaller amount than what is left records a part payment.
@@ -83,7 +84,7 @@ export function RecordPaymentSheet({ payable, accounts, onClose }: { payable: Pa
         ]}
         big={[t('pay.stillToPay'), money(payable.stillToPayCents)]}
       />
-      <TextField label={t('pay.paidOn')} type="date" value={paidOn} max={isoDate()} onChange={(e) => setPaidOn(e.target.value)} error={pay.fields.paidOn} />
+      <DateField label={t('pay.paidOn')} value={paidOn} max={isoDate()} onChange={setPaidOn} error={pay.fields.paidOn} />
       <MoneyField key={payable.id} label={tc('amount')} cents={amountCents} onCents={setAmountCents} error={pay.fields.amountCents} help={part ? t('pay.partHelp', { amount: money(payable.stillToPayCents - (amountCents ?? 0)) }) : undefined} />
       {options.length > 0 ? (
         <Select label={t('pay.paidFrom')} value={paidFrom} onChange={(e) => setPaidFrom(e.target.value)} options={options.map((a) => ({ value: a, label: a }))} error={pay.fields.paidFrom} />
@@ -93,7 +94,7 @@ export function RecordPaymentSheet({ payable, accounts, onClose }: { payable: Pa
       <TextField label={t('pay.reference')} value={bankReference} onChange={(e) => setBankReference(e.target.value)} />
       <FilePick label={t('pay.proof')} file={file} onFile={setFile} />
       <TwoStepField value={code} onChange={setCode} error={codeError} />
-      {pay.errorText && !codeError && !Object.keys(pay.fields).length && <Banner tone="bad">{pay.errorText}</Banner>}
+      {!codeError && !Object.keys(pay.fields).length && <ActionError action={pay} />}
     </Sheet>
   );
 }

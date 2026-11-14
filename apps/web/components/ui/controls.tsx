@@ -7,8 +7,7 @@ import { useTranslations } from 'next-intl';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import type { StatusTone } from '@ananda/shared';
 import { useLookingBack } from '@/lib/asof';
-import { useMedia } from '@/lib/media';
-import { CaretDown, Icon, MagnifyingGlass, Minus, Plus } from './icon';
+import { CaretDown, Icon, Info, MagnifyingGlass, Minus, Plus } from './icon';
 
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary';
@@ -27,8 +26,8 @@ type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 /** Spinner in currentColor (busy buttons, toasts in progress). */
-export function Spinner({ size = 16 }: { size?: number }) {
-  return <span className="an-spin" style={{ width: size, height: size }} aria-hidden />;
+export function Spinner({ size = 16 }: { size?: 13 | 16 }) {
+  return <span className={`an-spin ${size === 13 ? 'sm' : ''}`} aria-hidden />;
 }
 
 /** Pill-shaped button. Labels are verbs in sentence case. */
@@ -89,23 +88,21 @@ export function Chips<T extends string>({ options, value, onChange, fill = true,
   }, [options.map((o) => o.label + o.count).join('|')]);
   const text = (o: ChipOption<T>) => (o.count != null ? `${o.label} · ${o.count}` : o.label);
   const cur = options.find((o) => o.value === value) ?? options[0];
-  // Phone: the row scrolls sideways (prototype); desktop and tablet: a dropdown when it doesn't fit.
-  const phone = useMedia('(max-width: 767px)');
   return (
-    <div ref={wrap} className="chips-wrap" style={{ position: 'relative', minWidth: 0 }}>
+    <div ref={wrap} className="chips-wrap">
       {/* Hidden natural-width copy used to measure whether the chips fit; clipped so it adds no width. */}
-      <div aria-hidden style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', visibility: 'hidden', pointerEvents: 'none' }}>
-        <div ref={measure} className="an-chips" style={{ width: 'max-content' }}>
+      <div aria-hidden className="chips-measure">
+        <div ref={measure} className="an-chips">
           {options.map((o) => (
-            <span key={o.value} className="an-chip" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <span key={o.value} className="an-chip">
               {o.label}
               {o.count != null && <span className="c"> · {o.count}</span>}
             </span>
           ))}
         </div>
       </div>
-      {fits || phone ? (
-        <div className={`an-chips ${fill && fits ? 'fill' : ''} ${!fits ? 'scroll' : ''}`} role="group" aria-label={label}>
+      {fits ? (
+        <div className={`an-chips ${fill ? 'fill' : ''}`} role="group" aria-label={label}>
           {options.map((o) => (
             <button key={o.value} type="button" className="an-chip" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
               {o.label}
@@ -181,7 +178,6 @@ export function Stepper({ value, onChange, min = 0, step = 1, max, label }: { va
           if (!Number.isNaN(n)) onChange(clamp(n));
         }}
         onBlur={() => setText(String(value))}
-        style={{ width: 56, height: 'var(--control-sm)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--text)', font: '500 16px/1 var(--font-sans)', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}
       />
       <button type="button" aria-label={`${label} +${step}`} onClick={() => onChange(clamp(value + step))} disabled={max != null && value >= max}>
         <Icon as={Plus} size="sm" />
@@ -376,10 +372,11 @@ export interface MenuItem {
   href?: string;
   disabled?: boolean;
   selected?: boolean;
+  icon?: PhosphorIcon;
 }
 
 /** Floating menu from a trigger; arrows move, Enter picks, Escape closes and returns focus. */
-export function MenuButton({ trigger, items, align = 'end', groups, panel }: { trigger: (p: { open: boolean; toggle: () => void; ref: React.Ref<HTMLButtonElement> }) => ReactNode; items: MenuItem[]; align?: 'start' | 'end'; groups?: never; /** Custom content instead of `items` (stays open on clicks inside). */ panel?: (close: () => void) => ReactNode }) {
+export function MenuButton({ trigger, items, align = 'end', groups, panel, className = '', block }: { /** Extra class on the wrapper. */ className?: string; /** Wrapper and menu fill the container width (phone). */ block?: boolean; trigger: (p: { open: boolean; toggle: () => void; ref: React.Ref<HTMLButtonElement> }) => ReactNode; items: MenuItem[]; align?: 'start' | 'end'; groups?: never; /** Custom content instead of `items` (stays open on clicks inside). */ panel?: (close: () => void) => ReactNode }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
@@ -408,7 +405,7 @@ export function MenuButton({ trigger, items, align = 'end', groups, panel }: { t
   }, [open]);
   void groups;
   return (
-    <span className={`menu-wrap ${align === 'start' ? 'start' : ''}`} ref={wrap}>
+    <span className={`menu-wrap ${align === 'start' ? 'start' : ''} ${block ? 'block' : ''} ${className}`} ref={wrap}>
       {trigger({ open, toggle: () => setOpen((o) => !o), ref: btn })}
       {open && panel && <div className="menu-panel">{panel(() => setOpen(false))}</div>}
       {open && !panel && (
@@ -416,6 +413,7 @@ export function MenuButton({ trigger, items, align = 'end', groups, panel }: { t
           {items.map((it) =>
             it.href ? (
               <a key={it.key} className="an-mi" role="menuitem" href={it.href} aria-selected={it.selected}>
+                {it.icon && <Icon as={it.icon} size="sm" />}
                 {it.label}
                 {it.detail && <small>{it.detail}</small>}
               </a>
@@ -432,6 +430,7 @@ export function MenuButton({ trigger, items, align = 'end', groups, panel }: { t
                   it.onSelect?.();
                 }}
               >
+                {it.icon && <Icon as={it.icon} size="sm" />}
                 {it.label}
                 {it.detail && <small>{it.detail}</small>}
               </button>
@@ -476,4 +475,65 @@ export function Avatar({ name, size }: { name: string; size?: 'lg' }) {
 /** Keeps amounts, codes and Latin names left-to-right inside Hebrew text. */
 export function B({ children }: { children: ReactNode }) {
   return <bdi>{children}</bdi>;
+}
+
+/**
+ * Tooltip (design system): a focusable 28px info target; the box shows on hover or focus, surface-3,
+ * max 360px. Never hide anything needed to finish a task in it.
+ */
+export function Tooltip({ text, children }: { text: string; children?: ReactNode }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const ref = useRef<HTMLSpanElement>(null);
+  const id = useRef(`tip-${Math.random().toString(36).slice(2, 8)}`).current;
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect();
+    if (r) setPos({ x: document.dir === 'rtl' ? window.innerWidth - r.right : r.left, y: r.bottom + 6 });
+  };
+  return (
+    <>
+      <span ref={ref} className="an-tip" tabIndex={0} role="img" aria-label={text} aria-describedby={pos ? id : undefined} onMouseEnter={show} onMouseLeave={() => setPos(null)} onFocus={show} onBlur={() => setPos(null)} onKeyDown={(e) => e.key === 'Escape' && setPos(null)}>
+        {children ?? <Icon as={Info} size="sm" />}
+      </span>
+      {pos &&
+        createPortal(
+          <div id={id} className="an-tipbox pop" role="tooltip" style={{ top: pos.y, insetInlineStart: Math.max(8, pos.x) }}>
+            {text}
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+export interface RowAction {
+  key: string;
+  label: string;
+  icon?: PhosphorIcon;
+  onSelect?: () => void;
+  href?: string;
+  disabled?: boolean;
+}
+
+/**
+ * Row actions (design system): when a row has several actions, ONE secondary button with a chevron
+ * opens them in a menu (Get in touch: Call, Email, Remind). `label` is the button text.
+ * `block` makes it fill its container (phone). Stops the click reaching a clickable row.
+ */
+export function RowActions({ label, actions, size = 'sm', block, align = 'end', className = '' }: { label: string; actions: RowAction[]; size?: 'sm' | 'md' | 'lg'; block?: boolean; align?: 'start' | 'end'; className?: string }) {
+  return (
+    <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} className={block ? 'row-actions block' : 'row-actions'}>
+      <MenuButton
+        align={align}
+        block={block}
+        className={className}
+        items={actions.map((a) => ({ key: a.key, label: a.label, icon: a.icon, onSelect: a.onSelect, href: a.href, disabled: a.disabled }))}
+        trigger={({ open, toggle, ref }) => (
+          <button ref={ref} type="button" className={`an-btn secondary ${size === 'md' ? '' : size} ${block ? 'block' : ''}`} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
+            {label}
+            <Icon as={CaretDown} size="sm" />
+          </button>
+        )}
+      />
+    </span>
+  );
 }

@@ -21,14 +21,14 @@ export default function ShipmentsPage() {
   const tc = useTranslations('common');
   const router = useRouter();
   const { canEdit, readOnly } = useSession();
-  const { dateShort } = useFmt();
+  const { date } = useFmt();
   const [creating, setCreating] = useState(false);
   const list = useQuery({ queryKey: ['purchases', 'shipments'], queryFn: () => api.get<{ items: Row[] }>('/purchases/shipments') });
   const editable = canEdit('purchasing') && !readOnly;
 
   if (list.isLoading) return <PageSkeleton />;
   const rows = list.data?.items ?? [];
-  const when = (s: Row) => (s.status === 'arrived' ? t('shipments.arrivedOn', { date: dateShort(s.arriveOn) }) : s.late ? t('shipments.expectedLate', { date: dateShort(s.expectedOn) }) : t('shipments.expectedOn', { date: dateShort(s.expectedOn) }));
+  const when = (s: Row) => (s.status === 'arrived' ? t('shipments.arrivedOn', { date: date(s.arriveOn) }) : s.late ? t('shipments.expectedLate', { date: date(s.expectedOn) }) : t('shipments.expectedOn', { date: date(s.expectedOn) }));
   const status = (s: Row): [StatusTone, string] => (s.status === 'arrived' ? ['good', t('shipments.status.arrived')] : s.late ? ['bad', t('shipments.late')] : s.status === 'booked' ? ['mute', t('shipments.status.booked')] : ['info', t('shipments.status.in_transit')]);
   const pill = (s: Row) => {
     const [tone, label] = status(s);
@@ -52,7 +52,7 @@ export default function ShipmentsPage() {
     },
     { key: 'carrier', header: t('shipments.cols.carrier'), render: (s) => <><bdi>{s.carrier}</bdi> · {t(`shipments.by.${s.mode}`)}</> },
     { key: 'route', header: t('shipments.route'), render: (s) => (s.route ? <bdi>{s.route}</bdi> : '—') },
-    { key: 'when', header: t('shipments.cols.when'), render: (s) => <span className="nowrap">{when(s)}</span> },
+    { key: 'when', header: t('shipments.cols.when'), type: 'date', render: (s) => <bdi>{when(s)}</bdi> },
     { key: 'status', header: tc('status'), render: pill },
     chevronColumn<Row>(),
   ];
@@ -83,7 +83,7 @@ export default function ShipmentsPage() {
       ) : (
         <>
           <Card flush className="only-wide">
-            <Table columns={columns} rows={rows} rowKey={(s) => s.id} onRow={(s) => router.push(`/purchasing/${s.purchaseId}`)} />
+            <Table columns={columns} rows={rows} rowKey={(s) => s.id} picker={{ id: 'shipments', locked: ['purchase', 'status', 'go'], defaults: ['when', 'route'], priority: ['when', 'route', 'carrier'] }} onRow={(s) => router.push(`/purchasing/${s.purchaseId}`)} />
             <TableFoot>{t('shipments.foot')}</TableFoot>
           </Card>
           <div className="list-cards only-phone">

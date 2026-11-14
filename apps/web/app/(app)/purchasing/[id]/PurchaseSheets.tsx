@@ -3,13 +3,15 @@
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { addDays, isoDate } from '@ananda/shared';
-import { api } from '@/lib/api';
+import { api, type ApiError } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, MoneyField, Segmented, Sheet, Switch, TextField } from '@/components/ui';
+import { ActionError, Banner, Button, MoneyField, Segmented, Sheet, Switch, TextField } from '@/components/ui';
 import { EmailDraft, type Draft } from '@/components/EmailDraft';
 import { FilePick } from '../_components/FilePick';
 import { formWith, type PurchaseDetail } from '../_lib/types';
+import css from '../purchasing.module.css';
+import { DateField } from '../../money/_components/date-field';
 
 export type SheetKey = 'receive' | 'freight' | 'ask' | 'on_the_way' | 'invoice';
 
@@ -39,9 +41,9 @@ export function PurchaseSheet({ sheet, detail, onClose }: { sheet: SheetKey | nu
   }
 }
 
-function ErrorBanner({ a }: { a: { errorText: string | null; fields: Record<string, string> } }) {
-  if (!a.errorText) return null;
-  return <Banner tone="bad">{a.fields._ ?? a.errorText}</Banner>;
+function ErrorBanner({ a }: { a: { error: ApiError | null; retry: () => void; errorText: string | null; fields: Record<string, string> } }) {
+  if (!a.error) return null;
+  return <ActionError action={a} message={a.fields._ ?? a.errorText} />;
 }
 
 /** Invoice number and amount incl. VAT, shown once the supplier's invoice file is chosen (or always with `always`). */
@@ -129,11 +131,11 @@ function ReceiveSheet({ detail, onClose }: { detail: PurchaseDetail; onClose: ()
     >
       <p className="body-sm muted">{t('receive.lead')}</p>
       <div className="form-grid">
-        <TextField label={t('receive.arrived')} type="date" value={arrivedOn} max={isoDate()} onChange={(e) => setArrivedOn(e.target.value)} error={receive.fields.arrivedOn} />
+        <DateField label={t('receive.arrived')} value={arrivedOn} max={isoDate()} onChange={setArrivedOn} error={receive.fields.arrivedOn} />
         <TextField label={t('receive.counted')} value={num(units)} readOnly />
       </div>
       {!perFlavour ? (
-        <button type="button" className="link body-sm" style={{ alignSelf: 'flex-start', justifySelf: 'start', textAlign: 'start', background: 'none', border: 0, padding: 0, cursor: 'pointer', color: 'var(--text-muted)', textDecoration: 'underline' }} onClick={() => setPerFlavour(true)}>
+        <button type="button" className={`link body-sm ${css.textLink}`} onClick={() => setPerFlavour(true)}>
           {t('receive.countDiffers')}
         </button>
       ) : (
@@ -152,7 +154,7 @@ function ReceiveSheet({ detail, onClose }: { detail: PurchaseDetail; onClose: ()
       )}
       {receive.fields.unitsReceived && <p className="an-help error">{receive.fields.unitsReceived}</p>}
 
-      <span className="overline">{t('receive.supplierInvoice')}</span>
+      <label>{t('receive.supplierInvoice')}</label>
       <FilePick zone file={invoiceFile} onFile={setInvoiceFile} placeholder={t('receive.dropInvoice')} />
       {invoiceFile && <InvoiceFields number={invoiceNumber} setNumber={setInvoiceNumber} gross={gross} setGross={setGross} fields={receive.fields} />}
       <CarrierFields detail={detail} file={carrierFile} setFile={setCarrierFile} carrier={carrier} setCarrier={setCarrier} net={freightNet} setNet={setFreightNet} fields={receive.fields} />
@@ -165,6 +167,7 @@ function ReceiveSheet({ detail, onClose }: { detail: PurchaseDetail; onClose: ()
 /** The supplier's invoice after the goods: creates the bill on Payables. */
 function InvoiceSheet({ detail, onClose }: { detail: PurchaseDetail; onClose: () => void }) {
   const t = useTranslations('purchasing');
+  const tc = useTranslations('common');
   const p = detail.purchase;
   const rate = detail.figures.supplierVatRate;
   const freightBill = detail.payables.find((x) => x.kind === 'freight');
@@ -182,7 +185,7 @@ function InvoiceSheet({ detail, onClose }: { detail: PurchaseDetail; onClose: ()
       await api.post(`/purchases/${p.id}/invoice`, formWith({ invoiceNumber: number.trim() || file?.name || p.number, dueOn, netCents: gross != null ? Math.round(gross / (1 + rate)) : undefined }, { file }));
       if (withFreight) await api.post(`/purchases/${p.id}/freight`, formWith({ carrier: carrier.trim(), amountNetCents: freightNet ?? 0, vatRate: freightBill?.vatRate ?? 0.2, invoiceNumber: freightBill?.invoiceNumber ?? undefined, payBy: freightBill?.dueOn ?? dayPlus(isoDate(), FREIGHT_PAY_DAYS) }, { file: carrierFile }));
     },
-    { success: t('invoice.done', { number: p.number }), onDone: onClose },
+    { success: t('invoice.done', { number: p.number }), successAction: { label: tc('view'), href: '/purchasing/payables' }, onDone: onClose },
   );
   return (
     <Sheet
@@ -197,7 +200,7 @@ function InvoiceSheet({ detail, onClose }: { detail: PurchaseDetail; onClose: ()
       }
     >
       <p className="body-sm muted">{t('invoice.lead', { supplier: detail.supplier.company })}</p>
-      <span className="overline">{t('receive.supplierInvoice')}</span>
+      <label>{t('receive.supplierInvoice')}</label>
       <FilePick zone file={file} onFile={setFile} placeholder={t('receive.dropInvoice')} />
       {file && <InvoiceFields number={number} setNumber={setNumber} gross={gross} setGross={setGross} fields={save.fields} />}
       <CarrierFields detail={detail} file={carrierFile} setFile={setCarrierFile} carrier={carrier} setCarrier={setCarrier} net={freightNet} setNet={setFreightNet} fields={save.fields} />
@@ -235,9 +238,9 @@ function FreightSheet({ detail, onClose }: { detail: PurchaseDetail; onClose: ()
         </Button>
       }
     >
-      <p className="body-sm muted">{t('freight.lead', { supplier: detail.supplier.company })}</p>
+      <p className="body-sm muted">{t('freight.lead', { supplier: detail.supplier.company.replace(/\.+$/, '') })}</p>
       <MoneyField key={net ?? 'x'} label={t('freight.amount')} cents={net} onCents={setNet} error={save.fields.amountNetCents} />
-      <div className="an-chips" role="group" aria-label={t('freight.amount')} style={{ flexWrap: 'wrap' }}>
+      <div className={`an-chips ${css.chipRow}`} role="group" aria-label={t('freight.amount')}>
         {FREIGHT_STEPS.map((v) => (
           <button key={v} type="button" className="an-chip" onClick={() => setNet(Math.max(0, (net ?? 0) + v))}>
             {v > 0 ? '+' : '−'}
@@ -321,7 +324,7 @@ function OnTheWaySheet({ detail, onClose }: { detail: PurchaseDetail; onClose: (
         </Button>
       }
     >
-      <TextField label={t('onTheWay.expectedOn')} type="date" value={expectedOn} onChange={(e) => setExpectedOn(e.target.value)} error={mark.fields.expectedOn} />
+      <DateField label={t('onTheWay.expectedOn')} value={expectedOn} onChange={setExpectedOn} error={mark.fields.expectedOn} />
       <Switch checked={addShipment} onChange={setAddShipment} label={t('onTheWay.addShipment')} />
       {addShipment && (
         <>
@@ -331,7 +334,7 @@ function OnTheWaySheet({ detail, onClose }: { detail: PurchaseDetail; onClose: (
             <Segmented fill label={t('shipments.mode')} value={mode} onChange={setMode} options={MODES.map((m) => ({ value: m, label: t(`shipments.modes.${m}`) }))} />
           </div>
           <TextField label={t('shipments.route')} value={route} onChange={(e) => setRoute(e.target.value)} />
-          <TextField label={t('onTheWay.departOn')} type="date" value={departOn} onChange={(e) => setDepartOn(e.target.value)} />
+          <DateField label={t('onTheWay.departOn')} value={departOn} onChange={setDepartOn} />
         </>
       )}
       <ErrorBanner a={mark} />

@@ -8,8 +8,10 @@ import { FLAVOURS, UNITS_PER_CARTON, addDays, cartonsTotal, isoDate, type Carton
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, CaretDown, CartonsEditor, EmptyState, MenuButton, Sheet, ShoppingCart, TextField, Totals } from '@/components/ui';
+import { ActionError, Button, CaretDown, CartonsEditor, EmptyState, MenuButton, Sheet, ShoppingCart, TextField, Totals } from '@/components/ui';
 import type { Supplier, SupplierList } from '../_lib/types';
+import css from '../purchasing.module.css';
+import { DateField } from '../../money/_components/date-field';
 
 const DEFAULT_CARTONS = 100;
 
@@ -26,19 +28,19 @@ export function SupplierPicker({ suppliers, value, onChange, error }: { supplier
     return `${def} · ${last}`;
   };
   return (
-    <div className="an-field" style={{ position: 'relative' }} ref={box}>
+    <div className={`an-field ${css.fieldRel}`} ref={box}>
       <label>{t('new.supplier')}</label>
       <MenuButton
         align="start"
         items={[]}
         trigger={({ open, toggle, ref }) => (
-          <button ref={ref} type="button" className="an-input an-dd" aria-haspopup="listbox" aria-expanded={open} onClick={toggle} style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+          <button ref={ref} type="button" className={`an-input an-dd ${css.dd}`} aria-haspopup="listbox" aria-expanded={open} onClick={toggle}>
             <bdi>{cur?.company ?? t('new.supplierPlaceholder')}</bdi>
-            <CaretDown className="an-ic sm" aria-hidden style={{ marginInlineStart: 'auto' }} />
+            <CaretDown className={`an-ic sm ${css.ddCaret}`} aria-hidden />
           </button>
         )}
         panel={(close) => (
-          <div className="an-pop menu" role="listbox" style={{ position: 'static', width: box.current?.offsetWidth }}>
+          <div className={`an-pop menu ${css.pop}`} role="listbox" style={{ inlineSize: box.current?.offsetWidth }}>
             {suppliers.map((s) => (
               <button
                 key={s.id}
@@ -51,7 +53,7 @@ export function SupplierPicker({ suppliers, value, onChange, error }: { supplier
                   close();
                 }}
               >
-                <b style={{ fontWeight: 500 }}>
+                <b className="strong">
                   <bdi>{s.company}</bdi>
                 </b>
                 <small>{detail(s)}</small>
@@ -71,6 +73,7 @@ export function SupplierPicker({ suppliers, value, onChange, error }: { supplier
 /** FR-PUR-2: approved supplier (the default preselected), expected date, cartons per flavour. */
 export function NewPurchaseSheet({ open, onClose, flavour, nextNumber, supplierId: presetSupplier }: { open: boolean; onClose: () => void; flavour?: Flavour | null; nextNumber?: string; supplierId?: string | null }) {
   const t = useTranslations('purchasing');
+  const tc = useTranslations('common');
   const router = useRouter();
   const { num, unit } = useFmt();
   const list = useQuery({ queryKey: ['suppliers'], queryFn: () => api.get<SupplierList>('/suppliers'), enabled: open });
@@ -111,6 +114,7 @@ export function NewPurchaseSheet({ open, onClose, flavour, nextNumber, supplierI
   };
   const create = useAction(() => api.post<{ id: string; number: string }>('/purchases', { supplierId, expectedOn, cartons: clean }), {
     success: () => t('new.done'),
+    successAction: (r) => ({ label: tc('view'), href: `/purchasing/${r.id}` }),
     onDone: (r) => {
       reset();
       onClose();
@@ -141,9 +145,9 @@ export function NewPurchaseSheet({ open, onClose, flavour, nextNumber, supplierI
       ) : (
         <>
           <SupplierPicker suppliers={approved} value={supplierId} onChange={(id) => choose(approved.find((s) => s.id === id)!)} error={create.fields.supplierId} />
-          <TextField label={t('new.expectedOn')} type="date" value={expectedOn} min={isoDate()} onChange={(e) => setExpectedOn(e.target.value)} error={create.fields.expectedOn} />
+          <DateField label={t('new.expectedOn')} value={expectedOn} min={isoDate()} onChange={setExpectedOn} error={create.fields.expectedOn} />
           <div className="stack tight">
-            <span className="overline">{t('new.cartons')}</span>
+            <label>{t('new.cartons')}</label>
             {supplier && <CartonsEditor value={cartons} onChange={setCartons} only={allowed} />}
             {create.fields.cartons && <p className="an-help error">{create.fields.cartons}</p>}
           </div>
@@ -155,7 +159,7 @@ export function NewPurchaseSheet({ open, onClose, flavour, nextNumber, supplierI
             ]}
           />
           <p className="body-sm muted">{t('new.consequence')}</p>
-          {create.errorText && !Object.keys(create.fields).length && <Banner tone="bad">{create.errorText}</Banner>}
+          {!Object.keys(create.fields).length && <ActionError action={create} />}
         </>
       )}
     </Sheet>

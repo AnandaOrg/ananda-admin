@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { FLAVOURS, isoDate, type OrderStatus } from '@ananda/shared';
+import { FLAVOURS, UNITS_PER_CARTON, isoDate, type OrderStatus } from '@ananda/shared';
 import { api, qs } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
@@ -25,6 +25,7 @@ import {
   Search,
   Sheet,
   SlidersHorizontal,
+  TABLE_PICKERS,
   Table,
   UserPlus,
   type Column,
@@ -67,7 +68,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const { canEdit, isBroker } = useSession();
-  const { money, dateShort } = useFmt();
+  const { money, date, num } = useFmt();
   const [filter, setFilter] = useState<Filter>((params.get('filter') as Filter) ?? 'all');
   const [q, setQ] = useState('');
   const [brokerId, setBrokerId] = useState<string>('');
@@ -110,7 +111,8 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
       ),
     },
     ...(isBroker ? [] : [{ key: 'broker', header: t('cols.broker'), render: (o: OrderRow) => (o.houseSale ? t('noBroker') : o.brokerName) } as Column<OrderRow>]),
-    { key: 'created', header: t('cols.created'), render: (o) => <span className="nowrap">{dateShort(o.createdAt)}</span> },
+    { key: isBroker ? 'ordered' : 'created', header: isBroker ? t('cols.ordered') : t('cols.created'), type: 'date', render: (o) => date(o.createdAt) },
+    ...(isBroker ? [{ key: 'units', header: tc('units'), type: 'count', render: (o: OrderRow) => num(o.totalCartons * UNITS_PER_CARTON) } as Column<OrderRow>] : []),
     { key: 'total', header: t('cols.total'), type: 'amount', render: (o) => <bdi>{money(o.totalCents)}</bdi> },
     { key: 'status', header: t('cols.status'), type: 'status', render: (o) => <SalesStatus status={o.status} daysLate={o.daysLate} /> },
     {
@@ -141,7 +143,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
         }}
       />
       {peek && (
-        <Sheet open onClose={() => setPeek(null)} title={peek.customerName ?? t('noCustomer')} sub={[peek.number, dateShort(peek.createdAt), ...(isBroker ? [] : [peek.houseSale ? t('noBroker') : peek.brokerName])].join(' · ')}>
+        <Sheet open onClose={() => setPeek(null)} title={peek.customerName ?? t('noCustomer')} sub={[peek.number, date(peek.createdAt), ...(isBroker ? [] : [peek.houseSale ? t('noBroker') : peek.brokerName])].join(' · ')}>
           <SumBox
             rows={[
               [t('peek.status'), <SalesStatus key="s" status={peek.status} daysLate={peek.daysLate} />],
@@ -253,13 +255,13 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
         {filtersBtn(t('filtersBtn'))}
       </div>
       <div className="sales-chiprow">
-        <Chips options={chips} value={filter} onChange={setFilter} label={tc('filters')} fill={false} />
+        <Chips options={chips} value={filter} onChange={setFilter} label={tc('filters')} />
         <span className="only-wide" style={{ marginInlineStart: 'auto' }}>
           {filtersBtn(t('moreFilters'))}
         </span>
       </div>
       <Card flush className="only-wide">
-        <Table columns={columns} rows={rows} rowKey={(o) => o.id} onRow={open} picker={{ id: 'sales', locked: ['customer', 'total', 'status', 'go'], priority: ['broker', 'created'] }} loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('load.error')} empty={empty} />
+        <Table columns={columns} rows={rows} rowKey={(o) => o.id} onRow={open} picker={isBroker ? TABLE_PICKERS.brokerOrders : TABLE_PICKERS.salesOrders} loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('load.error')} empty={empty} />
       </Card>
       <div className="only-phone">
         <ListCards loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('load.error')} empty={<Card>{empty}</Card>}>
@@ -271,7 +273,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
               amount={money(o.totalCents)}
               sub={
                 <>
-                  <bdi>{o.number}</bdi> · {dateShort(o.createdAt)}
+                  <bdi>{o.number}</bdi> · {date(o.createdAt)}
                   {!isBroker && ` · ${o.houseSale ? t('noBroker') : o.brokerName}`}
                 </>
               }

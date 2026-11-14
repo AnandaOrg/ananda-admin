@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { MIN_ORDER_CARTONS, PRICE_TIERS, calculateOrder, type CartonsByFlavour } from '@ananda/shared';
 import { api } from '@/lib/api';
-import { useFmt } from '@/lib/format';
+import { iso, useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { ActionError, Button, Info, Icon, Sheet } from '@/components/ui';
@@ -124,7 +124,7 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
     onClose();
   };
   const custName = cust?.companyName ?? '';
-  const sentMsg = (n: string) => `${t('newSale.sent', { number: n, customer: custName })} ${brokerId === 'none' || !brokerName ? t('newSale.sentNoCommission') : t('newSale.sentCommission', { first: firstName(brokerName) })}`;
+  const sentMsg = (n: string) => t('newSale.sent', { number: iso(n) });
   const save = useAction(
     async () => {
       if (draft) {
@@ -134,7 +134,7 @@ export function NewSaleSheet({ open, onClose, onDone, customerId, draft }: { ope
       const r = await api.post<{ id: string; number: string }>('/orders', body());
       return { ...r, sent: false };
     },
-    { success: (r) => t('newSale.saved', { number: r.number }), onDone: finish },
+    { success: (r) => t('newSale.saved', { number: iso(r.number) }), onDone: finish },
   );
   const send = useAction(
     async () => {
