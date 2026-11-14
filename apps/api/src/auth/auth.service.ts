@@ -7,7 +7,7 @@ import { InjectDb, type Db } from '../db/db.module';
 import { roles, sessions, users } from '../db/schema';
 import { AuditService } from '../core/audit.service';
 import { SettingsService } from '../core/settings.service';
-import { newTotpSecret, randomToken, sha256, totpUri, verifyTotp } from '../core/crypto';
+import { isDevTwoStepCode, newTotpSecret, randomToken, sha256, totpUri, verifyTotp } from '../core/crypto';
 import type { AuthContext } from '../common/context';
 
 export interface SessionMeta {
@@ -68,6 +68,11 @@ export class AuthService {
   async twoStepVerify(auth: AuthContext, code: string) {
     const [user] = await this.db.select().from(users).where(eq(users.id, auth.user.id));
     // First sign-in: the key must have been shown (QR) before a code can confirm it.
+    // Locally the demo code works straight away, without scanning the QR first.
+    if (!user.totpSecret && isDevTwoStepCode(code)) {
+      user.totpSecret = newTotpSecret();
+      await this.db.update(users).set({ totpSecret: user.totpSecret }).where(eq(users.id, user.id));
+    }
     if (!user.totpEnabled && !user.totpSecret) throw new BadRequestException({ message: 'Scan the QR code first, then enter the code from your app.' });
     if (!verifyTotp(user.totpSecret, code)) throw new BadRequestException({ message: 'That code did not work. Enter the current code from your app.', fields: { code: 'That code did not work' } });
     if (!user.totpEnabled) {
