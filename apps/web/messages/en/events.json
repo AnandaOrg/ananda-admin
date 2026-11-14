@@ -1,5 +1,5 @@
 {
-  "kicker": "{n, plural, =0 {No events yet} one {# event} other {# events}}",
+  "kicker": "{n, plural, =0 {Nothing upcoming} other {# upcoming}}",
   "new": "New event",
   "tiles": {
     "stock": "Stock at events",
@@ -7,12 +7,17 @@
     "sales": "Event sales this year",
     "salesSub": "{u} units",
     "expenses": "Direct event expenses",
-    "expensesSub": "This year, excl. VAT"
+    "expensesSub": "This year, excl. VAT",
+    "units": "units",
+    "salesShort": "Event sales",
+    "thisYear": "this year"
   },
   "cartons": "{n, plural, one {# carton} other {# cartons}}",
   "empty": {
-    "title": "No events yet",
-    "text": "An event or festival holds its own stock. Move cartons to it, record what agents sell there and see its direct costs."
+    "title": "Plan your first event or festival",
+    "text": "An event has its own stock: an Admin moves cartons to it and back. Its sales and direct costs count against it, so you see what it made.",
+    "titlePhone": "Plan your first event",
+    "textPhone": "Each event has its own stock, sales and costs."
   },
   "cols": {
     "event": "Event",
@@ -21,7 +26,10 @@
     "stock": "Stock there",
     "sold": "Sold",
     "costs": "Direct costs",
-    "status": "Status"
+    "status": "Status",
+    "when": "When",
+    "type": "Type",
+    "invited": "Invited"
   },
   "kind": {
     "event": "Event",
@@ -44,18 +52,20 @@
     "agentsHelp": "Invited agents see the event and can sell there.",
     "noAgents": "There are no agents yet.",
     "create": "Create event",
-    "created": "{name} created"
+    "created": "Event created. Invited agents are told.",
+    "namePlaceholder": "e.g. Varna Wine Fair",
+    "placePlaceholder": "e.g. Varna, Sea Garden"
   },
   "detail": {
-    "moveTo": "Move stock to event",
+    "moveTo": "Move stock",
     "moveBack": "Bring stock back",
     "recordSale": "Record sales",
-    "stockTitle": "Stock at the event",
+    "stockTitle": "Stock there",
     "stockEmpty": "No stock at the event. Move cartons here from the warehouse.",
     "moved": "Moved in {c}",
     "sold": "Sold {c}",
-    "tileStock": "Stock at the event",
-    "tileSold": "Sold at the event",
+    "tileStock": "Stock there",
+    "tileSold": "Event sales",
     "tileCosts": "Direct costs",
     "tileCostsSub": "Excl. VAT",
     "units": "{u} units",
@@ -80,7 +90,12 @@
     "by": "By {name}",
     "invited": "Invited agents",
     "what": "What",
-    "who": "Who"
+    "who": "Who",
+    "taken": "Taken, excl. VAT",
+    "unitsSub": "{c}",
+    "soldSub": "{u} units sold",
+    "notFound": "We can't find this event",
+    "backToEvents": "Back to events"
   },
   "move": {
     "titleTo": "Move stock to the event",
@@ -103,6 +118,13 @@
     "help": "Cartons sold at the event, per flavour. Up to the stock at the event.",
     "submit": "Record sales",
     "done": "{n, plural, one {# carton} other {# cartons}} recorded for {name} · {amount} commission ready to pay",
-    "noAgents": "Invite an agent to the event before recording sales."
-  }
+    "noAgents": "Invite an agent to the event before recording sales.",
+    "amount": "Taken, excl. VAT",
+    "amountHelp": "What was taken for these cartons at the event."
+  },
+  "kickerNone": "No events yet",
+  "noneYet": "None yet",
+  "noAgentsYet": "no agents invited yet",
+  "moveStockEmpty": "0 · move stock",
+  "foot": "Move cartons to the event before it starts. What comes back is counted on return."
 }

@@ -1,27 +1,183 @@
-/* Category chips fit from 1024 up; below that they become one dropdown (DS: Other components at narrow widths). */
-.chipsWide {
-  display: block;
+/* Audit log: route-local layout; tokens only, logical properties. */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
-.chipsNarrow {
-  display: none;
+.filters {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-@media (max-width: 1023px) {
-  .chipsWide {
+.chips {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-inline-start: auto;
+}
+
+.money {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+/* The switch's own label is the text in front of it. */
+.money :global(.an-swrow) > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.search {
+  width: 240px;
+}
+
+
+/* Phone (prototype): type chips only; the period stays as chosen on desktop (this year by default). */
+@media (max-width: 767px) {
+  .right {
     display: none;
   }
 
-  .chipsNarrow {
-    display: block;
+  .chips {
+    flex: 1 1 100%;
   }
 }
 
-.timeCell {
+.tbl .timeCol {
+  width: 96px;
   white-space: nowrap;
+}
+
+.chev {
+  width: var(--control-sm);
+  text-align: end;
+}
+
+.dayh td {
+  padding-block: var(--space-2);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font: 600 11.5px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ba {
+  color: var(--warn) !important;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--card-padding);
+  border-block-start: 1px solid var(--line);
+  color: var(--text-muted);
+  font: 400 12.5px/18px var(--font-sans);
 }
 
 .more {
   display: flex;
   justify-content: center;
+}
+
+.phoneDay {
+  padding-block-start: var(--space-2);
+  color: var(--text-muted);
+  font: 600 11.5px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pcard {
+  text-align: start;
+}
+
+.pType {
+  justify-self: end;
+}
+
+.entryTitle {
+  margin: 0;
+  font: 400 18px/26px var(--font-sans);
+}
+
+.sgrp {
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.note {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.lockLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* PDF export: only the report prints. */
+.print {
+  display: none;
+}
+
+@media print {
+  :global(body *) {
+    visibility: hidden;
+  }
+
+  .print,
+  .print * {
+    visibility: visible;
+  }
+
+  .print {
+    display: block;
+    position: absolute;
+    inset: 0;
+    padding: 24px;
+    background: var(--paper-bg);
+    color: var(--paper-ink);
+    font: 400 10pt/1.4 var(--font-sans);
+  }
+
+  .print h1 {
+    margin: 0 0 4px;
+    font-size: 16pt;
+  }
+
+  .print table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-block: 12px;
+  }
+
+  .print th,
+  .print td {
+    padding: 4px 6px;
+    border-block-end: 1px solid var(--paper-line);
+    text-align: start;
+    vertical-align: top;
+  }
 }

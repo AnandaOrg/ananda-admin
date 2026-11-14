@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
@@ -8,47 +8,109 @@ import { FLAVOURS, UNITS_PER_CARTON, addDays, cartonsTotal, isoDate, type Carton
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, CartonsEditor, EmptyState, Select, Sheet, TextArea, TextField, Totals, Truck } from '@/components/ui';
-import type { SupplierList } from '../_lib/types';
+import { Banner, Button, CaretDown, CartonsEditor, EmptyState, MenuButton, Sheet, ShoppingCart, TextField, Totals } from '@/components/ui';
+import type { Supplier, SupplierList } from '../_lib/types';
+
+const DEFAULT_CARTONS = 100;
+
+/** Approved suppliers as a dropdown: each with what it is the default for, and a way to manage them. */
+export function SupplierPicker({ suppliers, value, onChange, error }: { suppliers: Supplier[]; value: string; onChange: (id: string) => void; error?: string }) {
+  const t = useTranslations('purchasing');
+  const router = useRouter();
+  const { dateShort } = useFmt();
+  const cur = suppliers.find((s) => s.id === value);
+  const box = useRef<HTMLDivElement>(null);
+  const detail = (s: Supplier) => {
+    const def = s.defaultFlavours.length === FLAVOURS.length ? t('new.defaultAll') : s.defaultFlavours.length ? t('new.defaultSome', { flavours: s.defaultFlavours.map((f) => f.toUpperCase()).join(', ') }) : t('new.approvedOnly');
+    const last = s.lastPurchaseNumber ? t('new.lastPurchase', { number: s.lastPurchaseNumber, date: dateShort(s.lastPurchaseOn) }) : t('new.noPurchases');
+    return `${def} · ${last}`;
+  };
+  return (
+    <div className="an-field" style={{ position: 'relative' }} ref={box}>
+      <label>{t('new.supplier')}</label>
+      <MenuButton
+        align="start"
+        items={[]}
+        trigger={({ open, toggle, ref }) => (
+          <button ref={ref} type="button" className="an-input an-dd" aria-haspopup="listbox" aria-expanded={open} onClick={toggle} style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <bdi>{cur?.company ?? t('new.supplierPlaceholder')}</bdi>
+            <CaretDown className="an-ic sm" aria-hidden style={{ marginInlineStart: 'auto' }} />
+          </button>
+        )}
+        panel={(close) => (
+          <div className="an-pop menu" role="listbox" style={{ position: 'static', width: box.current?.offsetWidth }}>
+            {suppliers.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className="an-mi"
+                role="option"
+                aria-selected={s.id === value}
+                onClick={() => {
+                  onChange(s.id);
+                  close();
+                }}
+              >
+                <b style={{ fontWeight: 500 }}>
+                  <bdi>{s.company}</bdi>
+                </b>
+                <small>{detail(s)}</small>
+              </button>
+            ))}
+            <button type="button" className="an-mi" onClick={() => router.push('/purchasing/suppliers')}>
+              <small>{t('new.manage')}</small>
+            </button>
+          </div>
+        )}
+      />
+      {error && <span className="an-help error">{error}</span>}
+    </div>
+  );
+}
 
 /** FR-PUR-2: approved supplier (the default preselected), expected date, cartons per flavour. */
-export function NewPurchaseSheet({ open, onClose, flavour }: { open: boolean; onClose: () => void; flavour?: Flavour | null }) {
+export function NewPurchaseSheet({ open, onClose, flavour, nextNumber, supplierId: presetSupplier }: { open: boolean; onClose: () => void; flavour?: Flavour | null; nextNumber?: string; supplierId?: string | null }) {
   const t = useTranslations('purchasing');
-  const tc = useTranslations('common');
   const router = useRouter();
-  const { money, unit, num, date } = useFmt();
+  const { num, unit } = useFmt();
   const list = useQuery({ queryKey: ['suppliers'], queryFn: () => api.get<SupplierList>('/suppliers'), enabled: open });
+  const next = useQuery({ queryKey: ['purchases', ''], queryFn: () => api.get<{ nextNumber: string }>('/purchases'), enabled: open && !nextNumber });
   const approved = useMemo(() => (list.data?.items ?? []).filter((s) => s.status === 'approved'), [list.data]);
 
   const [supplierId, setSupplierId] = useState('');
   const [expectedOn, setExpectedOn] = useState('');
   const [cartons, setCartons] = useState<CartonsByFlavour>({});
-  const [note, setNote] = useState('');
 
-  // Preselect the default supplier: for the flavour asked for, else the one that is default most often.
+  // Preselect: the supplier asked for, else the default for the flavour asked for, else the one that is default most often.
   useEffect(() => {
     if (!open || supplierId || !approved.length) return;
     const byFlavour = flavour ? list.data?.defaults[flavour] : null;
     const most = [...approved].sort((a, b) => b.defaultFlavours.length - a.defaultFlavours.length)[0];
-    const pick = approved.find((s) => s.id === byFlavour) ?? most;
-    setSupplierId(pick.id);
-    setExpectedOn(isoDate(addDays(new Date(), pick.leadTimeDays)));
-  }, [open, approved, flavour, list.data, supplierId]);
+    const pick = approved.find((s) => s.id === presetSupplier) ?? approved.find((s) => s.id === byFlavour) ?? most;
+    choose(pick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, approved, flavour, presetSupplier, list.data, supplierId]);
+
+  function choose(s: Supplier) {
+    setSupplierId(s.id);
+    setExpectedOn(isoDate(addDays(new Date(), s.leadTimeDays)));
+    const only = FLAVOURS.filter((f) => s.approvedFlavours.includes(f));
+    setCartons(Object.fromEntries(only.map((f) => [f, flavour ? (f === flavour ? DEFAULT_CARTONS * 2 : 0) : DEFAULT_CARTONS])) as CartonsByFlavour);
+  }
 
   const supplier = approved.find((s) => s.id === supplierId);
   const allowed = FLAVOURS.filter((f) => supplier?.approvedFlavours.includes(f));
   const clean = Object.fromEntries(allowed.filter((f) => (cartons[f] ?? 0) > 0).map((f) => [f, cartons[f]])) as CartonsByFlavour;
   const totalCartons = cartonsTotal(clean);
   const units = totalCartons * UNITS_PER_CARTON;
-  const goodsCents = supplier ? Math.round(units * supplier.unitPriceCents) : 0;
+  const number = nextNumber ?? next.data?.nextNumber;
 
   const reset = () => {
     setSupplierId('');
     setCartons({});
-    setNote('');
   };
-  const create = useAction(() => api.post<{ id: string; number: string }>('/purchases', { supplierId, expectedOn, cartons: clean, note: note || undefined }), {
-    success: (r) => t('new.done', { number: r.number }),
+  const create = useAction(() => api.post<{ id: string; number: string }>('/purchases', { supplierId, expectedOn, cartons: clean }), {
+    success: () => t('new.done'),
     onDone: (r) => {
       reset();
       onClose();
@@ -66,46 +128,33 @@ export function NewPurchaseSheet({ open, onClose, flavour }: { open: boolean; on
       open={open}
       onClose={close}
       title={t('new.title')}
-      dirty={totalCartons > 0}
       footer={
-        <>
-          <Button onClick={close}>{tc('cancel')}</Button>
-          <Button variant="primary" disabled={!supplier || totalCartons === 0 || !expectedOn} busy={create.isPending} onClick={() => create.mutate(undefined)}>
-            {t('new.cta')}
+        approved.length > 0 || !list.isSuccess ? (
+          <Button variant="primary" block disabled={!supplier || totalCartons === 0 || !expectedOn} busy={create.isPending} onClick={() => create.mutate(undefined)}>
+            {number ? t('new.ctaNumber', { number }) : t('new.cta')}
           </Button>
-        </>
+        ) : undefined
       }
     >
       {list.isSuccess && approved.length === 0 ? (
-        <EmptyState icon={Truck} title={t('new.noSupplier.title')} text={t('new.noSupplier.text')} action={<Button variant="primary" onClick={() => router.push('/purchasing/suppliers?new=1')}>{t('suppliers.new')}</Button>} />
+        <EmptyState icon={ShoppingCart} title={t('new.noSupplier.title')} text={t('new.noSupplier.text')} action={<Button variant="primary" onClick={() => router.push('/purchasing/suppliers?new=1')}>{t('suppliers.new')}</Button>} />
       ) : (
         <>
-          <Select
-            label={t('new.supplier')}
-            value={supplierId}
-            placeholder={t('new.supplierPlaceholder')}
-            onChange={(e) => {
-              const s = approved.find((x) => x.id === e.target.value);
-              setSupplierId(e.target.value);
-              if (s) setExpectedOn(isoDate(addDays(new Date(), s.leadTimeDays)));
-            }}
-            options={approved.map((s) => ({ value: s.id, label: s.defaultFlavours.length ? t('new.supplierDefault', { name: s.company, flavours: s.defaultFlavours.map((f) => f.toUpperCase()).join(', ') }) : s.company }))}
-            error={create.fields.supplierId}
-            help={supplier ? t('new.supplierHelp', { days: supplier.leadTimeDays, price: unit(supplier.unitPriceCents, 4), terms: supplier.paymentTermsDays }) : undefined}
-          />
-          <TextField label={t('new.expectedOn')} type="date" value={expectedOn} min={isoDate()} onChange={(e) => setExpectedOn(e.target.value)} error={create.fields.expectedOn} help={expectedOn ? t('new.expectedHelp', { date: date(expectedOn) }) : undefined} />
-          {supplier && <CartonsEditor value={cartons} onChange={setCartons} only={allowed} />}
-          {create.fields.cartons && <p className="an-help error">{create.fields.cartons}</p>}
+          <SupplierPicker suppliers={approved} value={supplierId} onChange={(id) => choose(approved.find((s) => s.id === id)!)} error={create.fields.supplierId} />
+          <TextField label={t('new.expectedOn')} type="date" value={expectedOn} min={isoDate()} onChange={(e) => setExpectedOn(e.target.value)} error={create.fields.expectedOn} />
+          <div className="stack tight">
+            <span className="overline">{t('new.cartons')}</span>
+            {supplier && <CartonsEditor value={cartons} onChange={setCartons} only={allowed} />}
+            {create.fields.cartons && <p className="an-help error">{create.fields.cartons}</p>}
+          </div>
           <Totals
             lines={[
-              [tc('cartons'), num(totalCartons)],
-              [tc('units'), num(units)],
-              [t('new.unitPrice'), supplier ? unit(supplier.unitPriceCents, 4) : '—'],
+              [t('new.units'), num(units)],
+              [t('new.purchasePrice'), supplier ? t('new.aUnit', { price: unit(supplier.unitPriceCents, 4) }) : '—'],
+              [t('new.transportExcise'), t('new.addedOnReceipt')],
             ]}
-            big={[t('new.goods'), money(goodsCents)]}
           />
           <p className="body-sm muted">{t('new.consequence')}</p>
-          <TextArea label={tc('noteOptional')} value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
           {create.errorText && !Object.keys(create.fields).length && <Banner tone="bad">{create.errorText}</Banner>}
         </>
       )}

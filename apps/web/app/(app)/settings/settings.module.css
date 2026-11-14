@@ -1,24 +1,97 @@
-.items {
+/* Settings & rules. Tokens only; logical properties so Hebrew mirrors. */
+
+.grid {
+  align-items: start;
+}
+
+.cards {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
+  gap: var(--section-gap);
+  align-content: start;
 }
 
-@media (max-width: 767px) {
-  .items :global(.an-sitem) {
-    min-height: var(--control-lg);
-    font-size: 16px;
-    line-height: 22px;
-  }
+.cardSub {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  font: 400 12.5px/18px var(--font-sans);
+  color: var(--text-muted);
 }
 
-.preview {
+.rules {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* One rule: title with a small Edit next to it, then the rule in plain words. */
+.rule {
+  display: grid;
+  gap: var(--space-1);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--surface-2);
+}
+
+.ruleHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-sm);
+}
+
+.ruleTitle {
+  font: 400 14px/20px var(--font-sans);
+}
+
+.ruleText {
+  font: 400 12.5px/18px var(--font-sans);
+  color: var(--text-muted);
+}
+
+/* Small pill "Edit" used on rules and in card headers. */
+.edit {
+  height: 26px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
   border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font: 500 12px/16px var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.edit:hover {
+  background: var(--surface-3);
+}
+
+.cfgCard :global(.an-card-h) .edit {
+  margin-inline-start: auto;
+}
+
+/* Label left, value right. */
+.kv {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.kvRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+  font: 400 14px/20px var(--font-sans);
+}
+
+.kvRow dt {
+  color: var(--text-muted);
+  flex: none;
+}
+
+.kvRow dd {
+  margin: 0;
+  min-width: 0;
+  text-align: end;
+  overflow-wrap: anywhere;
 }
 
 .listRow {
@@ -28,23 +101,130 @@
   align-items: end;
 }
 
-/* Labels never wrap; a long current value is shortened instead. */
-.items :global(.an-sitem) > :global(.grow) {
-  flex: 0 0 auto;
-  white-space: nowrap;
+/* What the agent gets before ownership ends. */
+.example {
+  display: grid;
+  grid-template-columns: var(--control-sm) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
 }
 
-.items :global(.an-sitem) :global(.val) {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  justify-content: flex-end;
+.exIco {
+  display: grid;
+  place-items: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--warn);
 }
 
-.items :global(.an-sitem) :global(.val) bdi {
+.exTitle {
   display: block;
+  font: 500 14px/20px var(--font-sans);
+}
+
+.exText {
+  display: block;
+  margin-top: 2px;
+  font: 400 12.5px/18px var(--font-sans);
+  color: var(--text-muted);
+}
+
+/* Logo on documents. */
+.logoRow {
+  display: grid;
+  grid-template-columns: var(--control-sm) minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.logoImg {
+  width: var(--control-sm);
+  height: var(--control-sm);
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.logoName {
+  display: grid;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font: 400 14px/20px var(--font-sans);
+}
+
+.logoName :global(.sub) {
+  font: 400 12px/16px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--control-md);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-muted);
+  font: 500 14px/20px var(--font-sans);
+  cursor: pointer;
+}
+
+.upload:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Phone: the rules card opens up into one box per rule; the cards keep their rows. */
+@media (max-width: 767px) {
+  .rulesCard {
+    background: none;
+    border: 0;
+    padding: 0;
+    gap: var(--space-2);
+  }
+
+  .rulesCard :global(.an-card-h) h2 {
+    font: 600 12px/16px var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .rulesCard .cardSub {
+    display: none;
+  }
+
+  .rule {
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    padding: var(--space-4);
+  }
+
+  .ruleTitle {
+    font-weight: 500;
+    font-size: 15px;
+  }
+
+  .ruleHead .edit {
+    margin-inline-start: auto;
+    height: var(--control-sm);
+  }
+
+  .ruleText {
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .kvRow {
+    font-size: 13px;
+  }
 }

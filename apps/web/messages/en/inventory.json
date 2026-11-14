@@ -1,87 +1,123 @@
 {
-  "kicker": "{n} units in stock · {c} cartons",
-  "caption": "Sold per day is the average of the last {days} days. Status compares the runs-out date with the default supplier's lead time.",
-  "tabs": {
-    "label": "Inventory views",
-    "stock": "Stock",
-    "movements": "Stock movements",
-    "counts": "Stock counts",
-    "countsOpen": "Stock counts · {n}"
+  "kicker": {
+    "flavours": "{n, plural, one {# flavour} other {# flavours}}",
+    "none": "none to reorder",
+    "soon": "{n} to reorder soon",
+    "now": "{n} to reorder now",
+    "warehouses": "{n, plural, one {# warehouse} other {# warehouses}}"
   },
+  "kickerEmpty": "No stock yet",
   "tiles": {
     "available": "Available",
-    "cartons": "{n} cartons",
+    "availableSub": "units to sell",
     "reserved": "Reserved",
-    "reservedSub": "Held for paid and requested orders",
+    "reservedSub": "on confirmed orders",
     "onTheWay": "On the way",
+    "onTheWayLate": "{number} · late",
+    "onTheWayNext": "{number} · {date}",
+    "nothingOnTheWay": "Nothing on the way",
     "value": "Stock value",
-    "valueSub": "At landed cost"
+    "valueSub": "at {amount} landed cost"
   },
-  "waiting": {
-    "title": "{n, plural, one {# paid order is waiting for stock} other {# paid orders are waiting for stock}}",
-    "canAllocate": "There is stock for at least the oldest one. Allocate to make it ready to send.",
-    "notYet": "Not enough stock yet. Allocate when the next purchase arrives."
+  "empty": {
+    "title": "Stock appears when your first purchase arrives",
+    "text": "Each flavour then gets a card with what's available, reserved and how long it will last.",
+    "cta": "Go to Purchasing"
   },
+  "toReorder": "{n} to reorder",
+  "byFlavour": "By flavour",
+  "noCount": "No stock count yet this month. The warehouse counts from their phone (Stock count tab) without seeing these numbers.",
+  "noCountPhone": "No stock count yet this month. The warehouse counts from their phone without seeing these numbers.",
   "status": {
-    "months": "{n} months left",
+    "months": "{n, plural, one {# month left} other {# months left}}",
     "reorder_soon": "Reorder soon",
     "reorder_now": "Reorder now",
     "noSales": "No recent sales"
   },
   "card": {
-    "availableCaption": "Available units",
+    "availableCaption": "Available",
+    "availablePhone": "available to sell",
     "reserved": "Reserved",
-    "inStock": "In stock",
+    "inStock": "In stock (Bulgaria)",
     "value": "Stock value",
-    "perUnit": "{amount} per unit",
     "onTheWay": "On the way",
-    "onTheWayValue": "{n} units · next {date}",
+    "none": "None",
     "runsOut": "Runs out",
     "noSales": "No sales in 60 days",
-    "soldPerDay": "Sold per day",
-    "soldPerDayValue": "{n} units",
-    "leadTime": "Supplier lead time",
-    "days": "{n, plural, one {# day} other {# days}}",
-    "reorder": "New purchase",
-    "adjust": "Adjust"
+    "soldPerDay": "Sold per day (60 days)",
+    "counted": "Counted {date}",
+    "countedUnits": "{n} units",
+    "nowHint": "Runs out before a new purchase could arrive.",
+    "orderMore": "Order more {flavour}"
   },
   "allocate": {
-    "title": "Allocate",
-    "sub": "{n, plural, one {# order waiting} other {# orders waiting}}",
-    "cta": "{n, plural, =0 {Allocate} one {Allocate # order} other {Allocate # orders}}",
-    "done": "{n, plural, =0 {Nothing allocated} one {# order allocated. Its agent is told.} other {# orders allocated. Their agents are told.}}",
-    "available": "Available",
-    "needed": "Needed",
-    "after": "After",
-    "orders": "Waiting orders, oldest first",
-    "paidOn": "paid {date}",
-    "units": "{n} units",
+    "title": "Allocate stock",
+    "titleFrom": "Allocate purchase {number}",
+    "open": "Allocate stock · {n} waiting",
+    "locked": "Allocate · {n, plural, one {# order} other {# orders}} waiting for {number}",
+    "lockedNone": "Allocate · {n, plural, one {# order} other {# orders}} waiting for stock",
+    "lockedWhy": "Opens when {number} is received or stock is freed",
+    "lockedWhyNone": "Opens when a purchase is received or stock is freed",
+    "intro": "Suggested order: paid orders first, then the oldest. Each order gets all its cartons, so nothing ships half-filled.",
+    "cartons": "{n} cartons",
+    "since": "since {date}",
+    "paid": "Paid",
+    "notPaid": "Not paid yet",
+    "fromCartons": "From {number} · cartons",
+    "availableCartons": "Available · cartons",
+    "usedOf": "{used} of {of}",
+    "left": "{n} left",
     "short": "Not enough {flavours} for every ticked order. Untick one to continue.",
-    "consequence": "Ticked orders become Paid · ready to send and their agents are told. Unticked orders keep their place in the queue.",
+    "consequence": "After allocating, paid orders become Ready to send to the warehouse. Unpaid ones hold their stock for {days} days. The agent is told either way.",
+    "cta": "{n, plural, =0 {Allocate} one {Allocate to # order} other {Allocate to # orders}}",
+    "done": "{n, plural, =0 {Nothing allocated} one {# order allocated. Its agent is told.} other {# orders allocated. Their agents are told.}}",
     "emptyTitle": "Nothing is waiting",
     "emptyText": "Every paid order has its stock."
   },
   "adjust": {
     "title": "Stock adjustment",
-    "cta": "Save adjustment",
-    "done": "{flavour} adjusted by {n} cartons",
+    "sub": "For breakage, samples or count differences.",
+    "flavour": "Flavour",
     "change": "Change in cartons",
-    "changeHelp": "Use minus for cartons that left the stock, plus for cartons found.",
-    "inStockNow": "In stock now",
-    "inStockAfter": "In stock after",
-    "consequence": "Written to stock movements and the audit log."
+    "units": "{n} units",
+    "reason": "Reason",
+    "chooseReason": "Choose a reason",
+    "reasons": {
+      "breakage": "Damaged",
+      "count_difference": "Count difference",
+      "samples": "Samples / marketing",
+      "expired": "Expired",
+      "other": "Other"
+    },
+    "reasonHelp": {
+      "breakage": "Broken or leaking cartons",
+      "count_difference": "The shelf count doesn't match",
+      "samples": "Given away for tastings or events",
+      "expired": "Past its best-before date"
+    },
+    "cta": "Save adjustment",
+    "done": "{flavour} adjusted by {n} cartons"
   },
   "movements": {
+    "title": "Stock movements",
+    "kicker": "Every change to stock, newest first",
     "when": "When",
-    "why": "Why",
+    "whyCol": "Why",
     "by": "By",
     "system": "System",
-    "eventStock": "event stock",
-    "anyFlavour": "Any flavour",
-    "anyKind": "Any reason",
+    "allFlavours": "All flavours",
     "more": "Show more",
-    "emptyTitle": "No stock movements",
-    "emptyText": "Receipts, dispatches, returns and adjustments show here, newest first."
+    "why": {
+      "received": "Received <ref></ref>",
+      "shipped": "Shipped <ref></ref>",
+      "returned": "Returned on <ref></ref>",
+      "creditReturn": "Credit note return on <ref></ref>",
+      "toEvent": "To <ev></ev>",
+      "fromEvent": "Back from <ev></ev>",
+      "eventSale": "Sold at <ev></ev>"
+    },
+    "emptyTitle": "No stock movements yet",
+    "emptyText": "Receipts, shipments, returns and adjustments show here, newest first."
   },
   "kinds": {
     "purchase_receipt": "Purchase received",
@@ -117,6 +153,8 @@
     "doneAdjusted": "{n, plural, one {Stock corrected for # flavour} other {Stock corrected for # flavours}}",
     "doneMatched": "Count marked as checked",
     "emptyTitle": "No stock counts yet",
-    "emptyText": "Counts sent from the warehouse show here for checking."
+    "emptyText": "Counts sent from the warehouse show here for checking.",
+    "pageTitle": "Stock counts",
+    "kicker": "The warehouse counts blind; check each count here"
   }
 }

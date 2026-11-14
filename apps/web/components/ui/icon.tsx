@@ -4,9 +4,12 @@ import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 
 // Phosphor Regular only (design system: Iconography).
 export {
+  ArrowClockwise,
+  ArrowLeft,
   ArrowCounterClockwise,
   ArrowUpRight,
   Bank,
+  Bell,
   Briefcase,
   CalendarBlank,
   CalendarDots,
@@ -14,14 +17,18 @@ export {
   CaretDown,
   CaretLeft,
   CaretRight,
+  ChartLine,
   ChartLineUp,
   Check,
   CheckCircle,
   Clock,
   ClockCounterClockwise,
+  Coins,
+  Columns,
   DotsThreeOutline,
   DownloadSimple,
   EnvelopeOpen,
+  EnvelopeSimple,
   Eye,
   FileText,
   Gear,
@@ -36,6 +43,7 @@ export {
   MinusCircle,
   Minus,
   Money,
+  Moon,
   NotePencil,
   Package,
   Phone,
@@ -44,6 +52,9 @@ export {
   Receipt,
   ShieldCheck,
   ShoppingCart,
+  ShoppingCartSimple,
+  SidebarSimple,
+  Signature,
   SignOut,
   SlidersHorizontal,
   SquaresFour,
@@ -56,11 +67,12 @@ export {
   UserPlus,
   Users,
   Warning,
+  WifiSlash,
   WarningCircle,
   X,
 } from '@phosphor-icons/react';
 
-const FLIP = new Set(['CaretLeft', 'CaretRight', 'ArrowUpRight', 'ArrowCounterClockwise', 'SignOut']);
+const FLIP = new Set(['CaretLeft', 'CaretRight', 'ArrowUpRight', 'ArrowCounterClockwise', 'SignOut', 'ArrowLeft']);
 
 /** Sized Phosphor icon in currentColor. Direction icons mirror in Hebrew. */
 export function Icon({ as: C, size = 'md', className = '', label }: { as: PhosphorIcon; size?: 'sm' | 'md' | 'lg'; className?: string; label?: string }) {

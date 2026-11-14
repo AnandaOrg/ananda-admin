@@ -24,7 +24,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     setBusy(true);
     try {
       await api.post('/auth/invite/accept', { token, password });
-      router.replace('/login');
+      router.replace('/login?invited=1');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('failed'));
       setBusy(false);

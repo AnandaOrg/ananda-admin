@@ -13,35 +13,51 @@ export interface ShipCard {
   sentAt: string | null;
   waitingDays: number;
   redelivery: boolean;
+  partDelivered: boolean;
   lines: { flavour: Flavour; cartons: number; units: number }[];
   totalCartons: number;
   totalUnits: number;
 }
 
+/** One signed note: a full delivery, a part delivery or the delivery of the rest. */
 export interface DeliveredRow {
   id: string;
+  orderId: string;
   number: string;
   status: OrderStatus;
   deliveredAt: string | null;
   customerName: string;
   city: string | null;
   deliveredCartons: number;
+  part: boolean;
   signedNoteId: string | null;
+  mimeType: string | null;
 }
 
 export interface LastCount {
   id: string;
   at: string;
   byName: string;
+  cartons: number;
   cartonsOff?: number;
   reconciled?: boolean;
 }
 
 export interface WarehouseOverview {
-  tiles: { toShipOrders: number; toShipCartons: number; readyOrders: number; deliveredThisMonth: number; lastCount: LastCount | null };
+  site: string | null;
+  tiles: { toShipOrders: number; toShipNumbers: string[]; toShipCartons: number; deliveredThisMonth: number; lastCount: LastCount | null };
   toShip: ShipCard[];
-  ready: ShipCard[];
   delivered: DeliveredRow[];
+}
+
+/** Days between a date and today, in the viewer's calendar (0 = today). */
+export function daysAgo(d: string | null): number | null {
+  if (!d) return null;
+  const a = new Date(d);
+  const now = new Date();
+  const x = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const y = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((y - x) / 86_400_000);
 }
 
 export const noteUrl = (id: string) => `/api/documents/${id}/file`;

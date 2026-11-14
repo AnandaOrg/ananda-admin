@@ -29,13 +29,15 @@ export const changePasswordSchema = z.object({
   next: z.string().min(8).max(200),
   signOutOthers: z.boolean().default(false),
 });
-export const profileSchema = z.object({ language: z.enum(['en', 'bg', 'he']).optional(), theme: z.enum(['dark', 'light']).optional(), name: required().optional() });
+export const profileSchema = z.object({ language: z.enum(['en', 'bg', 'he']).optional(), theme: z.enum(['dark', 'light', 'system']).optional(), name: required().optional() });
 
 export const orderDraftSchema = z.object({
   customerId: id.nullable().optional(),
   cartons: cartonsSchema,
   note: text().optional(),
   eventId: id.nullable().optional(),
+  /** Admin only: the agent who gets the commission, or 'none' for a house sale (no commission). */
+  agentId: z.union([id, z.literal('none')]).optional(),
 });
 export const specialPriceSchema = z.object({ unitPriceCents: z.number().int().min(1).max(10_000), reason: required(1000) });
 export const confirmPaymentSchema = z.object({
@@ -45,7 +47,7 @@ export const confirmPaymentSchema = z.object({
   bankReference: text(120).optional(),
 });
 export const correctionSchema = z.object({ cartons: cartonsSchema, reason: required(1000) });
-export const creditNoteSchema = z.object({ reason: required(60), cartons: cartonsSchema, note: text().optional() });
+export const creditNoteSchema = z.object({ reason: required(60), cartons: cartonsSchema, note: text().optional(), /** Price adjustment: an agreed amount incl. VAT; no cartons, stock doesn't change. */ amountCents: money.min(1).optional() });
 export const cancelOrderSchema = z.object({ reason: required(60), note: text().optional() });
 export const decisionSchema = z.object({ reason: required(60), message: text().optional() });
 export const partDeliverySchema = z.object({ kept: cartonsSchema, reason: required(60), note: text().optional() });
@@ -112,7 +114,7 @@ export const supplierMessageSchema = z.object({
   subject: required(300),
   body: required(10_000),
 });
-export const polishSchema = z.object({ text: required(10_000), tone: z.enum(['friendly', 'neutral', 'firm']).default('neutral'), language: z.enum(['en', 'bg', 'he']).default('en') });
+export const polishSchema = z.object({ text: required(10_000), tone: z.enum(['friendly', 'neutral', 'firm', 'short', 'formal']).default('neutral'), language: z.enum(['en', 'bg', 'he']).default('en') });
 
 export const allocateSchema = z.object({ orderIds: z.array(id).min(1) });
 export const stockAdjustmentSchema = z.object({ flavour, cartons: z.number().int().refine((n) => n !== 0, 'Enter a change'), reason: required(60), note: text().optional() });

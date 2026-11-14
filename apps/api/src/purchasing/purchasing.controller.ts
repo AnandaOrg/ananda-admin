@@ -54,6 +54,13 @@ export class SuppliersController {
   update(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(supplierBodySchema)) body: SupplierBody) {
     return this.suppliers.update(auth, id, body);
   }
+
+  @Access('edit', 'purchasing')
+  @Post(':id/documents')
+  @UseInterceptors(FileInterceptor('file', limits))
+  upload(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new JsonBodyPipe(uploadSchema)) body: z.infer<typeof uploadSchema>, @UploadedFile() file?: Upload) {
+    return this.suppliers.upload(auth, id, file, body.label);
+  }
 }
 
 @Controller('purchases')
@@ -99,6 +106,13 @@ export class PurchasesController {
   async order(@Param('id', uuid) id: string, @Res() res: Response) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(await this.purchases.orderHtml(id));
+  }
+
+  @Access('view', 'purchasing')
+  @Get(':id/received-note')
+  async receivedNote(@Param('id', uuid) id: string, @Res() res: Response) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(await this.purchases.receivedNoteHtml(id));
   }
 
   @Access('edit', 'purchasing')

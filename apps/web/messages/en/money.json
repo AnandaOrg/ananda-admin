@@ -1,31 +1,32 @@
 {
   "noCustomer": "No customer",
   "creditNote": "Credit note",
-  "dealsCount": "{n, plural, one {# deal} other {# deals}}",
-  "netShort": "Net {amount}",
-  "marginShort": "Margin {m}",
-  "unitsShort": "{n} units",
-  "breakdown": "Breakdown",
+  "backToOverview": "Back to Overview",
   "period": {
     "label": "Period",
-    "this_year": "This year",
+    "today": "Today",
+    "this_week": "This week",
     "this_month": "This month",
     "last_month": "Last month",
+    "this_year": "This year",
     "last_year": "Last year",
     "last_12_months": "Last 12 months",
-    "custom": "Custom range",
-    "any": "Any time",
-    "customTitle": "Custom range",
-    "apply": "Show this range",
-    "from": "From",
-    "to": "To",
-    "toAfterFrom": "Pick a date on or after the start"
+    "custom": "Custom",
+    "customChip": "Custom · {range}",
+    "inRange": "In this range"
   },
-  "columns": {
-    "button": "Columns · {n} hidden",
-    "title": "Columns",
-    "done": "Done",
-    "full": "The table is full. Turn one column off to add another."
+  "cal": {
+    "dates": "Choose dates",
+    "months": "Choose months",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "pickLastDay": "Pick the last day, or Apply for one day.",
+    "pickLastMonth": "Pick the last month, or Apply for one month.",
+    "fromTo": "From {from} to {to}",
+    "cancel": "Cancel",
+    "apply": "Apply"
   },
   "cols": {
     "deal": "Deal",
@@ -44,86 +45,86 @@
     "shareOfProfit": "Share of profit",
     "month": "Month",
     "dealProfit": "Deal profit",
-    "expensesExclVat": "Expenses excl. VAT",
+    "expenses": "Expenses",
     "operatingProfit": "Operating profit",
     "description": "Description",
     "category": "Category",
-    "amountExclVat": "Amount excl. VAT"
+    "amountExclVat": "Amount, excl. VAT"
   },
-  "tabs": {
-    "deals": "Deals",
-    "customers": "By customer",
-    "agents": "By agent",
-    "flavours": "By flavour"
-  },
-  "equation": {
-    "sentence": "Net sales {net} minus purchase cost {cost} minus commission {commission} equals profit after commission {profit}.",
+  "deal": {
+    "kicker": "Counted on the date the customer paid in full",
+    "noAccess": "Deal profit is for Admins and Finance. Ask an Admin if you need it.",
+    "how": {
+      "button": "How it's counted",
+      "rule": "Net sales (excl. VAT) − purchase cost (units × landed unit cost) = gross profit before commission − agent commission = profit after commission. No expenses, taxes or net profit here: those are in Monthly P&L. A deal counts once, when it's fully paid. Until delivery, its cost uses the current average purchase cost.",
+      "ruleShort": "Net sales (excl. VAT) − units × landed unit cost − agent commission = profit. Expenses are in Monthly P&L. A deal counts once, when it's fully paid."
+    },
     "net": "Net sales",
-    "netSub": "{deals, plural, one {# deal} other {# deals}} · {units} units",
+    "netSubLastYear": "Last year {amount}",
+    "netSubMonth": "{month} {amount}",
+    "netSubYear": "{year} {amount}",
     "cost": "Purchase cost",
     "costSub": "{units} units × {cost}",
-    "commission": "Commission",
-    "commissionSub": "Agents' commission on these deals",
+    "costNone": "No units sold",
+    "commission": "Agent commission",
+    "commissionSub": "{amount} a unit",
     "profit": "Profit after commission",
-    "profitSub": "Gross {gross}"
-  },
-  "how": {
-    "button": "How it's counted",
-    "title": "How deal profit is counted",
-    "close": "Got it",
-    "paid": {
-      "title": "Counted when paid in full.",
-      "text": "A deal counts on the day the customer's last payment arrives, not when the order is made or delivered."
+    "profitSub": "Gross {gross}",
+    "costLine": "− Purchase cost",
+    "commissionLine": "− Agent commission",
+    "profitLine": "= Profit",
+    "phoneNote": "{period}, after commission, once fully paid.",
+    "breakdown": "Group the deals",
+    "tabs": {
+      "deals": "Deals",
+      "customers": "By customer",
+      "agents": "By agent",
+      "flavours": "By flavour"
     },
-    "net": {
-      "title": "Net sales",
-      "text": "are the order totals without VAT."
-    },
-    "cost": {
-      "title": "Purchase cost",
-      "text": "is units × landed unit cost (goods, freight and excise), fixed on the day the deal was paid."
-    },
-    "commission": {
-      "title": "Commission",
-      "text": "is what the agent earns on the deal; special prices are paid out of it."
-    },
-    "credit": {
-      "title": "Credit notes",
-      "text": "reduce net sales, purchase cost and commission in the period they are issued."
-    },
-    "once": {
-      "title": "Each deal counts once.",
-      "text": "The same figure appears on Home, here and in Monthly P&L."
+    "total": "Total",
+    "showing": "Showing",
+    "clearFilter": "Show all deals",
+    "fullyPaid": "{n, plural, one {# deal fully paid.} other {# deals fully paid.}}",
+    "groupsNote": "The other tabs group the same deals.",
+    "noneIn": "No deals fully paid in {range}.",
+    "noneOn": "No deals fully paid on {range}.",
+    "dealsCount": "Deals · {n}",
+    "phoneLine": "{number} · {agent} · paid {date}",
+    "netUnits": "Net sales · {units} units",
+    "empty": {
+      "title": "No paid deals yet",
+      "text": "A deal shows here once its customer has paid in full: sales minus purchase cost minus commission."
     }
   },
-  "empty": {
-    "dealsTitle": "No paid deals in this period",
-    "dealsText": "Deals appear here on the day the customer pays in full. Try a longer period.",
-    "showYear": "Show this year",
-    "pnlTitle": "No months in this period",
-    "pnlText": "Pick a period that has already started to see sales, expenses and profit per month."
-  },
   "pnl": {
-    "total": "Total",
+    "kicker": "Compared with {range}",
     "netSales": "Net sales",
+    "netSub": "Last year {amount}",
     "dealProfit": "Deal profit",
-    "dealProfitSub": "After purchase cost and commission",
-    "expenses": "Expenses",
-    "expensesSub": "Excl. VAT",
+    "dealProfitSub": "after commission",
+    "expenses": "Expenses (net)",
+    "expensesSub": "see Expenses",
     "operatingProfit": "Operating profit",
     "operatingSub": "Deal profit − expenses",
-    "open": "Open",
-    "byMonth": "By month",
-    "phoneSub": "Deal profit {profit} · Expenses {expenses}"
+    "rule": "Deal profit counts in the month the deal was fully paid, as on Deal profit. Expenses count in the month they're dated, excl. VAT.",
+    "noMonths": "No months with figures in {range}.",
+    "phoneNote": "{period}, newest month first. Tap a month for details.",
+    "emptyMonth": "No sales or expenses",
+    "empty": {
+      "kicker": "This year",
+      "title": "Your first month appears after a paid deal or an expense",
+      "text": "Each month: net sales, deal profit, expenses and what's left.",
+      "add": "Add an expense"
+    }
   },
   "bank": {
     "record": "Record bank balance",
     "title": "Record bank balance",
-    "sub": "Use the balance shown in online banking at the end of the day.",
+    "sub": "Cash on hand and the cash forecast start from this figure.",
     "save": "Save balance",
-    "saved": "Bank balance saved",
+    "saved": "Bank balance saved. The forecast starts from it.",
     "account": "Account",
-    "accountHelp": "Add your accounts in Settings › Bank details to pick them from a list.",
+    "accountHelp": "Add your accounts in Settings › Bank and sign-in to pick them from a list.",
     "date": "Balance on",
     "balance": "Balance",
     "last": "Last recorded {amount} on {date}",
@@ -135,53 +136,106 @@
     "missingSub": "Record it once a week so cash on hand stays right."
   },
   "expenses": {
-    "kicker": "{n, plural, one {# expense} other {# expenses}} · newest first",
+    "kicker": "Admin · {range}",
+    "kickerEmpty": "Admin · this year",
     "new": "New expense",
-    "add": "Add expense",
-    "added": "Expense added",
-    "thisYear": "This year excl. VAT",
-    "thisYearSub": "Same as in Monthly P&L",
+    "export": "Export",
+    "exportCsv": "CSV",
+    "exportCsvSub": "For Excel or the accountant's software",
+    "exportPdf": "PDF",
+    "exportPdfSub": "A printable report with totals",
+    "exportCustom": "Custom dates…",
+    "exportCustomSub": "Pick a start and end date",
+    "exportPhone": "Export CSV or PDF",
+    "thisYear": "This year, excl. VAT",
+    "thisYearSub": "Same figure as Monthly P&L",
+    "thisYearPhone": "This year",
+    "thisYearSubPhone": "excl. VAT · as Monthly P&L",
     "thisMonth": "This month",
-    "exclVat": "Excl. VAT",
-    "unpaidTile": "Unpaid",
-    "unpaidSub": "{n, plural, =0 {Nothing to pay} one {# expense incl. VAT} other {# expenses incl. VAT}}",
-    "filters": {
-      "all": "All",
-      "unpaid": "Unpaid",
-      "paid": "Paid"
-    },
-    "search": "Search description or category",
-    "anyCategory": "Any category",
-    "emptyTitle": "No expenses here",
-    "emptyText": "Add rent, marketing, travel and other costs so operating profit stays right.",
-    "paid": "Paid",
+    "monthSoFar": "{month} so far",
+    "monthNone": "No expenses yet in {month}",
+    "monthNonePhone": "Nothing yet in {month}",
     "unpaid": "Unpaid",
-    "markPaid": "Mark as paid",
-    "markedPaid": "Marked as paid",
-    "viewReceipt": "View receipt",
-    "pickCategory": "Pick a category",
-    "descriptionPlaceholder": "For example: Office rent, Sofia",
-    "vatRate": "VAT rate",
-    "vatLine": "VAT {rate}%",
-    "totalInclVat": "Total incl. VAT",
-    "alreadyPaid": "Already paid",
-    "receipt": "Receipt",
-    "uploadReceipt": "Upload receipt",
-    "changeReceipt": "Change file",
-    "removeReceipt": "Remove",
-    "receiptHelp": "Optional. A photo (JPG, PNG, HEIC) or a PDF, up to 15 MB.",
-    "receiptAttached": "Attached",
-    "noReceipt": "None",
-    "addedBy": "Added by"
+    "unpaidSub": "{n, plural, one {# expense, incl. VAT} other {# expenses, incl. VAT}}",
+    "footer": "{n, plural, one {# line} other {# lines}} · {amount} in {range}.",
+    "footerPhone": "{n, plural, one {# line} other {# lines}} · {amount} excl. VAT in {range}",
+    "none": "No expenses in {range}.",
+    "form": {
+      "sub": "Only the simple fields. It counts in Monthly P&L for the month you pick.",
+      "subPhone": "It counts in Monthly P&L for the month you pick.",
+      "date": "Date",
+      "category": "Category",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g. Stand at Varna wine fair",
+      "amount": "Amount, excl. VAT",
+      "vat": "VAT",
+      "vat20": "20%",
+      "vat9": "9% (reduced)",
+      "vat0": "0% / no VAT",
+      "totalLine": "{net} + VAT {vat} = <b>{total}</b>",
+      "totalHint": "Total incl. VAT appears here",
+      "amountError": "Enter an amount to save.",
+      "receipt": "Receipt (optional)",
+      "upload": "Drop a PDF or photo, or click to upload",
+      "attached": "Attached",
+      "remove": "Remove",
+      "save": "Save expense",
+      "saved": "Expense saved to {month} in Monthly P&L."
+    },
+    "detail": {
+      "status": "Status",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "markPaid": "Mark as paid",
+      "markedPaid": "Marked as paid",
+      "viewReceipt": "View receipt",
+      "vatLine": "VAT {rate}%",
+      "totalInclVat": "Total incl. VAT",
+      "receipt": "Receipt",
+      "receiptAttached": "Attached",
+      "noReceipt": "None",
+      "addedBy": "Added by",
+      "close": "Close"
+    },
+    "exportPanel": {
+      "title": "Export expenses",
+      "sub": "Pick any start and end date, then CSV or PDF.",
+      "from": "From",
+      "to": "To",
+      "format": "Format",
+      "csv": "CSV · for Excel",
+      "pdf": "PDF · printable",
+      "period": "Period",
+      "lines": "Lines",
+      "total": "Total excl. VAT",
+      "note": "Expenses are counted in the month they're dated.",
+      "download": "Download {format}",
+      "toAfterFrom": "Pick a date on or after the start"
+    },
+    "report": {
+      "title": "Expenses report",
+      "generated": "Amounts excl. VAT. Generated {date} by {name}.",
+      "total": "Total"
+    },
+    "empty": {
+      "title": "Record what the business spends",
+      "text": "Rent, transport, marketing, fees. Just the date, category and amount; it counts in Monthly P&L for that month.",
+      "first": "Add your first expense"
+    }
   },
   "categories": {
     "marketing": "Marketing",
+    "transport": "Transport",
+    "rent": "Rent",
+    "bank_fees": "Bank fees",
+    "accountant": "Accountant",
+    "samples": "Samples",
     "events": "Events",
+    "other": "Other",
     "travel": "Travel",
     "office": "Office",
     "software": "Software",
     "fees": "Fees",
-    "salaries": "Salaries",
-    "other": "Other"
+    "salaries": "Salaries"
   }
 }

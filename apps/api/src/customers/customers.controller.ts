@@ -1,12 +1,35 @@
 import { Body, Controller, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
-import { changeAgentSchema, customerSchema, vatCheckSchema } from '@ananda/shared';
 import { Access, Auth, type AuthContext } from '../common/context';
 import { ZodPipe } from '../common/zod.pipe';
-import { CustomersService } from './customers.service';
+import { CustomersService, PAYMENT_TERMS, type PaymentTerms } from './customers.service';
 
 const uuid = new ParseUUIDPipe();
-const createSchema = customerSchema.extend({ agentId: z.string().uuid().optional() });
+const opt = (max: number) => z.string().trim().max(max).optional();
+const req = (max: number) => z.string().trim().min(1, 'Required').max(max);
+
+/** One form for Admins and agents: VAT number on top (optional), the rest below (FR-CUST-2). */
+const formSchema = z.object({
+  vatNumber: opt(20),
+  country: z.string().trim().length(2).toUpperCase(),
+  vatValid: z.boolean().nullable().optional(),
+  companyName: req(200),
+  registeredAddress: req(500),
+  postcode: opt(20),
+  city: req(120),
+  deliveryAddress: opt(500),
+  contactName: req(200),
+  phone: opt(40),
+  invoiceEmail: z.string().trim().email('That e-mail address looks incomplete.'),
+  proformaLanguage: z.enum(['en', 'bg']).optional(),
+  paymentTerms: z.enum(PAYMENT_TERMS as [PaymentTerms, ...PaymentTerms[]]).optional(),
+  paymentTermsDays: z.number().int().min(0).max(120).optional(),
+  note: opt(2000),
+  submit: z.boolean().optional(),
+  agentId: z.union([z.literal('none'), z.string().uuid()]).optional(),
+});
+const vatCheckSchema = z.object({ vatNumber: req(20), country: z.string().trim().max(2).optional() });
+const changeAgentSchema = z.object({ agentId: z.union([z.literal('none'), z.string().uuid()]), reason: req(60), note: opt(2000) });
 const contactSchema = z.object({ name: z.string().trim().min(1).max(200), role: z.string().max(100).optional(), phone: z.string().max(40).optional(), email: z.string().email().optional() });
 
 @Controller('customers')
@@ -29,7 +52,7 @@ export class CustomersController {
   @Post('vat-check')
   @HttpCode(200)
   vatCheck(@Body(new ZodPipe(vatCheckSchema)) body: z.infer<typeof vatCheckSchema>) {
-    return this.customers.vatCheck(body.country, body.vatNumber);
+    return this.customers.vatCheck(body.vatNumber, body.country);
   }
 
   @Access('view', 'customers')
@@ -40,13 +63,13 @@ export class CustomersController {
 
   @Access('edit', 'customers')
   @Post()
-  create(@Auth() auth: AuthContext, @Body(new ZodPipe(createSchema)) body: z.infer<typeof createSchema>) {
+  create(@Auth() auth: AuthContext, @Body(new ZodPipe(formSchema)) body: z.infer<typeof formSchema>) {
     return this.customers.create(auth, body);
   }
 
   @Access('edit', 'customers')
   @Patch(':id')
-  update(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(customerSchema.partial())) body: Partial<z.infer<typeof customerSchema>>) {
+  update(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(formSchema.partial())) body: Partial<z.infer<typeof formSchema>>) {
     return this.customers.update(auth, id, body);
   }
 
@@ -62,7 +85,7 @@ export class CustomersController {
   @HttpCode(200)
   changeAgent(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(changeAgentSchema)) body: z.infer<typeof changeAgentSchema>) {
     if (auth.perms.scope !== 'all') throw new ForbiddenException({ message: 'Only an admin can change the agent' });
-    return this.customers.changeAgent(auth, id, body.agentId, body.reason, body.note);
+    return this.customers.changeAgent(auth, id, body.agentId === 'none' ? null : body.agentId, body.reason, body.note);
   }
 
   @Access('edit', 'customers')

@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useQuery } from '@tanstack/react-query';
 import { FLAVOURS, UNITS_PER_CARTON, type CartonsByFlavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { Banner, Button, Card, CartonsEditor, EmptyState, FlavourRows, PageHeader, Sheet } from '@/components/ui';
-import type { LastCount } from '../_components/types';
+import { ActionError, Button, Card, EmptyState, PageHeader } from '@/components/ui';
+import { StepRow } from '../_components/DeliverySheets';
 
 const empty = (): CartonsByFlavour => Object.fromEntries(FLAVOURS.map((f) => [f, 0]));
 
@@ -17,36 +16,31 @@ const empty = (): CartonsByFlavour => Object.fromEntries(FLAVOURS.map((f) => [f,
 export default function CountPage() {
   const t = useTranslations('warehouse');
   const tc = useTranslations('common');
-  const { num, date } = useFmt();
+  const { num, dateShort } = useFmt();
   const { canEdit, readOnly, isWarehouse } = useSession();
   const [cartons, setCartons] = useState<CartonsByFlavour>(empty);
-  const [confirm, setConfirm] = useState(false);
-  const [done, setDone] = useState(false);
-  const last = useQuery({ queryKey: ['warehouse', 'last-count'], queryFn: () => api.get<LastCount | null>('/warehouse/counts/last') });
-  const send = useAction(() => api.post('/warehouse/counts', { cartons }), {
-    success: t('count.sent'),
-    onDone: () => {
-      setConfirm(false);
-      setDone(true);
-    },
-  });
+  const [sent, setSent] = useState<{ n: number; at: string } | null>(null);
   const total = FLAVOURS.reduce((s, f) => s + (cartons[f] ?? 0), 0);
+  const send = useAction(() => api.post<{ id: string; at: string }>('/warehouse/counts', { cartons }), {
+    success: t('count.sent'),
+    onDone: (r) => setSent({ n: total, at: r.at }),
+  });
   const canSend = canEdit('warehouse') && !readOnly;
 
   return (
-    <div className="page">
-      <PageHeader crumbs={isWarehouse ? undefined : [{ label: tc('nav.warehouse'), href: '/warehouse' }, { label: t('count.title') }]} kicker={t('count.kicker')} title={t('count.title')} />
-      {done ? (
+    <div className="page" style={{ maxWidth: 640 }}>
+      <PageHeader crumbs={isWarehouse ? undefined : [{ label: tc('nav.warehouse'), href: '/warehouse' }, { label: t('count.title') }]} title={t('count.title')} />
+      {sent ? (
         <Card>
           <EmptyState
             done
             title={t('count.doneTitle')}
-            text={t('count.doneText')}
+            text={t('count.doneText', { n: sent.n, date: dateShort(sent.at) })}
             action={
               <Button
                 onClick={() => {
                   setCartons(empty());
-                  setDone(false);
+                  setSent(null);
                 }}
               >
                 {t('count.again')}
@@ -55,39 +49,21 @@ export default function CountPage() {
           />
         </Card>
       ) : (
-        <Card>
+        <>
           <span className="body-sm muted">{t('count.help')}</span>
-          <CartonsEditor value={cartons} onChange={setCartons} />
-          <div className="row between">
-            <span className="muted">{t('count.total')}</span>
-            <bdi className="strong num">{tc('cartonsUnits', { c: num(total), u: num(total * UNITS_PER_CARTON) })}</bdi>
+          <div className="stack tight">
+            {FLAVOURS.map((f) => (
+              <StepRow key={f} flavour={f} value={cartons[f] ?? 0} onChange={(n) => setCartons({ ...cartons, [f]: n })} sub={tc('unitsCount', { n: num((cartons[f] ?? 0) * UNITS_PER_CARTON) })} label={tc('cartonsOf', { flavour: f.toUpperCase() })} />
+            ))}
           </div>
           {canSend && (
-            <Button variant="primary" size="lg" block onClick={() => setConfirm(true)}>
+            <Button variant="primary" size="lg" block busy={send.isPending} disabled={total === 0} onClick={() => send.mutate(undefined)}>
               {t('count.send')}
             </Button>
           )}
-          <span className="caption muted">{last.data ? t('count.last', { date: date(last.data.at), name: last.data.byName }) : last.isSuccess ? t('count.never') : ''}</span>
-        </Card>
+          <ActionError action={send} />
+        </>
       )}
-      <Sheet
-        open={confirm}
-        onClose={() => setConfirm(false)}
-        title={t('count.confirmTitle')}
-        sub={tc('cartonsUnits', { c: num(total), u: num(total * UNITS_PER_CARTON) })}
-        footer={
-          <>
-            <Button onClick={() => setConfirm(false)}>{tc('back')}</Button>
-            <Button variant="primary" busy={send.isPending} onClick={() => send.mutate(undefined)}>
-              {t('count.send')}
-            </Button>
-          </>
-        }
-      >
-        <FlavourRows cartons={cartons} />
-        <span className="body-sm muted">{t('count.confirmText')}</span>
-        {send.errorText && <Banner tone="bad">{send.errorText}</Banner>}
-      </Sheet>
     </div>
   );
 }

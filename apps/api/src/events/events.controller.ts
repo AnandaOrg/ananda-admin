@@ -42,6 +42,6 @@ export class EventsController {
   @Post(':id/sales')
   @HttpCode(200)
   sale(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(eventSaleSchema)) body: EventSaleInput) {
-    return this.events.recordSale(auth, id, body.agentId, body.cartons);
+    return this.events.recordSale(auth, id, body.agentId, body.cartons, body.amountNetCents);
   }
 }

@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Headers, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { z } from 'zod';
 import {
@@ -13,7 +14,10 @@ import {
 import { Access, Auth, Sensitive, type AuthContext } from '../common/context';
 import { ZodPipe } from '../common/zod.pipe';
 import { euros, sendCsv } from '../common/csv';
+import { MAX_UPLOAD_BYTES } from '../core/files.service';
 import { OrdersService, type OrderListQuery } from './orders.service';
+
+const uploadBodySchema = z.object({ kind: z.string().trim().min(1).max(40), description: z.string().trim().max(200).optional() });
 
 const uuid = new ParseUUIDPipe();
 
@@ -23,8 +27,10 @@ export class OrdersController {
 
   @Access('view', 'sales')
   @Get()
-  list(@Auth() auth: AuthContext, @Query() q: OrderListQuery) {
-    return this.orders.list(auth, q);
+  list(@Auth() auth: AuthContext, @Query() q: OrderListQuery, @Headers('x-as-of') asOf?: string) {
+    // Looking back (header "As of"): only orders that existed on that day.
+    const day = asOf && /^\d{4}-\d{2}-\d{2}$/.test(asOf) ? asOf : undefined;
+    return this.orders.list(auth, day && (!q.to || q.to > day) ? { ...q, to: day } : q);
   }
 
   @Access('view', 'sales')
@@ -35,7 +41,7 @@ export class OrdersController {
       res,
       'orders.csv',
       ['Order', 'Customer', 'Agent', 'Created', 'Cartons', 'Units', 'Total incl. VAT', 'Paid', 'Status', 'Days late'],
-      items.map((o) => [o.number, o.customerName, o.agentName, o.createdAt.toISOString().slice(0, 10), o.totalCartons, o.totalUnits, euros(o.totalCents), euros(o.paidCents), o.status, o.daysLate]),
+      items.map((o) => [o.number, o.customerName, o.houseSale ? 'No agent' : o.agentName, o.createdAt.toISOString().slice(0, 10), o.totalCartons, o.totalUnits, euros(o.totalCents), euros(o.paidCents), o.status, o.daysLate]),
     );
   }
 
@@ -130,5 +136,25 @@ export class OrdersController {
   @HttpCode(200)
   cancel(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(cancelOrderSchema)) body: z.infer<typeof cancelOrderSchema>) {
     return this.orders.cancel(auth, id, body.reason, body.note);
+  }
+
+  @Access('edit', 'sales')
+  @Post(':id/uncancel')
+  @HttpCode(200)
+  uncancel(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
+    return this.orders.uncancel(auth, id);
+  }
+
+  /** An agent's upload on their own order (multipart: file, kind, description). Admins are told. */
+  @Access('edit', 'sales')
+  @Post(':id/uploads')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }))
+  upload(
+    @Auth() auth: AuthContext,
+    @Param('id', uuid) id: string,
+    @Body(new ZodPipe(uploadBodySchema)) body: z.infer<typeof uploadBodySchema>,
+    @UploadedFile() file?: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+  ) {
+    return this.orders.upload(auth, id, file, body);
   }
 }

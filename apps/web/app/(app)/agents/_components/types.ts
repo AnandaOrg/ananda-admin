@@ -12,11 +12,68 @@ export interface AgentRow {
   comingCents: number;
   sentCents: number;
   paidThisYearCents: number;
+  paidTodayCents: number;
+  /** Agent onboarding: invited → company → bank → sign → countersign (by an Admin) → done. */
+  setup: SetupStatus;
+  signedAt: string | null;
+  bank: { accountHolder: string | null; bankName: string | null; iban: string; bic: string | null } | null;
+  companyName: string | null;
   lastNudgedAt: string | null;
   nudgedToday: boolean;
 }
 
+export type SetupStatus = 'invited' | 'company' | 'bank' | 'sign' | 'countersign' | 'done';
+
+export interface AgentDetail {
+  agent: { id: string; name: string; email: string };
+  customers: { id: string; name: string; lastOrderAt: string | null; owedCents: number }[];
+}
+
+export interface SetupDetails {
+  registeredIn: 'bg' | 'eu' | 'other';
+  country: string;
+  companyName: string | null;
+  vatNumber: string | null;
+  companyRegNumber: string | null;
+  vatRegistered: boolean | null;
+  address: string | null;
+  city: string | null;
+  managerName: string | null;
+  managerRole: string | null;
+  payoutEmail: string | null;
+  accountHolder: string | null;
+  bankName: string | null;
+  iban: string | null;
+  bic: string | null;
+  bankAddress: string | null;
+  currency: string;
+  companyAt: string | null;
+  bankAt: string | null;
+  bankConfirmation: string | null;
+}
+
+export interface AgentSetup {
+  agent: { id: string; name: string; email: string };
+  status: SetupStatus;
+  details: SetupDetails | null;
+  signMethod: 'app' | 'paper' | null;
+  signedScan: string | null;
+  agreement: {
+    title: string;
+    clauses: string[];
+    version: number;
+    documentId: string | null;
+    signedAt: string | null;
+    signedName: string | null;
+    countersignedAt: string | null;
+    countersignedName: string | null;
+  };
+  principal: { name: string };
+  terms: { commissionPerUnitCents: number; ownershipMonths: number };
+}
+
 export interface AgentsOverview {
+  range: { from: string; to: string };
   tiles: { readyCents: number; readyAgents: number; comingCents: number; sentCents: number; didntSell: number; activeAgents: number; newCustomersThisMonth: number };
   didntSellIds: string[];
   agents: AgentRow[];

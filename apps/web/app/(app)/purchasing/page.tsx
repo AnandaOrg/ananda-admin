@@ -8,13 +8,14 @@ import type { Flavour } from '@ananda/shared';
 import { api, qs } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { Button, Card, Chips, DownloadSimple, EmptyState, ErrorState, KpiTile, ListCard, PageHeader, PageSkeleton, Plus, Search, Table, Truck, type Column } from '@/components/ui';
-import { PurchasingTabs } from './_components/PurchasingTabs';
+import { Button, Card, EmptyState, ErrorState, KpiTile, ListCard, PageHeader, PageSkeleton, Plus, Search, ShoppingCart, Table, type Column } from '@/components/ui';
+import { PurchasingTabs, TableFoot, chevronColumn } from './_components/PurchasingTabs';
 import { NewPurchaseSheet } from './_components/NewPurchaseSheet';
 import { PurchaseStatusPill } from './_components/PurchaseStatus';
+import { SupplierSheet } from './suppliers/SupplierSheet';
 import type { PurchaseFilter, PurchaseList, PurchaseRow } from './_lib/types';
 
-/** FR-PUR-1: purchases with tiles, filter chips (Home links to ?filter=late) and ?new=1. */
+/** FR-PUR-1: purchases with tiles; Home links to ?filter=late and ?new=1. */
 export default function PurchasesPage() {
   const t = useTranslations('purchasing');
   const tc = useTranslations('common');
@@ -22,12 +23,12 @@ export default function PurchasesPage() {
   const params = useSearchParams();
   const { canEdit, readOnly } = useSession();
   const { money, num, date, dateShort } = useFmt();
-  const initial = params.get('filter') as PurchaseFilter | null;
-  const [filter, setFilter] = useState<PurchaseFilter>(initial && ['all', 'open', 'late', 'received'].includes(initial) ? initial : 'all');
+  const filter = (params.get('filter') === 'late' ? 'late' : 'all') as PurchaseFilter;
   const [q, setQ] = useState('');
   const [creating, setCreating] = useState(params.get('new') === '1');
-  const query = qs({ filter, q });
-  const list = useQuery({ queryKey: ['purchases', query], queryFn: () => api.get<PurchaseList>(`/purchases${query}`) });
+  const [addingSupplier, setAddingSupplier] = useState(false);
+  const query = qs({ filter: filter === 'all' ? undefined : filter, q: q.trim() || undefined });
+  const list = useQuery({ queryKey: ['purchases', query], queryFn: () => api.get<PurchaseList>(`/purchases${query}`), placeholderData: (prev) => prev });
   const editable = canEdit('purchasing') && !readOnly;
 
   const closeNew = () => {
@@ -38,8 +39,50 @@ export default function PurchasesPage() {
   if (list.isLoading) return <PageSkeleton />;
   const d = list.data;
   const rows = d?.items ?? [];
-  const chips = (['all', 'open', 'late', 'received'] as PurchaseFilter[]).map((f) => ({ value: f, label: t(`filters.${f}`), count: d?.counts[f] }));
+  const tiles = d?.tiles;
+  const firstTime = !!d && d.counts.all === 0 && !q && filter === 'all';
 
+  const newBtn = editable && (
+    <Button variant="primary" size="sm" icon={Plus} onClick={() => setCreating(true)}>
+      {t('new.title')}
+    </Button>
+  );
+  const sheets = editable && (
+    <>
+      <NewPurchaseSheet open={creating} onClose={closeNew} flavour={params.get('flavour') as Flavour | null} nextNumber={d?.nextNumber} />
+      <SupplierSheet open={addingSupplier} supplier={null} all={[]} onClose={() => setAddingSupplier(false)} />
+    </>
+  );
+
+  if (firstTime) {
+    return (
+      <div className="page">
+        <PageHeader crumbs={[{ label: tc('nav.purchasing') }]} kicker={t('empty.kicker')} title={tc('nav.purchasing')} actions={newBtn} />
+        <Card>
+          <EmptyState
+            icon={ShoppingCart}
+            title={t('empty.title')}
+            text={t('empty.text')}
+            action={
+              editable ? (
+                <span className="row wrap" style={{ justifyContent: 'center' }}>
+                  <Button icon={Plus} onClick={() => setAddingSupplier(true)}>
+                    {t('empty.addSupplier')}
+                  </Button>
+                  <Button variant="primary" icon={ShoppingCart} onClick={() => setCreating(true)}>
+                    {t('new.title')}
+                  </Button>
+                </span>
+              ) : undefined
+            }
+          />
+        </Card>
+        {sheets}
+      </div>
+    );
+  }
+
+  const expected = (p: PurchaseRow) => (p.arrivedOn ? t('receivedOn', { date: dateShort(p.arrivedOn) }) : date(p.expectedOn));
   const columns: Column<PurchaseRow>[] = [
     {
       key: 'purchase',
@@ -56,96 +99,84 @@ export default function PurchasesPage() {
       ),
     },
     { key: 'ordered', header: t('cols.ordered'), render: (p) => <span className="nowrap">{date(p.orderedOn)}</span> },
-    {
-      key: 'expected',
-      header: t('cols.expected'),
-      render: (p) => (p.arrivedOn ? <span className="nowrap muted">{t('arrived', { date: date(p.arrivedOn) })}</span> : <span className={`nowrap ${p.daysLate > 0 ? 'bad' : ''}`}>{date(p.expectedOn)}</span>),
-    },
+    { key: 'expected', header: t('cols.expected'), render: (p) => <span className={`nowrap ${p.daysLate > 0 ? 'bad' : ''}`}>{expected(p)}</span> },
     { key: 'units', header: tc('units'), type: 'count', render: (p) => num(p.unitsReceived ?? p.totalUnits) },
     { key: 'toPay', header: t('cols.toPay'), type: 'amount', render: (p) => <bdi>{money(p.stillToPayCents)}</bdi> },
-    { key: 'status', header: tc('status'), render: (p) => <PurchaseStatusPill status={p.status} daysLate={p.daysLate} invoiceMissing={!p.supplierInvoiceReceived} /> },
+    { key: 'status', header: tc('status'), render: (p) => <PurchaseStatusPill p={p} /> },
+    chevronColumn<PurchaseRow>(),
   ];
+
+  const toPaySub = tiles && (tiles.toPayNumbers.length ? tiles.toPayNumbers.join(', ') : t('tiles.allPaid'));
+  const lateSub = tiles && (tiles.late > 0 ? t('tiles.lateSub', { number: tiles.oldestLateNumber ?? '', n: tiles.oldestLateDays }) : t('tiles.allOnTime'));
+  const openLate = tiles?.oldestLateId ? () => router.push(`/purchasing/${tiles.oldestLateId}`) : undefined;
 
   return (
     <div className="page">
       <PageHeader
         crumbs={[{ label: tc('nav.purchasing') }]}
-        kicker={t('kicker', { n: d?.counts.all ?? 0 })}
+        kicker={t('kicker', { n: d?.counts.all ?? 0, s: d?.approvedSuppliers ?? 0 })}
         title={tc('nav.purchasing')}
         actions={
           <>
-            <a className="an-btn secondary sm" href={`/api/purchases/export.csv${query}`}>
-              <DownloadSimple className="an-ic sm" aria-hidden />
-              {tc('exportCsv')}
-            </a>
-            {editable && (
-              <Button variant="primary" size="sm" icon={Plus} onClick={() => setCreating(true)}>
-                {t('new.title')}
-              </Button>
-            )}
+            <div className="only-wide" style={{ width: 240 }}>
+              <Search value={q} onChange={setQ} placeholder={t('searchPlaceholder')} />
+            </div>
+            <span className="only-wide">{newBtn}</span>
           </>
         }
       />
       <PurchasingTabs current="purchases" />
-      {d && (
-        <div className="kpis" style={{ ['--n' as string]: 3 }}>
-          <KpiTile label={t('tiles.onTheWay')} value={t('tiles.units', { n: num(d.tiles.onTheWayUnits) })} sub={t('tiles.cartons', { n: num(d.tiles.onTheWayCartons) })} />
-          <KpiTile label={t('tiles.toPay')} value={money(d.tiles.toPaySuppliersCents, true)} sub={d.tiles.notInvoicedCents > 0 ? t('tiles.notInvoiced', { amount: money(d.tiles.notInvoicedCents, true) }) : undefined} link={{ href: '/purchasing/payables', label: t('tabs.payables') }} />
-          <KpiTile
-            label={t('tiles.late')}
-            value={num(d.tiles.late)}
-            valueTone={d.tiles.late > 0 ? 'bad' : undefined}
-            sub={d.tiles.late > 0 ? t('tiles.oldestLate', { n: d.tiles.oldestLateDays }) : t('tiles.noneLate')}
-            subTone={d.tiles.late > 0 ? 'bad' : undefined}
-            onClick={d.tiles.late > 0 ? () => setFilter('late') : undefined}
-          />
-        </div>
+      {tiles && (
+        <>
+          <div className="kpis only-wide" style={{ ['--n' as string]: 3 }}>
+            <KpiTile label={t('tiles.onTheWay')} value={num(tiles.onTheWayUnits)} sub={tiles.onTheWayUnits ? t('tiles.unitsCartons', { n: num(tiles.onTheWayCartons) }) : t('tiles.nothingOnTheWay')} />
+            <KpiTile label={t('tiles.toPay')} value={money(tiles.toPaySuppliersCents)} sub={<bdi>{toPaySub}</bdi>} />
+            <KpiTile label={t('tiles.late')} value={num(tiles.late)} valueTone={tiles.late > 0 ? 'bad' : undefined} sub={<bdi>{lateSub}</bdi>} onClick={openLate} />
+          </div>
+          <div className="kpis only-phone">
+            <KpiTile label={t('tiles.onTheWay')} value={num(tiles.onTheWayUnits)} sub={tiles.onTheWayUnits ? t('tiles.unitsCartons', { n: num(tiles.onTheWayCartons) }) : t('tiles.nothingOnTheWay')} />
+            <KpiTile label={t('tiles.toPayShort')} value={<span style={{ color: tiles.toPaySuppliersCents > 0 ? 'var(--warn)' : undefined }}>{money(tiles.toPaySuppliersCents, true)}</span>} sub={<bdi>{toPaySub}</bdi>} onClick={() => router.push('/purchasing/payables')} />
+          </div>
+        </>
       )}
-      <Chips options={chips} value={filter} onChange={setFilter} label={tc('filters')} />
-      <div className="toolbar">
-        <Search value={q} onChange={setQ} placeholder={t('searchPlaceholder')} />
-      </div>
       {list.error ? (
         <ErrorState error={list.error} retry={() => list.refetch()} />
       ) : rows.length === 0 ? (
         <Card>
-          <EmptyState
-            icon={Truck}
-            title={filter === 'late' ? t('empty.lateTitle') : t('empty.title')}
-            text={filter === 'late' ? t('empty.lateText') : t('empty.text')}
-            action={
-              editable && filter !== 'late' ? (
-                <Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>
-                  {t('new.title')}
-                </Button>
-              ) : undefined
-            }
-          />
+          <EmptyState icon={ShoppingCart} title={q ? t('empty.searchTitle') : t('empty.lateTitle')} text={q ? t('empty.searchText', { q }) : t('empty.lateText')} />
         </Card>
       ) : (
         <>
           <Card flush className="only-wide">
             <Table columns={columns} rows={rows} rowKey={(p) => p.id} onRow={(p) => router.push(`/purchasing/${p.id}`)} />
+            <TableFoot>{t('foot')}</TableFoot>
           </Card>
           <div className="list-cards only-phone">
             {rows.map((p) => (
               <ListCard
                 key={p.id}
                 href={`/purchasing/${p.id}`}
-                title={<bdi>{p.supplierName}</bdi>}
+                title={<bdi>{p.number}</bdi>}
                 amount={money(p.stillToPayCents)}
                 sub={
                   <>
-                    <bdi>{p.number}</bdi> · {t('unitsShort', { n: num(p.unitsReceived ?? p.totalUnits) })} · {p.arrivedOn ? t('arrived', { date: dateShort(p.arrivedOn) }) : t('expectedShort', { date: dateShort(p.expectedOn) })}
+                    {date(p.orderedOn)} · {t('unitsShort', { n: num(p.unitsReceived ?? p.totalUnits) })}
                   </>
                 }
-                status={<PurchaseStatusPill status={p.status} daysLate={p.daysLate} invoiceMissing={!p.supplierInvoiceReceived} />}
+                status={<PurchaseStatusPill p={p} />}
               />
             ))}
           </div>
         </>
       )}
-      {editable && <NewPurchaseSheet open={creating} onClose={closeNew} flavour={params.get('flavour') as Flavour | null} />}
+      {editable && (
+        <div className="only-phone">
+          <Button variant="primary" block icon={Plus} onClick={() => setCreating(true)}>
+            {t('new.title')}
+          </Button>
+        </div>
+      )}
+      {sheets}
     </div>
   );
 }

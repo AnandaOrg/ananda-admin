@@ -1,18 +1,18 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { FLAVOURS, STOCK_MOVEMENT_KINDS, type Flavour } from '@ananda/shared';
+import { FLAVOURS, type Flavour } from '@ananda/shared';
 import { api, qs } from '@/lib/api';
 import { useFmt } from '@/lib/format';
-import { Button, Card, ClockCounterClockwise, EmptyState, ErrorState, FlavourName, ListCard, SelectPill, Skeleton, SlidersHorizontal, Table, Tag, type Column } from '@/components/ui';
+import { Button, Card, ClockCounterClockwise, EmptyState, ErrorState, ListCard, Skeleton, Table, type Column } from '@/components/ui';
 
-interface Movement {
+export interface Movement {
   id: string;
   at: string;
-  flavour: Flavour;
+  flavours: Flavour[];
+  lines: { flavour: Flavour; units: number }[];
   units: number;
   kind: string;
   reason: string | null;
@@ -21,120 +21,114 @@ interface Movement {
   by: string | null;
   orderId: string | null;
   orderNumber: string | null;
+  customerName: string | null;
   purchaseId: string | null;
   purchaseNumber: string | null;
   eventName: string | null;
 }
 
-/** FR-INV-5: ledger newest first (when, flavour, units ±, why, by whom). */
+/** FR-INV-5: every change to stock, newest first (when, flavour, units ±, why, by). */
 export function Movements() {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
-  const { num, dateTime, dateShort } = useFmt();
-  const [flavour, setFlavour] = useState<Flavour | null>(null);
-  const [kind, setKind] = useState<string | null>(null);
+  const { num, dateShort } = useFmt();
   const [limit, setLimit] = useState(100);
-  const query = qs({ flavour, kind, limit });
+  const query = qs({ limit });
   const q = useQuery({ queryKey: ['inventory', 'movements', query], queryFn: () => api.get<{ items: Movement[]; next: string | null }>(`/inventory/movements${query}`), placeholderData: (prev) => prev });
 
-  const signed = (n: number) => (n > 0 ? `+${num(n)}` : num(n));
+  const signed = (n: number) => (n > 0 ? `+${num(n)}` : `−${num(Math.abs(n))}`);
+  const flavours = (m: Movement) => (m.flavours.length === FLAVOURS.length ? t('movements.allFlavours') : m.flavours.map((f) => f.toUpperCase()).join(', '));
+  const reason = (m: Movement) => {
+    if (!m.reason) return null;
+    if (t.has(`adjust.reasons.${m.reason}`)) return t(`adjust.reasons.${m.reason}`);
+    if (tc.has(`reasons.adjustment.${m.reason}`)) return tc(`reasons.adjustment.${m.reason}`);
+    return m.reason;
+  };
+  const ref = (m: Movement) => (m.orderNumber || m.purchaseNumber ? <bdi>{m.orderNumber ?? m.purchaseNumber}</bdi> : null);
   const why = (m: Movement) => {
-    const base = t(`kinds.${m.kind}`);
-    const ref = m.orderNumber ? (
-      <Link href={`/sales/${m.orderId}`} className="link">
-        <bdi>{m.orderNumber}</bdi>
-      </Link>
-    ) : m.purchaseNumber ? (
-      <Link href={`/purchasing/${m.purchaseId}`} className="link">
-        <bdi>{m.purchaseNumber}</bdi>
-      </Link>
-    ) : m.eventName ? (
-      <bdi>{m.eventName}</bdi>
-    ) : null;
-    // Only adjustment reasons are shown; other modules store technical keys there.
-    const reason = m.kind === 'adjustment' && m.reason ? (tc.has(`reasons.adjustment.${m.reason}`) ? tc(`reasons.adjustment.${m.reason}`) : m.reason) : null;
-    const note = m.note && m.note !== m.purchaseNumber && m.note !== m.orderNumber ? m.note : null;
-    return (
-      <>
-        <span>
-          {base}
-          {ref && <> · {ref}</>}
-          {reason && ` · ${reason}`}
-          {m.atEvent && ` · ${t('movements.eventStock')}`}
-        </span>
-        {note && <span className="sb">{note}</span>}
-      </>
-    );
+    const r = ref(m);
+    const ev = m.eventName ? <bdi>{m.eventName}</bdi> : null;
+    switch (m.kind) {
+      case 'purchase_receipt':
+        return t.rich('movements.why.received', { ref: () => r });
+      case 'dispatch':
+        return (
+          <>
+            {t.rich('movements.why.shipped', { ref: () => r })}
+            {m.customerName && (
+              <>
+                {' · '}
+                <bdi>{m.customerName}</bdi>
+              </>
+            )}
+          </>
+        );
+      case 'return':
+        return t.rich('movements.why.returned', { ref: () => r });
+      case 'credit_return':
+        return t.rich('movements.why.creditReturn', { ref: () => r });
+      case 'event_out':
+        return t.rich('movements.why.toEvent', { ev: () => ev });
+      case 'event_in':
+        return t.rich('movements.why.fromEvent', { ev: () => ev });
+      case 'event_sale':
+        return t.rich('movements.why.eventSale', { ev: () => ev });
+      default: {
+        // Adjustments: the reason, then the note (a count adjustment notes which count it came from).
+        const parts = [reason(m) ?? t('kinds.adjustment'), m.note].filter(Boolean);
+        return parts.join(' · ');
+      }
+    }
   };
 
   const cols: Column<Movement>[] = [
-    { key: 'when', header: t('movements.when'), render: (m) => <span className="nowrap">{dateTime(m.at)}</span> },
-    { key: 'flavour', header: tc('flavour'), render: (m) => <FlavourName flavour={m.flavour} /> },
-    { key: 'units', header: tc('units'), type: 'count', render: (m) => <bdi className={m.units < 0 ? '' : 'good'}>{signed(m.units)}</bdi> },
-    { key: 'why', header: t('movements.why'), render: why },
-    { key: 'by', header: t('movements.by'), render: (m) => m.by ?? <span className="muted">{t('movements.system')}</span> },
+    { key: 'when', header: t('movements.when'), render: (m) => <span className="nowrap">{dateShort(m.at)}</span> },
+    { key: 'flavour', header: tc('flavour'), render: flavours },
+    { key: 'units', header: tc('units'), type: 'count', render: (m) => <bdi className={m.units < 0 ? 'bad' : 'good'}>{signed(m.units)}</bdi> },
+    { key: 'why', header: t('movements.whyCol'), render: why },
+    { key: 'by', header: t('movements.by'), render: (m) => (m.by ? <bdi>{m.by}</bdi> : <span className="muted">{t('movements.system')}</span>) },
   ];
   const items = q.data?.items ?? [];
 
+  if (q.isLoading) return <Skeleton h={320} />;
+  if (q.error) return <ErrorState error={q.error} retry={() => q.refetch()} />;
+  if (items.length === 0)
+    return (
+      <Card>
+        <EmptyState icon={ClockCounterClockwise} title={t('movements.emptyTitle')} text={t('movements.emptyText')} />
+      </Card>
+    );
   return (
     <>
-      <div className="toolbar">
-        <SelectPill
-          icon={Tag}
-          label={tc('flavour')}
-          value={flavour ? flavour.toUpperCase() : t('movements.anyFlavour')}
-          items={[{ key: 'any', label: t('movements.anyFlavour'), selected: !flavour, onSelect: () => setFlavour(null) }, ...FLAVOURS.map((f) => ({ key: f, label: f.toUpperCase(), selected: f === flavour, onSelect: () => setFlavour(f) }))]}
-        />
-        <SelectPill
-          icon={SlidersHorizontal}
-          label={t('movements.why')}
-          value={kind ? t(`kinds.${kind}`) : t('movements.anyKind')}
-          items={[{ key: 'any', label: t('movements.anyKind'), selected: !kind, onSelect: () => setKind(null) }, ...STOCK_MOVEMENT_KINDS.map((k) => ({ key: k, label: t(`kinds.${k}`), selected: k === kind, onSelect: () => setKind(k) }))]}
-        />
-      </div>
-      {q.isLoading ? (
-        <Skeleton h={320} />
-      ) : q.error ? (
-        <ErrorState error={q.error} retry={() => q.refetch()} />
-      ) : items.length === 0 ? (
-        <Card>
-          <EmptyState icon={ClockCounterClockwise} title={t('movements.emptyTitle')} text={t('movements.emptyText')} />
-        </Card>
-      ) : (
-        <>
-          <Card flush className="only-wide">
-            <Table columns={cols} rows={items} rowKey={(m) => m.id} />
-          </Card>
-          <div className="list-cards only-phone">
-            {items.map((m) => (
-              <ListCard
-                key={m.id}
-                href={m.orderId ? `/sales/${m.orderId}` : m.purchaseId ? `/purchasing/${m.purchaseId}` : undefined}
-                title={<FlavourName flavour={m.flavour} />}
-                amount={signed(m.units)}
-                sub={
+      <Card flush className="only-wide">
+        <Table columns={cols} rows={items} rowKey={(m) => m.id} />
+      </Card>
+      <div className="list-cards only-phone">
+        {items.map((m) => (
+          <ListCard
+            key={m.id}
+            title={why(m)}
+            amount={<span className={m.units < 0 ? 'bad' : 'good'}>{signed(m.units)}</span>}
+            sub={
+              <>
+                {dateShort(m.at)} · {flavours(m)}
+                {m.by && (
                   <>
-                    {dateShort(m.at)} · {t(`kinds.${m.kind}`)}
-                    {(m.orderNumber || m.purchaseNumber) && (
-                      <>
-                        {' · '}
-                        <bdi>{m.orderNumber ?? m.purchaseNumber}</bdi>
-                      </>
-                    )}
-                    {m.by && ` · ${m.by}`}
+                    {' · '}
+                    <bdi>{m.by}</bdi>
                   </>
-                }
-              />
-            ))}
-          </div>
-          {q.data?.next && limit < 500 && (
-            <div className="row end">
-              <Button busy={q.isFetching} onClick={() => setLimit(limit + 100)}>
-                {t('movements.more')}
-              </Button>
-            </div>
-          )}
-        </>
+                )}
+              </>
+            }
+          />
+        ))}
+      </div>
+      {q.data?.next && limit < 500 && (
+        <div className="row end">
+          <Button busy={q.isFetching} onClick={() => setLimit(limit + 100)}>
+            {t('movements.more')}
+          </Button>
+        </div>
       )}
     </>
   );

@@ -1,116 +1,98 @@
 {
   "title": "Warehouse & shipments",
-  "toShipTitle": "To ship",
-  "toShipKicker": "{n, plural, =0 {Nothing to ship} one {# order to ship} other {# orders to ship}}",
+  "site": "Warehouse · {city}",
+  "siteNone": "Warehouse",
+  "toShipTitle": "To ship · {n}",
   "tiles": {
     "toShip": "To ship",
-    "toShipSub": "{n, plural, one {# carton} other {# cartons}}",
+    "nothingWaiting": "Nothing waiting",
     "delivered": "Delivered this month",
-    "deliveredSub": "{n, plural, one {# order} other {# orders}}",
+    "withNotes": "with signed notes",
+    "noneYet": "none yet",
     "lastCount": "Last stock count",
+    "today": "Today",
     "noCount": "None yet",
-    "noCountSub": "The warehouse sends counts from the phone",
-    "countBy": "By {name}",
-    "countMatches": "By {name} · matches the records",
-    "countOff": "By {name} · {n, plural, one {# carton} other {# cartons}} off"
-  },
-  "ready": {
-    "title": "Paid · ready to send",
-    "send": "Send to warehouse",
-    "sheetTitle": "Send to the warehouse?",
-    "sheetText": "The warehouse gets an e-mail with the address and cartons, without prices. Quantities are fixed from now on.",
-    "sent": "{number} sent to the warehouse",
-    "paidSince": "Paid {date}"
-  },
-  "list": {
-    "title": "Shipments",
-    "all": "All",
-    "toShip": "To ship",
-    "delivered": "Delivered",
-    "empty": "No shipments here yet.",
-    "emptyToShip": "Nothing to ship right now."
+    "noCountSub": "No count this month",
+    "counted": "{n, plural, one {# carton counted} other {# cartons counted}}"
   },
   "cols": {
     "order": "Order",
     "deliversTo": "Delivers to",
     "when": "When",
     "cartons": "Cartons",
-    "status": "Status",
-    "signedNote": "Signed note",
-    "delivered": "Delivered"
+    "status": "Status"
   },
-  "due": {
-    "today": "Sent today",
-    "yesterday": "Since yesterday",
-    "days": "Waiting {n} days",
-    "redelivery": "Deliver again"
+  "status": {
+    "toShip": "To ship",
+    "rest": "Rest of a part delivery",
+    "delivered": "Delivered · signed note",
+    "part": "Part delivered · signed note"
+  },
+  "when": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "foot": "Signed notes are uploaded from the warehouse phone the moment an order is delivered.",
+  "empty": {
+    "title": "Nothing to ship yet",
+    "text": "Paid orders you send to the warehouse appear here, with the signed note once delivered.",
+    "invite": "Invite the warehouse"
   },
   "card": {
-    "contact": "Contact",
-    "address": "Address",
+    "contact": "Contact: {name} · {phone}",
+    "rest": "rest of a part delivery",
+    "cartons": "{n, plural, one {# carton} other {# cartons}}",
     "total": "Total",
     "totalValue": "{c, plural, one {# carton} other {# cartons}} · {u} units",
     "uploadNote": "Upload signed note",
-    "partDelivery": "Delivered in part"
+    "partDelivery": "Delivered in part",
+    "call": "Call",
+    "directions": "Directions"
   },
-  "viewNote": "View signed note",
-  "noNote": "No note",
+  "noPrices": "No prices or stock values are shown to the warehouse.",
   "emptyToShip": {
-    "title": "Nothing to ship",
-    "text": "New orders show up here as soon as an admin sends them to the warehouse."
+    "title": "Nothing left to ship",
+    "text": "New orders appear here when an Admin sends them."
   },
   "photo": {
+    "title": "Photo of the signed note",
+    "point": "Point the camera at the note the customer signed",
     "take": "Take photo",
     "retake": "Retake",
     "use": "Use photo",
     "previewAlt": "Photo of the signed delivery note",
-    "title": "Photo of the signed note",
-    "text": "Take a clear photo of the whole note with the customer's signature."
+    "sub": "{customer} · {n, plural, one {# carton} other {# cartons}}",
+    "subPart": "{customer} · {n, plural, one {# carton} other {# cartons}} (part)"
   },
   "note": {
-    "title": "Upload signed note",
-    "done": "{number} delivered",
-    "fileType": "Use a photo (JPG, PNG or HEIC)."
+    "done": "{number} delivered. The Admin and agent are told.",
+    "view": "Signed delivery note",
+    "open": "Open"
   },
   "part": {
-    "title": "Delivered in part",
-    "keptLabel": "Cartons the customer kept",
-    "keptHelp": "Start from what was sent and lower the flavours that came back.",
-    "reason": "What happened?",
-    "note": "Note (optional)",
-    "summary": "Coming back to the warehouse",
-    "summaryNone": "Nothing is coming back yet. Lower the cartons the customer kept.",
-    "summaryTotal": "{n, plural, one {# carton} other {# cartons}} coming back",
-    "facts": "You record what happened. An admin decides on a credit note or a new delivery.",
-    "continue": "Continue to photo",
-    "send": "Send",
-    "done": "{number} delivered in part · {n, plural, one {# carton} other {# cartons}} back"
+    "title": "What did you deliver now?",
+    "sub": "{customer} · {number}. The rest stays in To ship.",
+    "of": "of {n, plural, one {# carton} other {# cartons}}",
+    "next": "Next: signed note",
+    "done": "Part delivered. {n, plural, one {# carton stays} other {# cartons stay}} in To ship."
   },
   "deliveredPage": {
     "title": "Delivered",
-    "kicker": "{n, plural, =0 {No deliveries} one {# delivery} other {# deliveries}}",
-    "thisMonth": "This month",
-    "lastMonth": "Last month",
-    "all": "All",
+    "partShort": "part",
+    "signed": "Signed note",
+    "tap": "Tap one to see the signed note.",
     "empty": {
       "title": "No deliveries yet",
       "text": "Orders show up here once their signed note is uploaded."
-    },
-    "deliveredOn": "Delivered {date}"
+    }
   },
   "count": {
     "title": "Stock count",
-    "kicker": "Count full cartons only",
-    "help": "Count every full carton per flavour. Open cartons do not count.",
-    "total": "Total counted",
+    "help": "Count the full cartons on the shelves, per flavour. You won't see what the system expects, so the count stays honest.",
     "send": "Send count to Admin",
-    "confirmTitle": "Send this count?",
-    "confirmText": "An admin compares it with the stock records. You cannot change a count after sending it.",
     "sent": "Count sent to Admin",
     "doneTitle": "Count sent",
-    "doneText": "An admin compares it with the stock records and follows up if anything is off.",
-    "again": "Start a new count",
-    "last": "Last count sent {date} by {name}",
-    "never": "No count sent yet"
+    "doneText": "{n, plural, one {# carton} other {# cartons}} counted on {date}. The Admin sees any difference from what the system expects.",
+    "again": "Start a new count"
   }
 }

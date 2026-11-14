@@ -1,22 +1,46 @@
 {
-  "kicker": "Late and due payments, oldest first",
+  "kicker": "{n, plural, one {# unpaid invoice} other {# unpaid invoices}} · {who}",
+  "kickerOwn": "{n, plural, one {# unpaid invoice} other {# unpaid invoices}}",
+  "everyAgent": "every agent",
+  "nothingUnpaid": "Nothing unpaid",
+  "allAgents": "All agents",
+  "unpaidInvoices": "{n, plural, one {# unpaid invoice} other {# unpaid invoices}}",
   "tiles": {
     "late": "Late",
-    "lateSub": "{n, plural, one {# order} other {# orders}} · oldest {days} days",
-    "nothingLate": "Nothing late",
     "week": "Due this week",
-    "count": "{n, plural, one {# order} other {# orders}}",
+    "weekShort": "This week",
     "all": "All unpaid",
-    "allSub": "{n, plural, one {# order} other {# orders}} · same as Owed to us",
-    "allTip": "Every unpaid customer amount incl. VAT, the same figure as Owed to us on Home."
+    "invoices": "{n, plural, one {# invoice} other {# invoices}}",
+    "sameAsOverview": "Same figure as Overview",
+    "share": "{name}'s share of {total}"
   },
-  "filters": { "late": "Late", "week": "Due this week", "all": "All unpaid" },
-  "cols": { "customer": "Customer and order", "howLate": "How late", "actions": "Actions" },
-  "dueOn": "Due {date}",
-  "lastReminder": "reminded {date}",
+  "filters": {
+    "late": "Late",
+    "week": "Due this week",
+    "all": "All unpaid"
+  },
+  "cols": {
+    "customer": "Customer",
+    "when": "When",
+    "actions": "Actions"
+  },
+  "dueOn": "due {date}",
   "remind": "Reminder",
-  "getInTouch": "Get in touch",
-  "agentCopied": "{agent} is copied on this reminder.",
-  "reminderSent": "Reminder sent to {name}.",
-  "empty": { "title": "Nothing to collect", "text": "Every payment request is paid. New ones appear here once they are sent." }
+  "draftBelow": "Draft below",
+  "draftLabel": "Reminder to {email}",
+  "sendReminder": "Send reminder",
+  "sentToday": "Reminder sent today · {name} copied",
+  "sentTodayCard": "Reminder sent today. {name} is copied.",
+  "sentTodayNoCopy": "Reminder sent today",
+  "sentTodayCardNoCopy": "Reminder sent today.",
+  "reminderSent": "Reminder sent to {name}. {agent} is copied.",
+  "reminderSentNoCopy": "Reminder sent to {name}.",
+  "foot": "Reminders are drafted for you to read first. The agent is copied on every one.",
+  "footNoCopy": "Reminders are drafted for you to read first.",
+  "nothingFor": "Nothing here for {name}.",
+  "nothingHere": "Nothing here.",
+  "empty": {
+    "title": "Nobody owes you anything",
+    "text": "When a payment request goes unpaid, it shows here with Call and Reminder, oldest first."
+  }
 }

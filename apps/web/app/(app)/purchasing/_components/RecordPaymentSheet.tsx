@@ -7,9 +7,9 @@ import { isoDate } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, MoneyField, Select, Sheet, TextField, Totals, TwoStepField } from '@/components/ui';
+import { Bank, Banner, Button, MoneyField, Select, Sheet, TextField, Totals, TwoStepField } from '@/components/ui';
 import { FilePick } from './FilePick';
-import { useKindLabel } from './PurchaseStatus';
+import { useKindLabel, useMonthName } from './PurchaseStatus';
 import { formWith, type Payable } from '../_lib/types';
 
 /**
@@ -20,6 +20,7 @@ export function RecordPaymentSheet({ payable, accounts, onClose }: { payable: Pa
   const t = useTranslations('purchasing');
   const tc = useTranslations('common');
   const { money, date } = useFmt();
+  const monthName = useMonthName();
   const kind = useKindLabel();
   const [paidOn, setPaidOn] = useState(isoDate());
   const [amountCents, setAmountCents] = useState<number | null>(null);
@@ -58,7 +59,7 @@ export function RecordPaymentSheet({ payable, accounts, onClose }: { payable: Pa
       title={t('pay.title')}
       sub={
         <>
-          <bdi>{payable.party}</bdi> · {kind(payable.kind)}
+          <bdi>{payable.party}</bdi> · {kind(payable.kind, { month: payable.kind === 'excise' && payable.arrivedOn ? monthName(payable.arrivedOn) : null })}
           {payable.invoiceNumber && (
             <>
               {' '}
@@ -69,12 +70,9 @@ export function RecordPaymentSheet({ payable, accounts, onClose }: { payable: Pa
       }
       dirty
       footer={
-        <>
-          <Button onClick={onClose}>{tc('cancel')}</Button>
-          <Button variant="primary" disabled={code.length !== 6 || !amountCents || !paidFrom} busy={pay.isPending} onClick={() => pay.mutate(undefined)}>
-            {part ? t('pay.ctaPart') : t('pay.cta')}
-          </Button>
-        </>
+        <Button variant="primary" block icon={Bank} disabled={code.length !== 6 || !amountCents || !paidFrom} busy={pay.isPending} onClick={() => pay.mutate(undefined)}>
+          {part ? t('pay.ctaPart') : t('pay.cta')}
+        </Button>
       }
     >
       <Totals

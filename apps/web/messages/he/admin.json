@@ -19,30 +19,69 @@
     "cols": {
       "name": "שם",
       "role": "תפקיד",
-      "sees": "מה רואים",
-      "twoStep": "כניסה דו־שלבית",
-      "actions": "פעולות"
+      "sees": "רואה",
+      "twoStep": "אימות דו-שלבי",
+      "actions": "פעולות",
+      "invited": "הוזמן/ה"
     },
     "status": {
       "active": "פעיל",
       "invited": "הוזמן",
-      "deactivated": "מושבת"
+      "deactivated": "מושעה"
     },
     "twoStep": {
-      "on": "פעילה",
-      "off": "כבויה",
-      "atSignIn": "מוגדרת בכניסה"
+      "on": "פעיל",
+      "off": "כבוי",
+      "atSignIn": "יוגדר בכניסה",
+      "phoneOn": "אימות דו-שלבי פעיל",
+      "phoneOff": "אימות דו-שלבי כבוי"
     },
     "add": {
       "button": "הוספת חבר צוות",
-      "title": "הוספת חבר צוות",
+      "title": "הוספת חבר",
       "sub": "הוא מקבל אימייל להגדרת סיסמה. הקישור תקף {n, plural, one {יום #} two {# ימים} other {# ימים}}.",
-      "name": "שם מלא",
+      "name": "שם",
       "pickRole": "בחירת תפקיד",
       "roleHelp": "התפקיד קובע מה רואים ומה מותר לעשות.",
       "messagePlaceholder": "הערה קצרה שתתווסף לאימייל ההזמנה",
       "send": "שליחת הזמנה",
-      "sent": "ההזמנה נשלחה אל {email}"
+      "sent": "ההזמנה נשלחה אל {email}",
+      "namePh": "לדוגמה: אלנה דימיטרובה",
+      "email": "דוא״ל",
+      "emailPh": "name@company.bg",
+      "letter": "דוא״ל הזמנה",
+      "subject": "הוזמנת ל-ANANDA",
+      "subjectLine": "נושא: {subject}",
+      "polish": "ליטוש עם AI",
+      "polishAgain": "ליטוש נוסף",
+      "polished": "לוטש",
+      "undo": "ביטול פעולה",
+      "tones": {
+        "friendly": "ידידותי יותר",
+        "short": "קצר יותר",
+        "formal": "רשמי יותר"
+      },
+      "foot": "הם קובעים סיסמה בעצמם דרך הקישור.",
+      "sentToast": "ההזמנה נשלחה. היא ממתינה תחת הזמנות.",
+      "namePlaceholder": "[שם]",
+      "body": "היי {name},\n\nהוזמנת להצטרף ל-ANANDA בתפקיד {role}. {line}\n\nיש ללחוץ על הקישור כדי להגדיר סיסמה{tfa}. הקישור בתוקף {days, plural, one {יום אחד} other {# ימים}}.\n\n{me}",
+      "tfa": " ולהפעיל אימות דו-שלבי",
+      "roleAs": {
+        "system_admin": "מנהל/ת מערכת",
+        "admin": "מנהל/ת",
+        "agent": "סוכן/ת",
+        "warehouse": "חלק מצוות המחסן",
+        "finance": "חלק מצוות הכספים",
+        "custom": "{role}"
+      },
+      "roleLine": {
+        "system_admin": "תהיה גישה לכל דבר, כולל משתמשים, תפקידים והגדרות.",
+        "admin": "תהיה גישה לאישור לקוחות חדשים, מחירים מיוחדים ותיקונים, לאישור תשלומים ולכל הדוחות.",
+        "agent": "תהיה גישה ללקוחות ולהזמנות שלך, ליצירת מכירות חדשות ולמעקב אחר העמלה שלך ({commission} ליחידה, משולמת לאחר שהלקוח שילם במלואו).",
+        "warehouse": "תהיה גישה להזמנות למשלוח, להעלאת תעודות משלוח חתומות מהטלפון ולשליחת ספירות מלאי.",
+        "finance": "תהיה גישה לתשלומים, חשבוניות, הוצאות ודוחות, ולתשלום עמלות לסוכנים."
+      },
+      "aiOff": "הליטוש דורש את שירות ה-AI, שעדיין לא הוגדר."
     },
     "invite": {
       "invitedBy": "הוזמן על ידי",
@@ -54,11 +93,19 @@
       "resent": "ההזמנה נשלחה שוב",
       "cancelled": "ההזמנה בוטלה",
       "emptyTitle": "אין הזמנות פתוחות",
-      "emptyText": "אנשים שהוזמנו מופיעים כאן עד שיגדירו סיסמה."
+      "emptyText": "אנשים שהוזמנו מופיעים כאן עד שיגדירו סיסמה.",
+      "waiting": "ממתין לקבלה",
+      "none": "אין הזמנות פתוחות.",
+      "resendFull": "שליחת ההזמנה שוב",
+      "sentOn": "הוזמן/ה ב-{date} · הקישור בתוקף עד {until}"
     },
     "history": {
       "emptyTitle": "עדיין אין שינויים",
-      "emptyText": "הזמנות, שינויי תפקיד והשבתות מוצגים כאן, החדשים קודם."
+      "emptyText": "הזמנות, שינויי תפקיד והשבתות מוצגים כאן, החדשים קודם.",
+      "when": "מתי",
+      "who": "מי",
+      "what": "מה השתנה",
+      "foot": "שינויים בחברים, בתפקידים ובהרשאות. כל השאר ביומן הפעולות."
     },
     "member": {
       "saveRole": "שמירת התפקיד",
@@ -72,7 +119,45 @@
       "lastSignIn": "כניסה אחרונה",
       "never": "אף פעם",
       "phone": "טלפון",
-      "openRole": "פתיחת תפקיד {role}"
+      "openRole": "פתיחת תפקיד {role}",
+      "status": "סטטוס",
+      "signedInOn": "מחובר/ת ב-",
+      "noDevice": "אין מכשיר מחובר כרגע",
+      "phoneDevice": "טלפון",
+      "desktopDevice": "מחשב",
+      "roleGroup": "תפקיד",
+      "agentFixed": "חשבון של סוכן נשאר חשבון סוכן. אם נדרשת גם גישת מנהל, מחסן או כספים, יש להזמין אותו שוב עם מייל אחר.",
+      "fixed": "קבוע",
+      "suspend": "השעיית גישה",
+      "restore": "שחזור גישה",
+      "save": "שמירה",
+      "savedRole": "{name} עכשיו בתפקיד {role}.",
+      "suspended": "הגישה הושעתה. {name} נותק/ה מכל המכשירים.",
+      "restored": "הגישה של {name} שוחזרה.",
+      "cancelInvite": "ביטול ההזמנה"
+    },
+    "kickerActive": "{n, plural, one {חבר פעיל אחד} other {# חברים פעילים}}",
+    "kickerAlone": "בינתיים רק את/ה",
+    "tabLabel": {
+      "team": "צוות · {n}",
+      "roles": "תפקידים · {n}",
+      "invitations": "הזמנות · {n}",
+      "history": "היסטוריית שינויים",
+      "invitesShort": "הזמנות · {n}",
+      "historyShort": "היסטוריה"
+    },
+    "seesBy": {
+      "system_admin": "הכול",
+      "admin": "כל הלקוחות וההזמנות",
+      "agent": "לקוחות שלו בלבד",
+      "warehouse": "הזמנות למשלוח, בלי מחירים",
+      "finance": "כספים ודוחות",
+      "custom": "מותאם"
+    },
+    "alone": {
+      "title": "אין חברים נוספים מלבדך",
+      "text": "הזמנת מנהל, סוכנים, צוות המחסן ורואה החשבון. כל תפקיד רואה רק את מה שהוא צריך.",
+      "button": "הזמנת משתמש"
     }
   },
   "roles": {
@@ -83,9 +168,10 @@
       "role": "תפקיד",
       "type": "סוג",
       "scope": "היקף רשומות",
-      "members": "חברי צוות",
+      "members": "חברים",
       "area": "אזור",
-      "access": "גישה"
+      "access": "גישה",
+      "canDo": "הרשאות"
     },
     "scope": {
       "all": "כל הרשומות",
@@ -119,9 +205,9 @@
       "change_rules": "שינוי כללים עסקיים"
     },
     "members": "חברי צוות",
-    "noMembers": "עדיין אין מי שמחזיק בתפקיד הזה.",
+    "noMembers": "לאף אחד עדיין אין את התפקיד הזה. אפשר לבחור בו בהוספה או בעריכה של חבר צוות.",
     "lastSeen": "כניסה אחרונה {date}",
-    "systemNote": "אי אפשר לשנות תפקידי מערכת. אפשר לשכפל אותו ליצירת תפקיד מותאם שניתן לערוך.",
+    "systemNote": "לא ניתן לשנות תפקידי מערכת, כדי שכולם יידעו מה משמעותם. אפשר לשכפל כדי ליצור גרסה מותאמת.",
     "preview": "תצוגה כתפקיד",
     "duplicate": "שכפול כתפקיד מותאם",
     "duplicated": "התפקיד המותאם נוצר",
@@ -133,15 +219,60 @@
     "remove": "הסרת התפקיד",
     "removeTitle": "להסיר את {name}?",
     "removeText": "אף אחד לא מחזיק בתפקיד הזה, ולכן שום דבר אחר לא משתנה. היסטוריית השינויים שומרת תיעוד.",
-    "removed": "התפקיד הוסר"
+    "removed": "התפקיד הוסר",
+    "sum": "{edit} עריכה · {view} צפייה · {hidden} מוסתרים",
+    "phoneSum": "{edit} עריכה · {view} צפייה · {hidden} מוסתרים · {members, plural, one {חבר אחד} other {# חברים}}",
+    "phoneSystem": "מערכת",
+    "phoneCustom": "מותאם",
+    "locked": "תפקיד מערכת · נעול",
+    "listFoot": "תפקידי מערכת הם תבניות ולא ניתן לשנות אותם. יש לפתוח תפקיד ולבחור ״שכפול כתפקיד מותאם״ כדי לתת למישהו שילוב אחר.",
+    "phoneFoot": "תפקידים מותאמים מוגדרים במחשב, שם כל אזור יכול להיות מוסתר, צפייה או עריכה.",
+    "allRoles": "כל התפקידים",
+    "previewAs": "תצוגה מקדימה בתור {name}",
+    "delete": "מחיקת תפקיד",
+    "deleted": "התפקיד נמחק",
+    "agentNote": "תפקיד הסוכן קבוע: סוכנים רואים תמיד רק את הלקוחות וההזמנות שלהם.",
+    "matrixTitle": "מה התפקיד הזה רואה ועורך",
+    "matrixSub": "אזורים מוסתרים לא מופיעים בתפריט. צפייה מאפשרת לפתוח ולייצא; עריכה מאפשרת גם לשנות.",
+    "records": "אילו רשומות",
+    "hints": {
+      "see_prices": "כבוי עבור המחסן",
+      "confirm_payment": "נדרש אימות דו-שלבי",
+      "pay_commission": "העברה לתשלום וסימון כשולם · דורש אימות דו-שלבי",
+      "record_supplier_payment": "נדרש אימות דו-שלבי",
+      "change_rules": "מנהל מערכת בלבד · דורש אימות דו-שלבי"
+    },
+    "tfaNote": "אימות דו-שלבי נדרש לתפקיד זה כי הוא יכול להעביר כסף.",
+    "memberSub": {
+      "on": "אימות דו-שלבי פעיל",
+      "off": "אימות דו-שלבי כבוי"
+    },
+    "names": {
+      "system_admin": "מנהל מערכת",
+      "admin": "מנהל",
+      "agent": "סוכן",
+      "warehouse": "מחסן",
+      "finance": "כספים"
+    },
+    "descriptions": {
+      "system_admin": "הכול, כולל משתמשים, הרשאות והגדרות.",
+      "admin": "אישורים, תשלומים, מחסן, חשבוניות, כל הדוחות.",
+      "agent": "הלקוחות וההזמנות שלו, מכירה חדשה, העמלה שלו.",
+      "warehouse": "הזמנות למשלוח, תעודות חתומות, ספירות מלאי. אף פעם לא מחירים.",
+      "finance": "תשלומים, חשבוניות, הוצאות ודוחות."
+    },
+    "customName": "{name} (מותאם)",
+    "customDesc": "מבוסס על {name}.",
+    "created": "{name} נוצר. אפשר לשנות שם ולהתאים.",
+    "nameLabel": "שם תפקיד"
   },
   "audit": {
     "kicker": "{n, plural, one {רשומה #} two {# רשומות} other {# רשומות}} · קבועות, החדשות קודם",
     "category": "קטגוריה",
-    "search": "חיפוש פעולה, רשומה או אדם",
+    "search": "חיפוש שם או מספר",
     "anyone": "כל אחד",
     "period": "תקופה",
-    "moneyOnly": "שינויי כספים בלבד",
+    "moneyOnly": "כסף בלבד",
     "system": "מערכת",
     "moneyTag": "כספים",
     "to": "ל־",
@@ -249,7 +380,8 @@
       "inviteValidityDays": "ימי תוקף להזמנה",
       "passwordMinLength": "אורך סיסמה",
       "copyAgent": "העתק לסוכן",
-      "replyTo": "כתובת למענה"
+      "replyTo": "כתובת למענה",
+      "scope": "אילו רשומות"
     },
     "actions": {
       "signed_in": "כניסה",
@@ -298,220 +430,338 @@
       "supplier_payment_recorded": "רישום תשלום לספק",
       "reminder_sent": "שליחת תזכורת תשלום",
       "uploaded": "העלאת קובץ"
+    },
+    "kickerN": "{n, plural, one {רשומה אחת} other {# רשומות}} · {range} · מהחדש לישן",
+    "kickerEmpty": "מהחדש לישן",
+    "everyone": "כולם",
+    "export": "ייצוא",
+    "csv": "CSV",
+    "csvSub": "רשומות מסוננות",
+    "pdf": "PDF",
+    "pdfSub": "עבור רואה החשבון או מבקר",
+    "col": {
+      "time": "שעה",
+      "who": "מי",
+      "what": "מה קרה",
+      "record": "רשומה"
+    },
+    "todayGroup": "היום · {date}",
+    "foot": "אף אחד, כולל מנהל המערכת, אינו יכול לערוך או למחוק רשומות. תיקון מופיע כרשומה חדשה. נשמר 10 שנים.",
+    "phoneFoot": "אף אחד אינו יכול לערוך או למחוק רשומות. תיקון מופיע כרשומה חדשה.",
+    "noMatch": "אין תוצאות שתואמות לסינון.",
+    "nothingTitle": "עדיין לא נרשם דבר",
+    "nothingText": "כל אישור, תשלום, חשבונית ושינוי נרשמים כאן במילים פשוטות, יחד עם מי שביצע אותם.",
+    "entry": {
+      "title": "רשומת יומן",
+      "when": "מתי",
+      "who": "מי",
+      "record": "רשומה",
+      "device": "מכשיר",
+      "beforeAfter": "לפני → אחרי",
+      "open": "פתיחת {record}",
+      "permanent": "רשומה זו קבועה. לא ניתן לערוך או למחוק אותה."
+    },
+    "print": {
+      "generated": "רשומה לקריאה בלבד. הופקה ב-{date} על ידי {name}.",
+      "date": "תאריך"
+    },
+    "cartons": "{flavour} {from} → {to} קרטונים",
+    "browserOn": "{browser} ב-{os}",
+    "say": {
+      "signed_in": "התחבר/ה",
+      "sign_in_failed": "כניסה נכשלה",
+      "signed_out_device": "ניתק/ה מכשיר",
+      "signed_out_other_devices": "ניתק/ה את כל המכשירים האחרים",
+      "two_step_enabled": "הפעיל/ה אימות דו-שלבי",
+      "password_changed": "שינה/תה סיסמה",
+      "member_invited": "נשלחה הזמנה ל-{name} בתפקיד {role}",
+      "invitation_resent": "ההזמנה ל-{name} נשלחה שוב",
+      "invitation_cancelled": "ההזמנה ל-{name} בוטלה",
+      "invitation_accepted": "קיבל/ה את ההזמנה והגדיר/ה סיסמה",
+      "member_deactivated": "הגישה של {name} הושעתה",
+      "member_reactivated": "הגישה של {name} שוחזרה",
+      "member_role_changed": "התפקיד של {name} שונה",
+      "role_changed": "שינוי בתפקיד {name}",
+      "role_duplicated": "נוצר תפקיד מותאם {name}",
+      "role_removed": "נמחק התפקיד המותאם {name}",
+      "rule_changed": "שינוי בכלל {rec}",
+      "setting_changed": "שינוי בהגדרות {rec}",
+      "expense_added": "נוספה הוצאה {rec}",
+      "expense_paid": "הוצאה {rec} סומנה כשולמה",
+      "bank_balance_recorded": "נרשמה יתרת בנק {rec}",
+      "payment_confirmed": "אושר תשלום ב-{rec}",
+      "part_payment_confirmed": "אושר תשלום חלקי ב-{rec}",
+      "payment_request_sent": "נשלחה בקשת תשלום עבור {rec}",
+      "proforma_issued": "הופקה פרופורמה {rec}",
+      "invoice_issued": "הופקה חשבונית עבור {rec}",
+      "credit_note_issued": "הופקה הודעת זיכוי עבור {rec}",
+      "sent_to_warehouse": "{rec} נשלחה למחסן",
+      "delivered": "{rec} סומנה כנמסרה",
+      "draft_created": "נוצרה טיוטה {rec}",
+      "draft_updated": "עודכנה טיוטה {rec}",
+      "draft_deleted": "נמחקה טיוטה {rec}",
+      "cancelled": "{rec} בוטלה",
+      "correction_requested": "התבקש תיקון ב-{rec}",
+      "correction_applied": "הוחל התיקון ב-{rec}",
+      "special_price_requested": "התבקש מחיר מיוחד ב-{rec}",
+      "special_price_approved": "אושר המחיר המיוחד ב-{rec}",
+      "customer_approved": "אושר לקוח חדש {rec}",
+      "customer_declined": "נדחה לקוח חדש {rec}",
+      "customer_updated": "עודכן הלקוח {rec}",
+      "customer_claimed": "נלקח הלקוח {rec}",
+      "contact_added": "נוסף איש קשר ל-{rec}",
+      "agent_changed": "הוחלף הסוכן של {rec}",
+      "agent_nudged": "נשלחה תזכורת ל-{rec}",
+      "commission_sent_to_pay": "העמלה של {rec} הועברה לרואה החשבון לתשלום",
+      "commission_paid": "העמלה של {rec} סומנה כשולמה",
+      "event_commission_ready": "העמלה לאירוע {rec} מוכנה",
+      "stock_adjusted": "התאמת מלאי: {rec}",
+      "stock_hold_released": "שוחרר המלאי השמור של {rec}",
+      "allocated": "הוקצה מלאי ל-{rec}",
+      "stock_count_sent": "נשלחה ספירת מלאי {rec}",
+      "stock_count_reconciled": "הותאמה ספירת מלאי {rec}",
+      "purchase_created": "נוצרה הזמנת רכש {rec}",
+      "purchase_on_the_way": "הזמנת רכש {rec} סומנה כבדרך",
+      "purchase_received": "הזמנת רכש {rec} סומנה כהתקבלה",
+      "freight_saved": "נשמרה ההובלה עבור {rec}",
+      "supplier_created": "נוסף ספק {rec}",
+      "supplier_updated": "עודכן הספק {rec}",
+      "supplier_asked": "נשלחה בקשת עדכון ל-{rec}",
+      "supplier_answered": "נרשמה התשובה מ-{rec}",
+      "supplier_invoice_recorded": "נרשמה חשבונית הספק עבור {rec}",
+      "supplier_payment_recorded": "נרשם תשלום לספק עבור {rec}",
+      "reminder_sent": "נשלחה תזכורת תשלום עבור {rec}",
+      "uploaded": "הועלה {rec}",
+      "event_created": "נוצר אירוע {rec}",
+      "event_sale_recorded": "נרשמה מכירה באירוע {rec}",
+      "vat_rechecked": "מספר המע״מ של {rec} נבדק שוב",
+      "numbering_changed": "שינוי במספור המסמכים",
+      "two_step_policy_changed": "שינוי בכלל האימות הדו-שלבי",
+      "agent_bank_confirmation_uploaded": "הועלה אישור הבנק עבור {rec}",
+      "agent_agreement_signed": "נחתם הסכם הסוכן {rec}",
+      "agent_agreement_countersigned": "נחתם נגדית הסכם הסוכן {rec}",
+      "document_emailed": "{rec} נשלח בדוא״ל",
+      "correction_sent": "נשלחה הפרופורמה המתוקנת עבור {rec}",
+      "cancel_undone": "בוטל הביטול של {rec}",
+      "document_uploaded": "הועלה מסמך ל-{rec}",
+      "part_delivered": "{rec} סומנה כנמסרה חלקית",
+      "special_price_undone": "בוטל המחיר המיוחד ב-{rec}",
+      "correction_undone": "בוטל התיקון ב-{rec}",
+      "agent_details_added": "נוספו פרטי סוכן עבור {rec}"
     }
   },
   "settings": {
-    "kicker": "שינויים חלים מהיום שבו נשמרים",
+    "title": "הגדרות וכללים",
+    "kicker": "חברה: {name}",
+    "tabsLabel": "חלקי ההגדרות",
+    "tabs": {
+      "rules": "עסק וחברה",
+      "me": "פרופיל ומכשירים"
+    },
     "viewOnly": "אפשר לראות את ההגדרות. רק מנהל מערכת יכול לשנות אותן.",
     "rulesTitle": "כללים עסקיים",
-    "rulesHelp": "כל שינוי דורש את הקוד הדו־שלבי שלך וחל מתאריך השמירה. הזמנות קודמות שומרות על הכלל שלפיו נוצרו.",
-    "rulesHelpView": "רק מנהל מערכת יכול לשנות את הכללים האלה, עם קוד דו־שלבי.",
-    "companyTitle": "חברה, מסמכים ואימייל",
-    "securityTitle": "אבטחה",
+    "rulesSub": "מה האפליקציה אוכפת, במילים פשוטות.",
+    "edit": "עריכה",
     "notSet": "לא הוגדר",
-    "lastChanged": "שונה לאחרונה ב־{date} על ידי {by}",
-    "inPlainWords": "במילים פשוטות",
-    "fillIn": "יש למלא את כל השדות כדי לראות איך הכלל נקרא.",
-    "now": "עכשיו",
-    "new": "חדש",
-    "appliesFrom": "חל מ־",
-    "appliesNote": "הכלל החדש חל מתאריך השמירה. דבר שכבר קרה לא מחושב מחדש.",
-    "saveRule": "שמירת הכלל",
-    "ruleSaved": "הכלל נשמר",
-    "saved": "ההגדרות נשמרו",
-    "rules": {
+    "yes": "כן",
+    "no": "לא",
+    "days": "{n, plural, one {יום אחד} other {# ימים}}",
+    "rule": {
       "ownership": {
-        "title": "בעלות על לקוח",
-        "sub": "כמה זמן לקוח נשאר אצל הסוכן שהביא אותו.",
-        "value": "{months, plural, one {חודש #} two {# חודשים} other {# חודשים}} · אזהרה {days, plural, one {יום # לפני} two {# ימים לפני} other {# ימים לפני}}",
-        "preview": "לקוח נשאר אצל הסוכן שלו {months, plural, one {חודש #} two {# חודשים} other {# חודשים}} החל מ{from}. הסוכן מקבל אזהרה {days, plural, =0 {ביום האחרון} one {יום # לפני} other {# ימים לפני}}. בסיום {end}.",
-        "months": "משך בחודשים",
-        "monthsHelp": "מחודש עד 60 חודשים.",
-        "countedFrom": "נספר מ־",
-        "warningDays": "אזהרה לפני הסיום, בימים",
-        "warningHelp": "הסוכן מקבל הודעה כמה ימים לפני שהבעלות מסתיימת.",
-        "atEnd": "מה קורה בסיום",
-        "from": {
-          "each_order": "ההזמנה האחרונה שלו",
-          "first_order": "ההזמנה הראשונה שלו"
-        },
-        "end": {
-          "free_to_claim": "הלקוח פנוי לתפיסה בידי כל סוכן",
-          "stay_with_agent": "הלקוח נשאר אצל אותו סוכן עד שמנהל מעביר אותו"
-        },
-        "fromOption": {
-          "each_order": "כל הזמנה",
-          "first_order": "הזמנה ראשונה"
-        },
-        "endOption": {
-          "free_to_claim": "פנוי לתפיסה",
-          "stay_with_agent": "נשאר אצל הסוכן"
-        }
+        "title": "שיוך לקוחות",
+        "text": "סוכן שומר על לקוח {months, plural, one {חודש אחד} other {# חודשים}} לאחר ההזמנה {from, select, first_order {הראשונה} other {האחרונה}} שלו. אם לא מגיעה הזמנה חדשה, הסוכן מקבל התראה {days, plural, =0 {ביום האחרון} one {יום אחד לפני הסיום} other {# ימים לפני הסיום}}, ואז {end, select, stay_with_agent {הלקוח נשאר אצל הסוכן עד שמנהל יעביר אותו} other {כל סוכן יכול לשייך אותו}}.",
+        "value": "{months, plural, one {חודש אחד} other {# חודשים}} אחרי ההזמנה {from, select, first_order {הראשונה} other {האחרונה}} · התראה {days, plural, one {יום אחד} other {# ימים}} לפני"
       },
-      "minOrderCartons": {
-        "title": "הזמנה מינימלית",
-        "sub": "ההזמנה הקטנה ביותר שאפשר לשלוח עבורה בקשת תשלום.",
-        "value": "{n, plural, one {קרטון #} two {# קרטונים} other {# קרטונים}}",
-        "preview": "הזמנה צריכה לפחות {n, plural, one {קרטון #} two {# קרטונים} other {# קרטונים}} בכל הטעמים יחד לפני שאפשר לשלוח בקשת תשלום.",
-        "field": "מינימום קרטונים להזמנה",
-        "help": "24 יחידות בקרטון."
-      },
-      "stockHoldDays": {
-        "title": "החזקת מלאי",
-        "sub": "כמה זמן המלאי נשמר לבקשת תשלום שלא שולמה.",
-        "value": "{n, plural, one {יום #} two {# ימים} other {# ימים}}",
-        "preview": "המלאי נשמר כשנשלחת בקשת תשלום ומשתחרר אחרי {n, plural, one {יום # ללא תשלום} two {# ימים ללא תשלום} other {# ימים ללא תשלום}}.",
-        "field": "ימי החזקת מלאי",
-        "help": "מיום אחד עד 60 ימים."
-      },
-      "proformaValidityDays": {
-        "title": "תוקף חשבון עסקה",
-        "sub": "כמה זמן אפשר לשלם חשבון עסקה.",
-        "value": "{n, plural, one {יום #} two {# ימים} other {# ימים}}",
-        "preview": "חשבון עסקה תקף {n, plural, one {יום #} two {# ימים} other {# ימים}} מהיום שבו נשלח.",
-        "field": "ימי תוקף של חשבון עסקה",
-        "help": "מודפס על כל חשבון עסקה חדש."
-      },
-      "commissionPerUnitCents": {
-        "title": "עמלת סוכן",
-        "sub": "מה סוכן מרוויח על כל יחידה שנמכרה. מחירים מיוחדים משולמים ממנה.",
-        "value": "{amount} ליחידה + מע״מ",
-        "preview": "סוכנים מרוויחים {amount} ליחידה בתוספת מע״מ ({carton} לקרטון), מוכן לתשלום כשהלקוח שילם במלואו.",
-        "field": "עמלה ליחידה, לפני מע״מ",
-        "help": "חלה על הזמנות ששולמו מתאריך השמירה."
-      },
-      "supplierFollowUpDays": {
-        "title": "מעקב אחר ספק",
-        "sub": "מתי להזכיר לך על הודעה לספק שלא נענתה.",
-        "value": "{n, plural, one {יום #} two {# ימים} other {# ימים}}",
-        "preview": "אם ספק לא ענה אחרי {n, plural, one {יום #} two {# ימים} other {# ימים}}, זה מופיע בדורש תשומת לב.",
-        "field": "ימים עד מעקב",
-        "help": "מיום אחד עד 60 ימים."
-      },
-      "paymentBeforeShipping": {
+      "payment": {
         "title": "תשלום לפני משלוח",
-        "value": "{n}% · קבוע"
+        "text": "משולם {n}% לפני המשלוח.",
+        "value": "{n}% מההזמנה"
+      },
+      "stockHold": {
+        "title": "שמירת מלאי",
+        "text": "המלאי נשמר אוטומטית כשנשלחת בקשת תשלום. בהזמנה שלא שולמה הוא נשמר {n, plural, one {יום אחד} other {# ימים}} ואז משתחרר. הזמנה ממתינה רק כשחסר טעם; הקצאה נפתחת כשמגיעה הזמנת רכש או כשמלאי מתפנה.",
+        "value": "{n, plural, one {יום אחד} other {# ימים}}"
+      },
+      "priceList": {
+        "title": "מחירון",
+        "text": "מחיר ליחידה ללא מע״מ, לפי מספר הקרטונים בהזמנה: {tiers}. הזמנה מינימלית {min} קרטונים. מ-{advance} קרטונים רק בתשלום מראש או בהתחייבות לכמות.",
+        "value": "{high} עד {low} ליחידה · מינימום {min} קרטונים"
+      },
+      "commission": {
+        "title": "עמלת סוכן",
+        "text": "{amount} ליחידה + מע״מ. מחירים מיוחדים יורדים ממנה.",
+        "value": "{amount} ליחידה + מע״מ"
+      },
+      "approvals": {
+        "title": "אישורים",
+        "text": "מנהלים מאשרים לקוחות, מחירים ותיקונים.",
+        "value": "לקוחות חדשים, מחירים מיוחדים, תיקונים"
+      },
+      "corrections": {
+        "title": "תיקונים",
+        "text": "חשבון עסקה מתוקן לפני המשלוח, הודעת זיכוי אחריו.",
+        "value": "חשבון עסקה מתוקן לפני המשלוח; הודעות זיכוי אחרי החשבונית"
       }
     },
-    "sections": {
-      "company": {
-        "title": "פרופיל החברה",
-        "sub": "מודפס על חשבונות עסקה, חשבוניות והודעות זיכוי."
+    "lang": {
+      "per_customer": "לפי לקוח (אנגלית או בולגרית)",
+      "en": "תמיד אנגלית",
+      "bg": "תמיד בולגרית"
+    },
+    "cards": {
+      "docs": {
+        "title": "מסמכים",
+        "proformaLanguage": "שפת חשבון העסקה",
+        "validFor": "חשבון העסקה בתוקף למשך",
+        "numbering": "מספור",
+        "nextInvoice": "החשבונית הבאה",
+        "logo": "מותג ולוגו",
+        "logoSet": "הוגדר",
+        "logoNone": "ללא לוגו"
+      },
+      "mail": {
+        "title": "דוא״ל",
+        "warehouse": "מייל למחסן",
+        "accounting": "מייל הנהלת חשבונות",
+        "sender": "נשלח מ-",
+        "replyTo": "תשובות נשלחות אל",
+        "agentCopied": "הסוכן בהעתק"
       },
       "bank": {
-        "title": "פרטי בנק",
-        "sub": "מודפסים על בקשות תשלום; החשבונות משמשים ליתרות בנק."
-      },
-      "email": {
-        "title": "אימייל",
-        "sub": "מי מקבל אילו אימיילים, ומי שולח אותם."
-      },
-      "documents": {
-        "title": "מסמכים",
-        "sub": "שפות, תוקף, מספור ולוגו."
-      },
-      "security": {
-        "title": "מדיניות אבטחה",
-        "sub": "חיבורים, הזמנות וסיסמאות לכולם.",
-        "value": "{h} שעות במחשב · {d} ימים בטלפון"
+        "title": "בנק וכניסה",
+        "bank": "בנק",
+        "iban": "IBAN בחשבונות עסקה",
+        "bic": "BIC",
+        "twoStep": "אימות דו-שלבי",
+        "signOut": "התנתקות לאחר"
       }
+    },
+    "twoStep": {
+      "admins_finance": "חובה למנהלים ולכספים",
+      "everyone": "חובה לכולם",
+      "optional": "אופציונלי",
+      "custom": "לפי תפקיד במשתמשים ותפקידים"
+    },
+    "signOut": {
+      "short": "1 שעה במחשב, 7 ימים בטלפון",
+      "standard": "8 שעות במחשב, 30 ימים בטלפון",
+      "never": "אף פעם",
+      "custom": "{h, plural, one {שעה אחת} other {# שעות}} במחשב, {d, plural, one {יום אחד} other {# ימים}} בטלפון"
+    },
+    "rulePanel": {
+      "save": "שמירת כלל",
+      "saved": "הכלל נשמר. הוא חל על הזמנות חדשות.",
+      "value": "ערך",
+      "months": "חודשים אחרי ההזמנה האחרונה",
+      "holdDays": "ימים שהזמנה שלא שולמה שומרת מלאי",
+      "minOrder": "הזמנה מינימלית, קרטונים",
+      "tier": "{from}–{to} קרטונים",
+      "tiersFixed": "המחירים ליחידה לפי קרטונים הם מחירון המפיץ.",
+      "commission": "עמלה ליחידה, ללא מע״מ",
+      "appliesNote": "חל על הזמנות חדשות בלבד. נרשם ביומן הפעולות.",
+      "fixedNote": "הכלל הזה הוא חלק מאופן הפעולה של ההזמנות, ולכן אי אפשר לשנות אותו כאן.",
+      "warnTitle": "התראה לסוכן",
+      "warnChip": "{n} ימים לפני",
+      "warnNote": "רק אם עד אז אין הזמנה חדשה.",
+      "getsTitle": "מה הסוכן מקבל",
+      "getsLine": "נותרו {n, plural, one {יום אחד} other {# ימים}} עם {customer}",
+      "aCustomer": "לקוח",
+      "noOrderSince": "אין הזמנה מאז {date}.",
+      "getsText": "אם {customer} לא יזמין עד {date}, {end, select, stay_with_agent {הוא יישאר אצל הסוכן עד שמנהל יעביר אותו} other {הוא יהיה פנוי לשיוך לכל סוכן}}. התראת פוש ואימייל.",
+      "getsTextNone": "אם הלקוח לא יזמין עד אז, {end, select, stay_with_agent {הוא יישאר אצל הסוכן עד שמנהל יעביר אותו} other {הוא יהיה פנוי לשיוך לכל סוכן}}. התראת פוש ואימייל."
+    },
+    "cardPanel": {
+      "saved": "הגדרות {card} נשמרו.",
+      "proformaLanguage": "שפת חשבון העסקה",
+      "validDays": "תוקף חשבון העסקה (ימים)",
+      "orderPrefix": "קידומת הזמנה",
+      "invoicePrefix": "קידומת חשבונית",
+      "creditPrefix": "קידומת הודעת זיכוי",
+      "nextInvoice": "מספר החשבונית הבא",
+      "logo": "לוגו על מסמכים",
+      "logoHelp": "מוצג בפינה העליונה בחשבונות עסקה, חשבוניות והודעות זיכוי",
+      "upload": "העלאת לוגו (SVG או PNG)",
+      "remove": "הסרה",
+      "logoUploaded": "הלוגו הועלה.",
+      "logoRemoved": "הלוגו הוסר.",
+      "footer": "כותרת תחתונה בכל מסמך",
+      "companyTitle": "החברה על המסמכים",
+      "copyAgent": "העתק לסוכן בתזכורות",
+      "bic": "BIC / SWIFT",
+      "accounts": "חשבונות",
+      "accountsHelp": "החשבונות שעבורם רושמים יתרות, למשל UniCredit Bulbank · EUR.",
+      "accountN": "חשבון {n}",
+      "removeAccount": "הסרת חשבון",
+      "addAccount": "הוספת חשבון",
+      "note": {
+        "docs": "שינויי מספור חלים מהמסמך הבא; מספרים שכבר הונפקו אינם משתנים.",
+        "mail": "המייל למחסן לעולם לא כולל מחירים.",
+        "bank": "שינוי ה-IBAN דורש קוד אימות דו-שלבי ומודיע לשאר המנהלים."
+      },
+      "logged": "כל שינוי נרשם ביומן הפעולות."
     },
     "fields": {
       "name": "שם מסחרי",
-      "legalName": "שם משפטי",
+      "legalName": "שם רשמי",
       "vatNumber": "מספר מע״מ",
       "country": "קוד מדינה",
       "address": "כתובת רשומה",
       "city": "עיר",
-      "email": "אימייל החברה",
-      "phone": "טלפון",
-      "bank": "בנק",
-      "iban": "IBAN",
-      "ibanHelp": "רווחים מוסרים בשמירה.",
-      "bic": "BIC",
-      "accounts": "חשבונות",
-      "accountsHelp": "שמות החשבונות שרושמים להם יתרות, למשל UniCredit Bulbank · EUR.",
-      "accountN": "חשבון {n}",
-      "removeAccount": "הסרת החשבון",
-      "addAccount": "הוספת חשבון",
-      "warehouse": "מחסן",
-      "warehouseHelp": "מקבל כל הזמנה שנשלחה למשלוח.",
-      "accounting": "הנהלת חשבונות",
-      "accountingHelp": "מקבלת עותק של כל חשבונית והודעת זיכוי.",
-      "sender": "שולח",
-      "senderHelp": "מוצג כשולח, למשל ANANDA <office@ananda.bg>.",
-      "replyTo": "כתובת למענה",
-      "replyToHelp": "לאן מגיעות תשובות הלקוחות.",
-      "copyAgent": "העתק לסוכן באימיילים ללקוחות",
-      "languages": "שפות המסמכים",
-      "bothLanguages": "אנגלית ובולגרית",
-      "languagesHelp": "כל לקוח מקבל מסמכים בשפת חשבון העסקה שלו.",
-      "validity": "תוקף חשבון עסקה",
-      "next": {
-        "order": "מספר ההזמנה הבאה",
-        "proforma": "מספר חשבון העסקה הבא",
-        "invoice": "מספר החשבונית הבאה",
-        "credit_note": "מספר הודעת הזיכוי הבאה",
-        "purchase": "מספר הרכש הבא"
-      },
-      "numbersHelp": "המספרים רצים לפי הסדר בלי חורים ואי אפשר לשנות אותם ידנית.",
-      "logoUrl": "קישור ללוגו",
-      "logoHelp": "אופציונלי. קישור ל־PNG או SVG, מודפס בראש המסמכים.",
-      "desktopSessionHours": "חיבור במחשב, שעות",
-      "phoneSessionDays": "חיבור בטלפון, ימים",
-      "inviteValidityDays": "קישור הזמנה, ימים",
-      "inviteHelp": "כמה זמן חבר צוות חדש יכול להשתמש בקישור כדי להגדיר סיסמה.",
-      "passwordMinLength": "אורך סיסמה מינימלי",
-      "passwordHelp": "סיסמאות חייבות לכלול גם אותיות וגם ספרות.",
-      "twoStep": "כניסה דו־שלבית",
-      "twoStepValue": "חובה למנהל מערכת, מנהל וכספים"
+      "email": "מייל החברה",
+      "phone": "טלפון"
     }
   },
   "profile": {
-    "you": "את/ה",
-    "preferences": "העדפות",
-    "languageHelp": "האפליקציה והאימיילים שלך משתמשים בשפה הזו.",
+    "title": "פרופיל ומכשירים",
+    "kicker": "{name} · {role}",
+    "profileTitle": "פרופיל",
+    "language": "שפה",
+    "languageSub": "האפליקציה והמיילים שהיא שולחת אליך",
     "theme": "ערכת נושא",
-    "themeHelp": "ערכת נושא בהירה תתווסף בהמשך.",
+    "themeSub": "איך האפליקציה נראית אצלך",
     "dark": "כהה",
-    "security": "כניסה ואבטחה",
-    "twoStep": "כניסה דו־שלבית",
-    "twoStepOn": "בכניסה מזינים קוד מאפליקציית האימות.",
-    "twoStepRequired": "התפקיד שלך מחייב זאת. תגדיר/י אותה בכניסה הבאה.",
-    "twoStepOff": "לא נדרשת לתפקיד שלך.",
+    "light": "בהיר",
     "password": "סיסמה",
-    "passwordHelp": "כדאי לשנות אם יש חשש שמישהו אחר מכיר אותה.",
-    "changePassword": "שינוי סיסמה",
-    "savePassword": "שינוי סיסמה",
-    "passwordChanged": "הסיסמה שונתה",
-    "current": "סיסמה נוכחית",
-    "new": "סיסמה חדשה",
-    "repeat": "חזרה על הסיסמה החדשה",
-    "mismatch": "הסיסמאות אינן תואמות",
-    "signOutOthers": "ניתוק מהמכשירים האחרים שלי",
-    "rules": {
-      "title": "כללי סיסמה",
-      "length": "לפחות {n} תווים",
-      "letters": "אותיות",
-      "numbers": "ספרות",
-      "different": "שונה מהסיסמה הנוכחית",
-      "met": "הושלם",
-      "notMet": "עדיין לא"
-    },
+    "passwordChanged": "שונתה {date}",
+    "passwordHelp": "כדאי לשנות אותה אם נראה לך שמישהו אחר יודע אותה.",
+    "change": "שינוי",
+    "twoStep": "אימות דו-שלבי",
+    "twoStepRequired": "חובה לתפקיד שלך · אפליקציית אימות",
+    "twoStepOptional": "אופציונלי לתפקיד שלך · אפליקציית אימות",
+    "on": "פעיל",
+    "off": "כבוי",
     "devices": {
       "title": "מכשירים מחוברים",
-      "name": "{browser} ב־{os}",
+      "name": "{device} · {browser}",
       "kind": {
+        "mac": "Mac",
+        "windows": "מחשב Windows",
+        "iphone": "iPhone",
+        "ipad": "iPad",
+        "android": "טלפון Android",
+        "linux": "מחשב Linux",
         "desktop": "מחשב",
         "phone": "טלפון"
       },
-      "thisDevice": "המכשיר הזה",
-      "current": "המכשיר הזה",
-      "lastActive": "פעיל לאחרונה {date} · {ip}",
-      "signOut": "ניתוק",
-      "signOutOthers": "ניתוק כל האחרים",
-      "signedOut": "נותק",
-      "onlyThis": "החיבור היחיד הוא במכשיר הזה."
+      "justNow": "הרגע",
+      "activeNow": "פעיל עכשיו",
+      "thisDevice": "מכשיר זה",
+      "signOut": "התנתקות",
+      "signOutAll": "התנתקות מכל שאר המכשירים",
+      "signedOut": "בוצעה התנתקות במכשיר הזה.",
+      "signedOutAll": "בוצעה התנתקות מכל שאר המכשירים."
+    },
+    "pwd": {
+      "title": "שינוי סיסמה",
+      "current": "סיסמה נוכחית",
+      "new": "סיסמה חדשה",
+      "newPlaceholder": "לפחות {n} תווים",
+      "weak": "יש להשתמש בלפחות {n} תווים עם אותיות ומספרים",
+      "repeat": "אימות סיסמה חדשה",
+      "mismatch": "הסיסמאות אינן תואמות",
+      "note": "לאחר השינוי יתבצע ניתוק משאר המכשירים.",
+      "save": "שינוי סיסמה",
+      "saved": "הסיסמה שונתה. בוצע ניתוק משאר המכשירים."
     }
   }
 }

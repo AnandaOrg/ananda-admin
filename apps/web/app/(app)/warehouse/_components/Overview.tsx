@@ -6,279 +6,149 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import {
-  Banner,
-  Button,
-  Card,
-  Chips,
-  EmptyState,
-  ErrorState,
-  FlavourRows,
-  KeyValue,
-  KpiTile,
-  ListCard,
-  OrderStatusPill,
-  Package,
-  PageHeader,
-  PageSkeleton,
-  Sheet,
-  Table,
-  Truck,
-  type Column,
-} from '@/components/ui';
-import { DueMarker } from './ToShip';
-import { noteUrl, type ShipCard, type WarehouseOverview } from './types';
+import { Card, EmptyState, ErrorState, Eye, Icon, KpiTile, ListCard, PageHeader, PageSkeleton, Pill, Table, Truck, UserPlus, type Column } from '@/components/ui';
+import { NoteViewSheet } from './DeliverySheets';
+import { useWhen } from './ToShip';
+import { daysAgo, type DeliveredRow, type WarehouseOverview } from './types';
+
+const sameMonth = (iso: string) => {
+  const a = new Date(iso);
+  const n = new Date();
+  return a.getFullYear() === n.getFullYear() && a.getMonth() === n.getMonth();
+};
 
 type Row =
-  | { kind: 'ship'; id: string; number: string; customerName: string; city: string | null; when: string | null; cartons: number; order: ShipCard; status: ShipCard['status']; noteId: null }
-  | { kind: 'done'; id: string; number: string; customerName: string; city: string | null; when: string | null; cartons: number; status: ShipCard['status']; noteId: string | null };
+  | { kind: 'ship'; key: string; orderId: string; number: string; customerName: string; city: string | null; when: string; cartons: number; rest: boolean; note: null }
+  | { kind: 'done'; key: string; orderId: string; number: string; customerName: string; city: string | null; when: string; cartons: number; rest: boolean; note: DeliveredRow };
 
-/** Desktop overview for Admins (FR-WH-1), with the paid orders waiting to be sent. */
+/** Warehouse & shipments for Admins (FR-WH-1): what the warehouse has to ship, every signed note, the last count. */
 export function Overview() {
   const t = useTranslations('warehouse');
   const tc = useTranslations('common');
   const router = useRouter();
-  const { date, dateShort, num } = useFmt();
-  const { isAdmin, readOnly } = useSession();
-  const [filter, setFilter] = useState<'all' | 'to_ship' | 'delivered'>('all');
-  const [send, setSend] = useState<ShipCard | null>(null);
+  const { dateShort, num } = useFmt();
+  const { canEdit, readOnly } = useSession();
+  const when = useWhen();
+  const [view, setView] = useState<DeliveredRow | null>(null);
   const q = useQuery({ queryKey: ['warehouse', 'overview'], queryFn: () => api.get<WarehouseOverview>('/warehouse') });
-  const sendAct = useAction((id: string) => api.post(`/orders/${id}/send-to-warehouse`), {
-    success: () => t('ready.sent', { number: send?.number ?? '' }),
-    onDone: () => setSend(null),
-  });
 
   if (q.isLoading) return <PageSkeleton />;
   if (q.error || !q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
   const d = q.data;
   const last = d.tiles.lastCount;
+  const kicker = d.site ? t('site', { city: d.site }) : t('siteNone');
+  const header = <PageHeader crumbs={[{ label: tc('nav.warehouse') }]} kicker={kicker} title={t('title')} />;
+
+  if (d.toShip.length === 0 && d.delivered.length === 0) {
+    return (
+      <div className="page">
+        {header}
+        <Card>
+          <EmptyState
+            icon={Truck}
+            title={t('empty.title')}
+            text={t('empty.text')}
+            action={
+              canEdit('users') && !readOnly ? (
+                <Link href="/users?new=1" className="an-btn primary">
+                  <Icon as={UserPlus} size="sm" />
+                  {t('empty.invite')}
+                </Link>
+              ) : undefined
+            }
+          />
+        </Card>
+      </div>
+    );
+  }
 
   const rows: Row[] = [
-    ...(filter !== 'delivered'
-      ? d.toShip.map((o) => ({ kind: 'ship' as const, id: o.id, number: o.number, customerName: o.customerName, city: o.city, when: o.sentAt, cartons: o.totalCartons, order: o, status: o.status, noteId: null }))
-      : []),
-    ...(filter !== 'to_ship'
-      ? d.delivered.map((o) => ({ kind: 'done' as const, id: o.id, number: o.number, customerName: o.customerName, city: o.city, when: o.deliveredAt, cartons: o.deliveredCartons, status: o.status, noteId: o.signedNoteId }))
-      : []),
+    ...d.toShip.map((o) => ({ kind: 'ship' as const, key: `s-${o.id}`, orderId: o.id, number: o.number, customerName: o.customerName, city: o.city, when: when(o.sentAt), cartons: o.totalCartons, rest: o.partDelivered, note: null })),
+    ...d.delivered.map((n) => ({ kind: 'done' as const, key: `d-${n.id}`, orderId: n.orderId, number: n.number, customerName: n.customerName, city: n.city, when: dateShort(n.deliveredAt), cartons: n.deliveredCartons, rest: n.part, note: n })),
   ];
 
-  const noteLink = (r: Row) =>
-    r.noteId ? (
-      <a className="link" href={noteUrl(r.noteId)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-        {t('viewNote')}
-      </a>
-    ) : (
-      <span className="subtle">—</span>
-    );
+  const status = (r: Row) =>
+    r.kind === 'ship' ? <Pill tone={r.rest ? 'warn' : 'info'}>{r.rest ? t('status.rest') : t('status.toShip')}</Pill> : <Pill tone="good">{r.rest ? t('status.part') : t('status.delivered')}</Pill>;
 
   const columns: Column<Row>[] = [
     {
       key: 'order',
       header: t('cols.order'),
-      render: (r) => <bdi className="nowrap">{r.number}</bdi>,
-    },
-    {
-      key: 'to',
-      header: t('cols.deliversTo'),
       render: (r) => (
         <>
           <span className="nm">{r.customerName}</span>
-          {r.city && <span className="sb">{r.city}</span>}
-        </>
-      ),
-    },
-    {
-      key: 'when',
-      header: t('cols.when'),
-      render: (r) => (
-        <span className="row nowrap">
-          <span>{date(r.when)}</span>
-          {r.kind === 'ship' && <DueMarker order={r.order} />}
-        </span>
-      ),
-    },
-    { key: 'cartons', header: t('cols.cartons'), type: 'count', render: (r) => num(r.cartons) },
-    { key: 'status', header: t('cols.status'), render: (r) => <OrderStatusPill status={r.status} /> },
-    { key: 'note', header: t('cols.signedNote'), render: noteLink },
-  ];
-
-  const readyCols: Column<ShipCard>[] = [
-    {
-      key: 'order',
-      header: t('cols.order'),
-      render: (o) => (
-        <>
-          <span className="nm">{o.customerName}</span>
           <span className="sb">
-            <bdi>{o.number}</bdi>
-            {o.city && ` · ${o.city}`}
+            <bdi>{r.number}</bdi>
           </span>
         </>
       ),
     },
-    { key: 'cartons', header: t('cols.cartons'), type: 'count', render: (o) => num(o.totalCartons) },
-    { key: 'status', header: t('cols.status'), render: (o) => <OrderStatusPill status={o.status} /> },
+    { key: 'to', header: t('cols.deliversTo'), render: (r) => r.city ?? '—' },
+    { key: 'when', header: t('cols.when'), render: (r) => <span className="nowrap">{r.when}</span> },
+    { key: 'cartons', header: t('cols.cartons'), type: 'count', render: (r) => num(r.cartons) },
+    { key: 'status', header: t('cols.status'), type: 'status', render: status },
     {
-      key: 'act',
-      header: <span className="sr-only">{t('ready.send')}</span>,
+      key: 'note',
+      header: <span className="sr-only">{t('note.view')}</span>,
       type: 'amount',
-      render: (o) =>
-        isAdmin && !readOnly ? (
-          <Button
-            size="sm"
-            variant="primary"
-            icon={Truck}
+      render: (r) =>
+        r.note?.signedNoteId ? (
+          <button
+            type="button"
+            className="an-iconbtn"
+            aria-label={`${t('note.view')} · ${r.number}`}
             onClick={(e) => {
               e.stopPropagation();
-              setSend(o);
+              setView(r.note);
             }}
           >
-            {t('ready.send')}
-          </Button>
+            <Icon as={Eye} />
+          </button>
         ) : null,
     },
   ];
 
+  const lastToday = last && daysAgo(last.at) === 0;
+
   return (
     <div className="page">
-      <PageHeader
-        crumbs={[{ label: tc('nav.warehouse') }]}
-        kicker={t('toShipKicker', { n: d.tiles.toShipOrders })}
-        title={tc('nav.warehouse')}
-        actions={
-          <>
-            <Link href="/warehouse/delivered" className="an-btn secondary sm">
-              {t('deliveredPage.title')}
-            </Link>
-            <Link href="/warehouse/count" className="an-btn secondary sm">
-              {t('count.title')}
-            </Link>
-          </>
-        }
-      />
+      {header}
       <div className="kpis" style={{ ['--n' as string]: 3 }}>
-        <KpiTile label={t('tiles.toShip')} value={num(d.tiles.toShipOrders)} sub={t('tiles.toShipSub', { n: d.tiles.toShipCartons })} />
-        <KpiTile label={t('tiles.delivered')} value={num(d.tiles.deliveredThisMonth)} sub={t('tiles.deliveredSub', { n: d.tiles.deliveredThisMonth })} />
+        <KpiTile label={t('tiles.toShip')} value={num(d.tiles.toShipOrders)} sub={d.tiles.toShipNumbers.length ? d.tiles.toShipNumbers.join(', ') : t('tiles.nothingWaiting')} />
+        <KpiTile label={t('tiles.delivered')} value={num(d.tiles.deliveredThisMonth)} sub={d.tiles.deliveredThisMonth ? t('tiles.withNotes') : t('tiles.noneYet')} />
         <KpiTile
           label={t('tiles.lastCount')}
-          value={last ? dateShort(last.at) : t('tiles.noCount')}
-          sub={
-            !last
-              ? t('tiles.noCountSub')
-              : last.cartonsOff == null
-                ? t('tiles.countBy', { name: last.byName })
-                : last.cartonsOff === 0
-                  ? t('tiles.countMatches', { name: last.byName })
-                  : t('tiles.countOff', { name: last.byName, n: last.cartonsOff })
-          }
-          subTone={last?.cartonsOff ? 'bad' : undefined}
-          link={last && isAdmin ? { href: '/inventory?tab=counts', label: tc('review') } : undefined}
+          value={!last ? t('tiles.noCount') : lastToday ? t('tiles.today') : dateShort(last.at)}
+          sub={last && sameMonth(last.at) ? t('tiles.counted', { n: last.cartons }) : t('tiles.noCountSub')}
         />
       </div>
 
-      {d.ready.length > 0 && (
-        <Card flush title={t('ready.title')}>
-          <div className="only-wide">
-            <Table columns={readyCols} rows={d.ready} rowKey={(o) => o.id} onRow={(o) => router.push(`/sales/${o.id}`)} />
-          </div>
-          <div className="list-cards only-phone" style={{ padding: 'var(--space-3)' }}>
-            {d.ready.map((o) => (
-              <ListCard
-                key={o.id}
-                title={o.customerName}
-                amount={t('tiles.toShipSub', { n: o.totalCartons })}
-                sub={
-                  <>
-                    <bdi>{o.number}</bdi>
-                    {o.city && ` · ${o.city}`}
-                  </>
-                }
-                status={<OrderStatusPill status={o.status} />}
-                onClick={() => (isAdmin && !readOnly ? setSend(o) : router.push(`/sales/${o.id}`))}
-              />
-            ))}
-          </div>
-        </Card>
-      )}
-
-      <Chips
-        label={tc('filters')}
-        value={filter}
-        onChange={setFilter}
-        options={[
-          { value: 'all', label: t('list.all') },
-          { value: 'to_ship', label: t('list.toShip'), count: d.toShip.length },
-          { value: 'delivered', label: t('list.delivered'), count: d.delivered.length },
-        ]}
-      />
-      <Card flush title={t('list.title')}
-      >
-        {rows.length === 0 ? (
-          <EmptyState icon={Package} title={filter === 'to_ship' ? t('list.emptyToShip') : t('list.empty')} />
-        ) : (
-          <>
-            <div className="only-wide">
-              <Table columns={columns} rows={rows} rowKey={(r) => `${r.kind}-${r.id}`} onRow={(r) => router.push(`/sales/${r.id}`)} />
-            </div>
-            <div className="list-cards only-phone" style={{ padding: 'var(--space-3)' }}>
-              {rows.map((r) => (
-                <ListCard
-                  key={`${r.kind}-${r.id}`}
-                  href={r.noteId ? noteUrl(r.noteId) : `/sales/${r.id}`}
-                  title={r.customerName}
-                  amount={t('tiles.toShipSub', { n: r.cartons })}
-                  sub={
-                    <>
-                      <bdi>{r.number}</bdi> · {dateShort(r.when)}
-                      {r.noteId && ` · ${t('viewNote')}`}
-                    </>
-                  }
-                  status={<OrderStatusPill status={r.status} />}
-                />
-              ))}
-            </div>
-          </>
-        )}
+      <Card flush className="only-wide">
+        <Table columns={columns} rows={rows} rowKey={(r) => r.key} onRow={(r) => router.push(`/sales/${r.orderId}`)} />
+        <div className="body-sm muted" style={{ padding: 'var(--space-4) var(--card-padding)', borderTop: '1px solid var(--line)' }}>
+          {t('foot')}
+        </div>
       </Card>
-
-      <Sheet
-        open={!!send}
-        onClose={() => setSend(null)}
-        title={t('ready.sheetTitle')}
-        sub={
-          send && (
-            <>
-              <bdi>{send.number}</bdi> · {send.customerName}
-            </>
-          )
-        }
-        footer={
-          <>
-            <Button onClick={() => setSend(null)}>{tc('cancel')}</Button>
-            <Button variant="primary" icon={Truck} busy={sendAct.isPending} onClick={() => send && sendAct.mutate(send.id)}>
-              {t('ready.send')}
-            </Button>
-          </>
-        }
-      >
-        {send && (
-          <>
-            <KeyValue
-              items={[
-                [t('card.address'), `${send.address}${send.city ? `, ${send.city}` : ''}`],
-                [t('card.contact'), <span key="c">{send.contactName} · <bdi>{send.phone}</bdi></span>],
-                [t('card.total'), t('card.totalValue', { c: send.totalCartons, u: num(send.totalUnits) })],
-              ]}
-            />
-            <FlavourRows cartons={Object.fromEntries(send.lines.map((l) => [l.flavour, l.cartons]))} />
-            <span className="body-sm muted">{t('ready.sheetText')}</span>
-            {sendAct.errorText && <Banner tone="bad">{sendAct.errorText}</Banner>}
-          </>
-        )}
-      </Sheet>
+      <div className="list-cards only-phone">
+        {rows.map((r) => (
+          <ListCard
+            key={r.key}
+            onClick={r.note ? () => setView(r.note) : () => router.push(`/sales/${r.orderId}`)}
+            title={r.customerName}
+            amount={r.when}
+            sub={
+              <>
+                <bdi>{r.number}</bdi>
+                {r.city && ` · ${r.city}`} · {t('card.cartons', { n: r.cartons })}
+              </>
+            }
+            status={status(r)}
+          />
+        ))}
+      </div>
+      <NoteViewSheet row={view} onClose={() => setView(null)} />
     </div>
   );
 }

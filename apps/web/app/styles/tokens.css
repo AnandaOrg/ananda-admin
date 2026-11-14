@@ -92,3 +92,47 @@
 .body-sm { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
 .caption { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; }
 .overline { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; }
+/* Light theme (approved 11 Nov 2026: neutral greys, yellow primary). Same token names, light values. */
+:root, [data-theme="dark"] { --hl-text: var(--accent); --soft-line: var(--line); --edge: none; }
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F8F8F8;
+  --surface-1: #FFFFFF;
+  --surface-2: #F6F6F6;
+  --surface-3: #EDEDED;
+  --line: #E3E3E3;
+  --text: #171717;
+  --text-muted: #5F5F5F;
+  --text-subtle: #6A6A6A;
+  --accent: #EBF740;
+  --on-accent: #2A2A28;
+  --accent-hover: #E0EE30;
+  --accent-pressed: #CFDC22;
+  --accent-soft: #F7FAD6;
+  --accent-line: #DDE48E;
+  --good: #12813C;
+  --good-soft: #EBF8EF;
+  --warn: #C07C00;
+  --warn-soft: #FEF3D6;
+  --bad: #C8261A;
+  --bad-soft: #FDE3E0;
+  --bad-line: #EFC0BA;
+  --on-bad: #FFFFFF;
+  --info: #136C7B;
+  --info-soft: #DDF0F3;
+  --blue: #4752C4;
+  --blue-soft: #E6E8FA;
+  --flavour-aloha: #D69610;
+  --flavour-gaia: #1F9F5D;
+  --flavour-santorini: #5361E8;
+  --flavour-kyoto: #D4528B;
+  --scrim: rgba(24,24,20,0.32);
+  --paper-bg: #FFFFFF;
+  --shadow-popover: 0 12px 32px -10px rgba(30,30,20,0.22);
+  --shadow-panel: -24px 0 48px -24px rgba(30,30,20,0.25);
+  --shadow-paper: 0 10px 30px -14px rgba(30,30,20,0.25);
+  /* yellow is only a fill in light: text that would be yellow is ink; yellow fills get an edge you barely see */
+  --hl-text: #171717;
+  --soft-line: #ECECEC;
+  --edge: inset 0 0 0 1px rgba(23,23,23,0.045);
+}

@@ -1,33 +1,46 @@
 {
-  "kicker": "תשלומים בפיגור וקרובים, הוותיקים קודם",
+  "kicker": "{n, plural, one {חשבונית # שלא שולמה} other {# חשבוניות שלא שולמו}} · {who}",
+  "kickerOwn": "{n, plural, one {חשבונית # שלא שולמה} other {# חשבוניות שלא שולמו}}",
+  "everyAgent": "כל הסוכנים",
+  "nothingUnpaid": "אין חובות פתוחים",
+  "allAgents": "כל הסוכנים",
+  "unpaidInvoices": "{n, plural, one {חשבונית # שלא שולמה} other {# חשבוניות שלא שולמו}}",
   "tiles": {
-    "late": "בפיגור",
-    "lateSub": "{n, plural, one {# הזמנה} two {# הזמנות} other {# הזמנות}} · הוותיקה {days} ימים",
-    "nothingLate": "אין פיגורים",
+    "late": "באיחור",
     "week": "לתשלום השבוע",
-    "count": "{n, plural, one {# הזמנה} two {# הזמנות} other {# הזמנות}}",
-    "all": "כל החובות",
-    "allSub": "{n, plural, one {# הזמנה} two {# הזמנות} other {# הזמנות}} · כמו חייבים לנו",
-    "allTip": "כל סכום לא ששולם של לקוחות כולל מע״מ, אותו מספר כמו חייבים לנו בבית."
+    "weekShort": "השבוע",
+    "all": "כל שלא שולמו",
+    "invoices": "{n, plural, one {חשבונית #} other {# חשבוניות}}",
+    "sameAsOverview": "אותו נתון כמו בסקירה הכללית",
+    "share": "{name}: חלק מתוך {total}"
   },
   "filters": {
-    "late": "בפיגור",
+    "late": "באיחור",
     "week": "לתשלום השבוע",
-    "all": "כל החובות"
+    "all": "כל שלא שולמו"
   },
   "cols": {
-    "customer": "לקוח והזמנה",
-    "howLate": "גודל האיחור",
+    "customer": "לקוח",
+    "when": "מתי",
     "actions": "פעולות"
   },
   "dueOn": "לתשלום עד {date}",
-  "lastReminder": "נשלחה תזכורת ב־{date}",
   "remind": "תזכורת",
-  "getInTouch": "צור קשר",
-  "agentCopied": "{agent} מקבל עותק של התזכורת הזו.",
-  "reminderSent": "התזכורת נשלחה אל {name}.",
+  "draftBelow": "טיוטה למטה",
+  "draftLabel": "תזכורת אל {email}",
+  "sendReminder": "שליחת תזכורת",
+  "sentToday": "תזכורת נשלחה היום · {name} בהעתק",
+  "sentTodayCard": "תזכורת נשלחה היום. {name} בהעתק.",
+  "sentTodayNoCopy": "תזכורת נשלחה היום",
+  "sentTodayCardNoCopy": "תזכורת נשלחה היום.",
+  "reminderSent": "התזכורת נשלחה אל {name}. {agent} בהעתק.",
+  "reminderSentNoCopy": "התזכורת נשלחה אל {name}.",
+  "foot": "התזכורות מנוסחות כטיוטה לקריאה מוקדמת. הסוכן מקבל העתק של כל אחת.",
+  "footNoCopy": "התזכורות מנוסחות כטיוטה לקריאה מוקדמת.",
+  "nothingFor": "אין כאן כלום עבור {name}.",
+  "nothingHere": "אין כאן כלום.",
   "empty": {
-    "title": "אין מה לגבות",
-    "text": "כל בקשות התשלום שולמו. חדשות יופיעו כאן ברגע שיישלחו."
+    "title": "אין חובות פתוחים",
+    "text": "כשבקשת תשלום לא משולמת, היא מופיעה כאן עם חיוג ותזכורת, הוותיקות קודם."
   }
 }

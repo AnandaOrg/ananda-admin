@@ -179,9 +179,22 @@ export class MoneyService {
     return { rows, lines, creditLines };
   }
 
+  /** The same dates one year earlier (for "Last year €…" under Net sales). */
+  private yearBefore(p: Period): Period {
+    const back = (d: Date) => new Date(d.getFullYear() - 1, d.getMonth(), d.getDate());
+    return { from: back(p.from), to: back(p.to) };
+  }
+
+  /** Whether any deal was ever fully paid: drives the first-use ("New user") state. */
+  private async anyPaidDeal(): Promise<boolean> {
+    const [r] = await this.db.select({ id: orders.id }).from(orders).where(and(sql`${orders.paidAt} is not null`, notInArray(orders.status, ['cancelled', 'draft']))).limit(1);
+    return !!r;
+  }
+
   async dealProfit(q: PeriodQuery) {
     const p = this.period(q);
-    const [summary, data] = await Promise.all([this.figures.dealProfit(p, null), this.dealRows(p)]);
+    const prev = this.yearBefore(p);
+    const [summary, data, before, hasAny, rules] = await Promise.all([this.figures.dealProfit(p, null), this.dealRows(p), this.figures.dealProfit(prev, null), this.anyPaidDeal(), this.settings.rules()]);
     const { rows, lines, creditLines } = data;
 
     const group = (keyOf: (r: DealRow) => string, nameOf: (r: DealRow) => string): Group[] => {
@@ -222,7 +235,9 @@ export class MoneyService {
 
     return {
       period: { from: isoDate(p.from), to: isoDate(new Date(p.to.getTime() - 86_400_000)) },
-      summary: { ...summary, costPerUnitCents: summary.units ? Math.round(summary.purchaseCostCents / summary.units) : 0 },
+      summary: { ...summary, costPerUnitCents: summary.units ? Math.round(summary.purchaseCostCents / summary.units) : 0, commissionPerUnitCents: rules.commissionPerUnitCents },
+      compare: { from: isoDate(prev.from), to: isoDate(new Date(prev.to.getTime() - 86_400_000)), netCents: before.netCents },
+      hasAny,
       deals: rows,
       byCustomer: group(
         (r) => r.customerId ?? 'none',
@@ -271,9 +286,19 @@ export class MoneyService {
         };
       }),
     );
-    const [dp, exp, cash] = await Promise.all([this.figures.dealProfit(p, null), this.expensesNet(p), this.cashOnHand()]);
+    const prev = this.yearBefore(p);
+    const [dp, exp, cash, before, anyDeal, [anyExpense]] = await Promise.all([
+      this.figures.dealProfit(p, null),
+      this.expensesNet(p),
+      this.cashOnHand(),
+      this.figures.dealProfit(prev, null),
+      this.anyPaidDeal(),
+      this.db.select({ id: expenses.id }).from(expenses).limit(1),
+    ]);
     return {
       period: { from: isoDate(p.from), to: isoDate(new Date(p.to.getTime() - 86_400_000)) },
+      compare: { from: isoDate(prev.from), to: isoDate(new Date(prev.to.getTime() - 86_400_000)), netCents: before.netCents },
+      hasAny: anyDeal || !!anyExpense,
       totals: {
         netCents: dp.netCents,
         purchaseCostCents: dp.purchaseCostCents,
@@ -283,7 +308,7 @@ export class MoneyService {
         operatingProfitCents: dp.profitCents - exp,
         deals: dp.deals,
       },
-      months: rows.reverse(),
+      months: rows,
       cash,
     };
   }
@@ -386,7 +411,8 @@ export class MoneyService {
       .leftJoin(users, eq(users.id, expenses.createdById))
       .where(where)
       .orderBy(desc(expenses.spentOn), desc(expenses.createdAt));
-    return { items, tiles: await this.expenseTiles() };
+    const [tiles, [any]] = await Promise.all([this.expenseTiles(), this.db.select({ id: expenses.id }).from(expenses).limit(1)]);
+    return { items, tiles, hasAny: !!any };
   }
 
   async createExpense(auth: AuthContext, input: ExpenseInput, file?: { buffer: Buffer; originalname: string; mimetype: string }) {

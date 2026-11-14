@@ -35,7 +35,7 @@ export function formatUnitPrice(cents: number, locale: Locale | string = 'en', d
   return '€' + formatNumber(cents / 100, locale, decimals);
 }
 
-const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
 
 function toDate(value: Date | string): Date {
   if (value instanceof Date) return value;
@@ -58,11 +58,11 @@ export function formatDate(value: Date | string | null | undefined, locale: Loca
   return `${d.getDate()} ${MONTHS_EN[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/** Compact controls (date chips, range buttons) use DD.MM.YY in BG. */
+/** Short dates with a day (lists, chips): EN "8 Nov", BG "08.11" (prototype). */
 export function formatDateShort(value: Date | string | null | undefined, locale: Locale | string = 'en'): string {
   if (!value) return '';
   const d = toDate(value);
-  if (locale === 'bg') return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
+  if (locale === 'bg') return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`;
   if (locale === 'he') return new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'short' }).format(d);
   return `${d.getDate()} ${MONTHS_EN[d.getMonth()]}`;
 }

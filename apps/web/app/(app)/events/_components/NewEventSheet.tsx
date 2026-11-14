@@ -7,8 +7,21 @@ import { useQuery } from '@tanstack/react-query';
 import { isoDate } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
-import { Banner, Button, Segmented, Sheet, Switch, TextField } from '@/components/ui';
+import { Banner, Button, Sheet, TextField } from '@/components/ui';
 import type { EventKind } from './types';
+
+/** A row of choice chips; `multi` lets several be on at once. */
+function PickChips({ label, options, isOn, onPick }: { label: string; options: { value: string; label: string }[]; isOn: (v: string) => boolean; onPick: (v: string) => void }) {
+  return (
+    <div className="an-chips" role="group" aria-label={label} style={{ flexWrap: 'wrap' }}>
+      {options.map((o) => (
+        <button key={o.value} type="button" className="an-chip" aria-pressed={isOn(o.value)} onClick={() => onPick(o.value)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /** New event (FR-EVT-2): name, from, to, place, type and invited agents. */
 export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -20,7 +33,7 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
   const [startsOn, setStartsOn] = useState(today);
   const [endsOn, setEndsOn] = useState(today);
   const [place, setPlace] = useState('');
-  const [kind, setKind] = useState<EventKind>('event');
+  const [kind, setKind] = useState<EventKind | null>(null);
   const [agentIds, setAgentIds] = useState<string[]>([]);
   const agents = useQuery({ queryKey: ['agents-list'], queryFn: () => api.get<{ id: string; name: string }[]>('/customers/agents'), enabled: open });
   useEffect(() => {
@@ -29,11 +42,11 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
     setStartsOn(today);
     setEndsOn(today);
     setPlace('');
-    setKind('event');
+    setKind(null);
     setAgentIds([]);
   }, [open, today]);
   const act = useAction(() => api.post<{ id: string }>('/events', { name, startsOn, endsOn, place, kind, agentIds }), {
-    success: () => t('form.created', { name }),
+    success: () => t('form.created'),
     onDone: (r) => {
       onClose();
       router.push(`/events/${r.id}`);
@@ -48,15 +61,12 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
       dirty={!!(name || place)}
       title={t('form.title')}
       footer={
-        <>
-          <Button onClick={onClose}>{tc('cancel')}</Button>
-          <Button variant="primary" busy={act.isPending} disabled={!name.trim() || !place.trim() || !startsOn || !endsOn} onClick={() => act.mutate(undefined)}>
-            {t('form.create')}
-          </Button>
-        </>
+        <Button variant="primary" block size="lg" busy={act.isPending} disabled={!name.trim() || !place.trim() || !startsOn || !endsOn || !kind} onClick={() => act.mutate(undefined)}>
+          {t('form.create')}
+        </Button>
       }
     >
-      <TextField label={t('form.name')} value={name} onChange={(e) => setName(e.target.value)} error={f.name} />
+      <TextField label={t('form.name')} placeholder={t('form.namePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} error={f.name} />
       <div className="form-grid">
         <TextField
           label={t('form.from')}
@@ -70,22 +80,22 @@ export function NewEventSheet({ open, onClose }: { open: boolean; onClose: () =>
         />
         <TextField label={t('form.to')} type="date" value={endsOn} min={startsOn} onChange={(e) => setEndsOn(e.target.value)} error={f.endsOn} />
       </div>
-      <TextField label={t('form.place')} value={place} onChange={(e) => setPlace(e.target.value)} error={f.place} />
-      <div className="an-field">
-        <label>{t('form.kind')}</label>
-        <Segmented fill label={t('form.kind')} value={kind} onChange={setKind} options={(['event', 'festival'] as const).map((k) => ({ value: k, label: t(`kind.${k}`) }))} />
-      </div>
-      <div className="an-field">
-        <label>{t('form.agents')}</label>
-        <span className="an-help">{t('form.agentsHelp')}</span>
-        <div className="stack tight">
-          {(agents.data ?? []).map((a) => (
-            <Switch key={a.id} label={a.name} checked={agentIds.includes(a.id)} onChange={(on) => setAgentIds((x) => (on ? [...x, a.id] : x.filter((y) => y !== a.id)))} />
-          ))}
-          {agents.isSuccess && agents.data.length === 0 && <span className="body-sm muted">{t('form.noAgents')}</span>}
-        </div>
-        {f.agentIds && <span className="an-help error">{f.agentIds}</span>}
-      </div>
+      <TextField label={t('form.place')} placeholder={t('form.placePlaceholder')} value={place} onChange={(e) => setPlace(e.target.value)} error={f.place} />
+      <span className="overline">{t('form.kind')}</span>
+      <PickChips label={t('form.kind')} options={(['event', 'festival'] as const).map((k) => ({ value: k, label: t(`kind.${k}`) }))} isOn={(v) => v === kind} onPick={(v) => setKind(v as EventKind)} />
+      {f.kind && <span className="an-help error">{f.kind}</span>}
+      <span className="overline">{t('form.agents')}</span>
+      {agents.isSuccess && agents.data.length === 0 ? (
+        <span className="body-sm muted">{t('form.noAgents')}</span>
+      ) : (
+        <PickChips
+          label={t('form.agents')}
+          options={(agents.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
+          isOn={(v) => agentIds.includes(v)}
+          onPick={(v) => setAgentIds((x) => (x.includes(v) ? x.filter((y) => y !== v) : [...x, v]))}
+        />
+      )}
+      {f.agentIds && <span className="an-help error">{f.agentIds}</span>}
       {act.errorText && <Banner tone="bad">{act.errorText}</Banner>}
     </Sheet>
   );

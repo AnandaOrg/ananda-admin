@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { Card, EmptyState, ErrorState, KpiTile, ListCard, Money, PageHeader, PageSkeleton, Pill, Table, type Column } from '@/components/ui';
+import { AgreementRow, SetupBanner } from './SetupBanner';
 import { COMMISSION_TONE, entryHref, type CommissionEntry, type Earnings } from './types';
 
 interface MyRequest {
@@ -56,7 +57,7 @@ export function MyEarnings() {
     { key: 'date', header: t('earnings.date'), render: (e) => <span className="nowrap">{date(when(e))}</span> },
     { key: 'units', header: t('earnings.units'), type: 'count', render: (e) => num(e.units) },
     { key: 'amount', header: t('earnings.commission'), type: 'amount', render: (e) => <bdi className={e.amountCents < 0 ? 'bad' : ''}>{money(e.amountCents)}</bdi> },
-    { key: 'status', header: t('earnings.status'), render: status },
+    { key: 'status', header: t('earnings.status'), type: 'status', render: status },
   ];
 
   const requests = reqs.data ?? [];
@@ -89,13 +90,14 @@ export function MyEarnings() {
       ),
     },
     { key: 'date', header: t('requests.date'), render: (r) => <span className="nowrap">{date(r.createdAt)}</span> },
-    { key: 'decision', header: t('requests.decision'), render: reqDecision },
+    { key: 'decision', header: t('requests.decision'), type: 'status', render: reqDecision },
   ];
   const openReq = (r: MyRequest) => (r.orderId ? router.push(`/sales/${r.orderId}`) : r.customerId ? router.push(`/customers/${r.customerId}`) : undefined);
 
   return (
     <div className="page">
       <PageHeader crumbs={[{ label: t('earnings.title') }]} kicker={t('earnings.kicker')} title={t('earnings.title')} />
+      <SetupBanner />
       <div className="kpis">
         <KpiTile label={t('tiles.ready')} value={money(totals.readyCents, true)} sub={t('earnings.readySub')} />
         <KpiTile label={t('tiles.coming')} value={money(totals.comingCents, true)} sub={t('tiles.comingSub')} />
@@ -109,7 +111,7 @@ export function MyEarnings() {
         ) : (
           <>
             <div className="only-wide">
-              <Table columns={columns} rows={entries} rowKey={(e) => e.id} onRow={(e) => { const h = entryHref(e); if (h) router.push(h); }} />
+              <Table columns={columns} rows={entries} rowKey={(e) => e.id} picker={{ id: 'my-earnings', locked: ['order', 'amount', 'status'], priority: ['date', 'units'] }} onRow={(e) => { const h = entryHref(e); if (h) router.push(h); }} />
             </div>
             <div className="list-cards only-phone" style={{ padding: 'var(--space-3)' }}>
               {entries.map((e) => (
@@ -130,6 +132,8 @@ export function MyEarnings() {
           </>
         )}
       </Card>
+
+      <AgreementRow />
 
       <Card flush title={t('requests.title')}>
         {reqs.error ? (

@@ -5,40 +5,35 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import type { StatusTone } from '@ananda/shared';
-import { api, qs } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
-import { Card, Chips, EmptyState, ErrorState, ListCard, PageHeader, PageSkeleton, Pill, Table, Truck, type Column } from '@/components/ui';
-import { PurchasingTabs } from '../_components/PurchasingTabs';
+import { useSession } from '@/lib/session';
+import { Button, Card, EmptyState, ErrorState, ListCard, PageHeader, PageSkeleton, Pill, Plus, Table, Truck, type Column } from '@/components/ui';
+import { PurchasingTabs, TableFoot, chevronColumn } from '../_components/PurchasingTabs';
+import { NewPurchaseSheet } from '../_components/NewPurchaseSheet';
 import type { PurchaseStatus, Shipment } from '../_lib/types';
 
-type Filter = 'all' | 'booked' | 'in_transit' | 'arrived';
-type Row = Shipment & { purchaseNumber: string; purchaseStatus: PurchaseStatus; supplierName: string; late: boolean };
-const TONE: Record<Shipment['status'], StatusTone> = { booked: 'mute', in_transit: 'info', arrived: 'good' };
+type Row = Shipment & { purchaseNumber: string; purchaseStatus: PurchaseStatus; supplierName: string; expectedOn: string; late: boolean };
 
-/** FR-PUR-5: purchase, carrier and mode, route, when, status. */
+/** FR-PUR-5: goods coming in — purchase, carrier and mode, route, when, status. */
 export default function ShipmentsPage() {
   const t = useTranslations('purchasing');
   const tc = useTranslations('common');
   const router = useRouter();
-  const { date, dateShort } = useFmt();
-  const [filter, setFilter] = useState<Filter>('all');
-  const query = qs({ filter: filter === 'all' ? undefined : filter });
-  const list = useQuery({ queryKey: ['purchases', 'shipments', query], queryFn: () => api.get<{ items: Row[]; counts: Record<Filter, number> }>(`/purchases/shipments${query}`) });
+  const { canEdit, readOnly } = useSession();
+  const { dateShort } = useFmt();
+  const [creating, setCreating] = useState(false);
+  const list = useQuery({ queryKey: ['purchases', 'shipments'], queryFn: () => api.get<{ items: Row[] }>('/purchases/shipments') });
+  const editable = canEdit('purchasing') && !readOnly;
 
   if (list.isLoading) return <PageSkeleton />;
   const rows = list.data?.items ?? [];
-  const chips = (['all', 'in_transit', 'booked', 'arrived'] as Filter[]).map((f) => ({ value: f, label: f === 'all' ? t('filters.all') : t(`shipments.status.${f}`), count: list.data?.counts[f] }));
-  const when = (s: Row) => {
-    if (s.status === 'arrived') return t('shipments.arrivedOn', { date: date(s.arriveOn) });
-    if (s.arriveOn) return t('shipments.arrivesOn', { date: date(s.arriveOn) });
-    return s.departOn ? t('shipments.leftOn', { date: date(s.departOn) }) : '—';
+  const when = (s: Row) => (s.status === 'arrived' ? t('shipments.arrivedOn', { date: dateShort(s.arriveOn) }) : s.late ? t('shipments.expectedLate', { date: dateShort(s.expectedOn) }) : t('shipments.expectedOn', { date: dateShort(s.expectedOn) }));
+  const status = (s: Row): [StatusTone, string] => (s.status === 'arrived' ? ['good', t('shipments.status.arrived')] : s.late ? ['bad', t('shipments.late')] : s.status === 'booked' ? ['mute', t('shipments.status.booked')] : ['info', t('shipments.status.in_transit')]);
+  const pill = (s: Row) => {
+    const [tone, label] = status(s);
+    return <Pill tone={tone}>{label}</Pill>;
   };
-  const status = (s: Row) => (
-    <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
-      <Pill tone={TONE[s.status]}>{t(`shipments.status.${s.status}`)}</Pill>
-      {s.late && <Pill tone="bad">{t('shipments.late')}</Pill>}
-    </span>
-  );
 
   const columns: Column<Row>[] = [
     {
@@ -55,26 +50,30 @@ export default function ShipmentsPage() {
         </>
       ),
     },
-    {
-      key: 'carrier',
-      header: t('shipments.cols.carrier'),
-      render: (s) => (
-        <>
-          <bdi>{s.carrier}</bdi>
-          <span className="sb">{t(`shipments.modes.${s.mode}`)}</span>
-        </>
-      ),
-    },
+    { key: 'carrier', header: t('shipments.cols.carrier'), render: (s) => <><bdi>{s.carrier}</bdi> · {t(`shipments.by.${s.mode}`)}</> },
     { key: 'route', header: t('shipments.route'), render: (s) => (s.route ? <bdi>{s.route}</bdi> : '—') },
-    { key: 'when', header: t('shipments.cols.when'), render: (s) => <span className={`nowrap ${s.late ? 'bad' : ''}`}>{when(s)}</span> },
-    { key: 'status', header: tc('status'), render: status },
+    { key: 'when', header: t('shipments.cols.when'), render: (s) => <span className="nowrap">{when(s)}</span> },
+    { key: 'status', header: tc('status'), render: pill },
+    chevronColumn<Row>(),
   ];
 
   return (
     <div className="page">
-      <PageHeader crumbs={[{ label: tc('nav.purchasing'), href: '/purchasing' }, { label: t('tabs.shipments') }]} kicker={t('shipments.kicker', { n: list.data?.counts.in_transit ?? 0 })} title={t('tabs.shipments')} />
+      <PageHeader
+        crumbs={[{ label: tc('nav.purchasing'), href: '/purchasing' }, { label: t('tabs.shipments') }]}
+        kicker={t('shipments.kicker')}
+        title={tc('nav.purchasing')}
+        actions={
+          editable ? (
+            <span className="only-wide">
+              <Button variant="primary" size="sm" icon={Plus} onClick={() => setCreating(true)}>
+                {t('new.title')}
+              </Button>
+            </span>
+          ) : undefined
+        }
+      />
       <PurchasingTabs current="shipments" />
-      <Chips options={chips} value={filter} onChange={setFilter} label={tc('filters')} />
       {list.error ? (
         <ErrorState error={list.error} retry={() => list.refetch()} />
       ) : rows.length === 0 ? (
@@ -85,33 +84,27 @@ export default function ShipmentsPage() {
         <>
           <Card flush className="only-wide">
             <Table columns={columns} rows={rows} rowKey={(s) => s.id} onRow={(s) => router.push(`/purchasing/${s.purchaseId}`)} />
+            <TableFoot>{t('shipments.foot')}</TableFoot>
           </Card>
           <div className="list-cards only-phone">
             {rows.map((s) => (
               <ListCard
                 key={s.id}
                 href={`/purchasing/${s.purchaseId}`}
-                title={<bdi>{s.carrier}</bdi>}
-                amount={<bdi>{s.purchaseNumber}</bdi>}
+                title={<bdi>{s.purchaseNumber}</bdi>}
+                amount={<bdi>{s.route ?? ''}</bdi>}
                 sub={
                   <>
-                    {t(`shipments.modes.${s.mode}`)}
-                    {s.route && (
-                      <>
-                        {' · '}
-                        <bdi>{s.route}</bdi>
-                      </>
-                    )}
-                    {' · '}
-                    {s.status === 'arrived' ? t('shipments.arrivedOn', { date: dateShort(s.arriveOn) }) : s.arriveOn ? t('shipments.arrivesOn', { date: dateShort(s.arriveOn) }) : ''}
+                    <bdi>{s.carrier}</bdi> · {t(`shipments.by.${s.mode}`)} · {when(s)}
                   </>
                 }
-                status={status(s)}
+                status={pill(s)}
               />
             ))}
           </div>
         </>
       )}
+      {editable && <NewPurchaseSheet open={creating} onClose={() => setCreating(false)} />}
     </div>
   );
 }

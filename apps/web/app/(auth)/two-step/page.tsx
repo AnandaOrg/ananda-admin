@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
-import type { Me } from '@/lib/session';
+import { nextPath, type Me } from '@/lib/session';
 import { Banner, Button, Card, TextField } from '@/components/ui';
 
 export default function TwoStepPage() {
@@ -21,7 +21,7 @@ export default function TwoStepPage() {
 
   useEffect(() => {
     if (me.error) router.replace('/login');
-    if (me.data?.twoStepState === 'done') router.replace('/home');
+    if (me.data?.twoStepState === 'done') router.replace(nextPath('/home'));
   }, [me.data, me.error, router]);
 
   async function submit(e: React.FormEvent) {
@@ -31,7 +31,7 @@ export default function TwoStepPage() {
     try {
       await api.post('/auth/two-step/verify', { code });
       await qc.invalidateQueries({ queryKey: ['me'] });
-      router.replace(me.data?.perms.scope === 'shipping' ? '/warehouse' : '/home');
+      router.replace(nextPath(me.data?.perms.scope === 'shipping' ? '/warehouse' : '/home'));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('failed'));
       setBusy(false);

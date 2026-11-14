@@ -22,6 +22,13 @@
       "when": 1794334976258,
       "tag": "0002_commission_event",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794670826554,
+      "tag": "0003_prototype_alignment",
+      "breakpoints": true
     }
   ]
 }

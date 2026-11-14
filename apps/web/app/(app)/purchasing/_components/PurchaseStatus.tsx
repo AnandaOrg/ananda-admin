@@ -1,34 +1,44 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { StatusTone } from '@ananda/shared';
 import { Pill } from '@/components/ui';
 import type { PayableKind, PurchaseStatus } from '../_lib/types';
 
-const TONE: Record<PurchaseStatus, StatusTone> = { ordered: 'mute', on_the_way: 'info', received: 'good', cancelled: 'mute' };
-
-/** Purchase status as a word, with "N days late" and "Invoice missing" when they apply. */
-export function PurchaseStatusPill({ status, daysLate, invoiceMissing }: { status: PurchaseStatus; daysLate?: number; invoiceMissing?: boolean }) {
+/** One word for a purchase: N days late, Ordered, On the way, Received · to pay, Received · paid. */
+export function usePurchaseStatus() {
   const t = useTranslations('purchasing');
   const tc = useTranslations('common');
-  return (
-    <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
-      <Pill tone={TONE[status]}>{t(`status.${status}`)}</Pill>
-      {!!daysLate && daysLate > 0 && <Pill tone="bad">{tc('daysLate', { n: daysLate })}</Pill>}
-      {invoiceMissing && status === 'received' && <Pill tone="warn">{t('status.invoiceMissing')}</Pill>}
-    </span>
-  );
+  return (p: { status: PurchaseStatus; daysLate?: number; stillToPayCents: number }): [StatusTone, string] => {
+    if (p.daysLate && p.daysLate > 0) return ['bad', tc('daysLate', { n: p.daysLate })];
+    if (p.status === 'received') return ['good', p.stillToPayCents > 0 ? t('status.receivedToPay') : t('status.receivedPaid')];
+    if (p.status === 'cancelled') return ['mute', t('status.cancelled')];
+    return ['info', t(`status.${p.status}`)];
+  };
 }
 
-export function PayableStatusPill({ p, today }: { p: { amountCents: number; paidCents: number; dueOn: string }; today: string }) {
-  const t = useTranslations('purchasing');
-  if (p.paidCents >= p.amountCents) return <Pill tone="good">{t('payables.status.paid')}</Pill>;
-  if (p.dueOn < today) return <Pill tone="bad">{t('payables.status.overdue')}</Pill>;
-  if (p.paidCents > 0) return <Pill tone="warn">{t('payables.status.part')}</Pill>;
-  return <Pill tone="info">{t('payables.status.open')}</Pill>;
+export function PurchaseStatusPill({ p }: { p: { status: PurchaseStatus; daysLate?: number; stillToPayCents: number } }) {
+  const [tone, label] = usePurchaseStatus()(p);
+  return <Pill tone={tone}>{label}</Pill>;
 }
 
+/** What a bill is for: Supplier invoice (· balance once part paid), Freight, Excise for <month>. */
 export function useKindLabel() {
   const t = useTranslations('purchasing');
-  return (k: PayableKind) => t(`payables.kind.${k}`);
+  return (k: PayableKind, extra?: { paidCents?: number; month?: string | null }) => {
+    if (k === 'supplier_invoice' && extra?.paidCents) return t('payables.kind.supplierBalance');
+    if (k === 'excise' && extra?.month) return t('payables.kind.exciseFor', { month: extra.month });
+    return t(`payables.kind.${k}`);
+  };
+}
+
+/** Month name alone ("October", "октомври"), for "Excise for October". */
+export function useMonthName() {
+  const locale = useLocale();
+  const tag = locale === 'bg' ? 'bg-BG' : locale === 'he' ? 'he-IL' : 'en-GB';
+  return (iso: string | null | undefined) => {
+    if (!iso) return null;
+    const [y, m] = iso.split('-').map(Number);
+    return new Intl.DateTimeFormat(tag, { month: 'long' }).format(new Date(y, m - 1, 1));
+  };
 }

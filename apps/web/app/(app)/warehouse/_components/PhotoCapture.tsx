@@ -2,7 +2,6 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Button, Camera, EmptyState } from '@/components/ui';
 import { shrinkImage } from '@/lib/image';
 
 export interface PhotoCaptureHandle {
@@ -11,8 +10,9 @@ export interface PhotoCaptureHandle {
 }
 
 /**
- * Camera capture for the signed delivery note (FR-WH-3): the rear camera opens on phones,
- * the photo is previewed, and the sheet footer offers Retake or Use photo.
+ * Camera capture for the signed delivery note (FR-WH-3): a framed area asks to point the camera at
+ * the note; the rear camera opens on phones, the photo is previewed, and the sheet footer offers
+ * Take photo, then Retake or Use photo.
  */
 export const PhotoCapture = forwardRef<PhotoCaptureHandle, { file: File | null; onFile: (f: File) => void; error?: string }>(function PhotoCapture({ file, onFile, error }, ref) {
   const t = useTranslations('warehouse');
@@ -51,16 +51,29 @@ export const PhotoCapture = forwardRef<PhotoCaptureHandle, { file: File | null; 
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt={t('photo.previewAlt')} className="photo-preview" />
       ) : (
-        <EmptyState
-          icon={Camera}
-          title={t('photo.title')}
-          text={t('photo.text')}
-          action={
-            <Button variant="primary" icon={Camera} onClick={() => input.current?.click()}>
-              {t('photo.take')}
-            </Button>
-          }
-        />
+        <button
+          type="button"
+          onClick={() => input.current?.click()}
+          style={{
+            position: 'relative',
+            display: 'grid',
+            placeItems: 'center',
+            width: '100%',
+            height: 360,
+            maxHeight: '45dvh',
+            padding: 'var(--space-5)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--line)',
+            background: 'var(--bg)',
+            color: 'var(--text-muted)',
+            font: '400 14px/20px var(--font-sans)',
+            textAlign: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <span aria-hidden style={{ position: 'absolute', inset: 18, border: '2px dashed var(--surface-3)', borderRadius: 'var(--radius-md)' }} />
+          <span style={{ position: 'relative', maxWidth: 220 }}>{t('photo.point')}</span>
+        </button>
       )}
       {error && <span className="an-help error">{error}</span>}
     </div>

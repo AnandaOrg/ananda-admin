@@ -1,5 +1,6 @@
 // Request bodies owned by the Admin module (FR-ADM-1, FR-ADM-3).
 import { z } from 'zod';
+import { roleSchema } from '@ananda/shared';
 
 const text = (max = 200) => z.string().trim().max(max);
 const email = z.string().trim().toLowerCase().email('Enter a valid e-mail');
@@ -14,9 +15,16 @@ export const inviteMemberSchema = z
     message: text(5000).optional(),
     roleId: z.string().uuid().optional(),
     roleKey: z.string().trim().min(1).max(80).optional(),
+    /** Users & roles › Add member: the whole invitation e-mail as written (and maybe polished); the sign-up link is added below it. */
+    subject: text(200).optional(),
+    letter: text(10_000).optional(),
   })
   .refine((v) => !!v.roleId !== !!v.roleKey, { message: 'Pick a role', path: ['roleId'] });
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+
+/** Custom role changes: area access, sensitive actions and which records (FR-ADM-1). */
+export const roleUpdateSchema = roleSchema.extend({ scope: z.enum(['all', 'own', 'shipping']).optional() });
+export type RoleUpdateInput = z.infer<typeof roleUpdateSchema>;
 
 export const ruleSchemas = {
   ownership: z.object({

@@ -1,10 +1,12 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { FLAVOURS, UNITS_PER_CARTON, type CartonsByFlavour, type Flavour } from '@ananda/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { customers, documents, orderLines, orders, stockCounts, users } from '../db/schema';
 import { AuditService } from '../core/audit.service';
+import { FilesService } from '../core/files.service';
 import { NotifyService } from '../core/notify.service';
+import { SettingsService } from '../core/settings.service';
 import { StockService } from '../core/stock.service';
 import { orderScope } from '../core/scope';
 import type { AuthContext } from '../common/context';
@@ -35,6 +37,8 @@ export interface ShipCard {
   sentAt: string | null;
   waitingDays: number;
   redelivery: boolean;
+  /** Part of it was delivered already; what is left here is the rest. */
+  partDelivered: boolean;
   lines: ShipLine[];
   totalCartons: number;
   totalUnits: number;
@@ -54,6 +58,8 @@ export class WarehouseService {
     private readonly stock: StockService,
     private readonly audit: AuditService,
     private readonly notify: NotifyService,
+    private readonly files: FilesService,
+    private readonly settings: SettingsService,
   ) {}
 
   /** Orders in the given statuses, with remaining cartons per flavour (cartons − delivered). */
@@ -104,6 +110,7 @@ export class WarehouseService {
         sentAt: r.sentAt?.toISOString() ?? null,
         waitingDays: since ? Math.max(0, Math.floor((now - since.getTime()) / DAY)) : 0,
         redelivery: r.outcome === 'redeliver',
+        partDelivered: lines.some((x) => x.orderId === r.id && (x.delivered ?? 0) > 0),
         lines: own,
         totalCartons,
         totalUnits: totalCartons * UNITS_PER_CARTON,
@@ -115,70 +122,84 @@ export class WarehouseService {
     return this.cards(auth, ['at_warehouse']);
   }
 
-  /** Delivered orders with the date and the signed note (FR-WH-5). */
+  /**
+   * Every delivery with its signed note, newest first (FR-WH-5). One row per signed note, so a part
+   * delivery and the delivery of the rest are two rows.
+   */
   async delivered(auth: AuthContext, period?: string) {
     const from = period === 'this_month' ? monthStart() : period === 'last_month' ? new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1) : undefined;
     const to = period === 'last_month' ? monthStart() : undefined;
-    const rows = await this.db
+    const notes = await this.db
       .select({
-        id: orders.id,
+        id: documents.id,
+        orderId: orders.id,
         number: orders.number,
         status: orders.status,
-        deliveredAt: orders.deliveredAt,
+        at: documents.createdAt,
+        data: documents.data,
+        mime: documents.mimeType,
         customerName: customers.companyName,
         city: customers.city,
-        cartons: sql<number>`coalesce((select sum(coalesce(${orderLines.deliveredCartons}, 0)) from ${orderLines} where ${orderLines.orderId} = ${orders.id}), 0)::int`,
-        noteId: sql<string | null>`(select ${documents.id}::text from ${documents} where ${documents.orderId} = ${orders.id} and ${documents.type} = 'delivery_note' order by ${documents.createdAt} desc limit 1)`,
       })
-      .from(orders)
+      .from(documents)
+      .innerJoin(orders, eq(orders.id, documents.orderId))
       .innerJoin(customers, eq(customers.id, orders.customerId))
-      .where(
-        and(
-          inArray(orders.status, ['delivered', 'delivered_part', 'invoiced']),
-          sql`${orders.deliveredAt} is not null`,
-          from ? gte(orders.deliveredAt, from) : undefined,
-          to ? lt(orders.deliveredAt, to) : undefined,
-          orderScope(auth),
-        ),
-      )
-      .orderBy(desc(orders.deliveredAt))
-      .limit(300);
-    return rows.map((r) => ({
-      id: r.id,
-      number: r.number,
-      status: r.status,
-      deliveredAt: r.deliveredAt?.toISOString() ?? null,
-      customerName: r.customerName,
-      city: r.city,
-      deliveredCartons: Number(r.cartons),
-      signedNoteId: r.noteId,
-    }));
+      .where(and(eq(documents.type, 'delivery_note'), orderScope(auth)))
+      .orderBy(asc(documents.createdAt));
+    if (!notes.length) return [];
+    const ids = [...new Set(notes.map((n) => n.orderId))];
+    const sums = await this.db
+      .select({ orderId: orderLines.orderId, delivered: sql<number>`coalesce(sum(coalesce(${orderLines.deliveredCartons}, 0)), 0)::int` })
+      .from(orderLines)
+      .where(inArray(orderLines.orderId, ids))
+      .groupBy(orderLines.orderId);
+    // A part note records its own cartons; the note that finishes an order covers what is left.
+    const counted = new Map<string, number>();
+    const rows = notes.map((n) => {
+      const d = (n.data ?? {}) as { part?: boolean; cartons?: number; returnedCartons?: number };
+      let cartons: number;
+      if (typeof d.cartons === 'number') cartons = d.cartons;
+      else {
+        const total = Number(sums.find((x) => x.orderId === n.orderId)?.delivered ?? 0);
+        const before = notes.filter((m) => m.orderId === n.orderId && m.id !== n.id && typeof (m.data as { cartons?: number })?.cartons === 'number').reduce((s, m) => s + Number((m.data as { cartons: number }).cartons), 0);
+        cartons = Math.max(0, total - before);
+      }
+      counted.set(n.orderId, (counted.get(n.orderId) ?? 0) + cartons);
+      return {
+        id: n.id,
+        orderId: n.orderId,
+        number: n.number,
+        status: n.status,
+        deliveredAt: n.at.toISOString(),
+        customerName: n.customerName,
+        city: n.city,
+        deliveredCartons: cartons,
+        part: !!d.part || (d.returnedCartons ?? 0) > 0,
+        signedNoteId: n.id,
+        mimeType: n.mime,
+      };
+    });
+    return rows
+      .filter((r) => (!from || new Date(r.deliveredAt) >= from) && (!to || new Date(r.deliveredAt) < to))
+      .reverse()
+      .slice(0, 300);
   }
 
-  /** Admin desktop overview (FR-WH-1); the Warehouse role gets the same data without "ready". */
+  /** Admin desktop overview (FR-WH-1): to ship, every signed note, the last count. */
   async overview(auth: AuthContext) {
-    const isAdmin = auth.perms.scope === 'all';
-    const [toShip, ready, recent, [month], last] = await Promise.all([
-      this.toShip(auth),
-      isAdmin ? this.cards(auth, ['ready_to_send']) : Promise.resolve([]),
-      this.delivered(auth, 'this_month'),
-      this.db
-        .select({ n: sql<number>`count(*)::int` })
-        .from(orders)
-        .where(and(inArray(orders.status, ['delivered', 'delivered_part', 'invoiced']), gte(orders.deliveredAt, monthStart()), orderScope(auth))),
-      this.lastCount(auth),
-    ]);
+    const [toShip, delivered, last, company] = await Promise.all([this.toShip(auth), this.delivered(auth), this.lastCount(auth), this.settings.get('company')]);
+    const start = monthStart();
     return {
+      site: company.city || null,
       tiles: {
         toShipOrders: toShip.length,
+        toShipNumbers: toShip.map((o) => o.number),
         toShipCartons: toShip.reduce((s, o) => s + o.totalCartons, 0),
-        readyOrders: ready.length,
-        deliveredThisMonth: Number(month.n),
+        deliveredThisMonth: delivered.filter((d) => new Date(d.deliveredAt) >= start).length,
         lastCount: last,
       },
       toShip,
-      ready,
-      delivered: recent,
+      delivered: delivered.slice(0, 50),
     };
   }
 
@@ -191,7 +212,8 @@ export class WarehouseService {
       .orderBy(desc(stockCounts.createdAt))
       .limit(1);
     if (!row) return null;
-    const base = { id: row.id, at: row.at.toISOString(), byName: row.by ?? '' };
+    // The total counted is the warehouse's own input, so it may see it; never what was expected.
+    const base = { id: row.id, at: row.at.toISOString(), byName: row.by ?? '', cartons: FLAVOURS.reduce((s, f) => s + (row.cartons[f] ?? 0), 0) };
     if (auth.perms.scope !== 'all') return base;
     const off = FLAVOURS.reduce((s, f) => s + Math.abs((row.cartons[f] ?? 0) - (row.expected[f] ?? 0)), 0);
     return { ...base, cartonsOff: off, reconciled: !!row.reconciledAt };
@@ -214,22 +236,66 @@ export class WarehouseService {
     return { status: r.status, returnedCartons: r.returnedCartons };
   }
 
-  /** Part delivery (FR-WH-4): the warehouse records facts only; an Admin decides the outcome (A6). */
-  async partDelivery(auth: AuthContext, id: string, body: { kept: CartonsByFlavour; reason: string; note?: string }, file: UploadedFile | undefined) {
-    const sent = await this.remaining(auth, id);
+  /**
+   * Delivered in part (FR-WH-4): the warehouse delivered some cartons now; the rest stays in To ship
+   * and goes out later on its own signed note. The order stays at the warehouse until the last carton
+   * is delivered (its status changes only in OrdersService.deliver), so nothing moves in stock here.
+   */
+  async partDelivery(auth: AuthContext, id: string, body: { delivered: CartonsByFlavour }, file: UploadedFile | undefined) {
+    const left = await this.remaining(auth, id);
     const fields: Record<string, string> = {};
-    let back = 0;
+    let now = 0;
+    let rest = 0;
     for (const f of FLAVOURS) {
-      const kept = body.kept[f] ?? 0;
-      const max = sent[f] ?? 0;
-      if (kept > max) fields[`kept.${f}`] = `At most ${max} cartons were sent`;
-      back += Math.max(0, max - kept);
+      const n = Math.floor(body.delivered[f] ?? 0);
+      const max = left[f] ?? 0;
+      if (n > max) fields[`delivered.${f}`] = `Only ${max} cartons are left to deliver`;
+      now += Math.min(n, max);
+      rest += Math.max(0, max - n);
     }
-    if (Object.keys(fields).length) throw new BadRequestException({ message: 'The customer cannot keep more than was sent', fields });
-    if (back === 0) throw new BadRequestException({ message: 'Nothing is coming back. Use Upload signed note for a full delivery.', fields: { kept: 'Lower the cartons the customer kept' } });
+    if (Object.keys(fields).length) throw new BadRequestException({ message: 'You cannot deliver more than is left', fields });
+    if (now === 0) throw new BadRequestException({ message: 'Enter the cartons you delivered now', fields: { delivered: 'Enter the cartons you delivered now' } });
     if (!file) throw new BadRequestException({ message: 'Take a photo of the signed note', fields: { file: 'Take a photo of the signed note' } });
-    const r = await this.orders.deliver(auth, id, file, { kept: body.kept, reason: body.reason, note: body.note });
-    return { status: r.status, returnedCartons: r.returnedCartons };
+    // Everything that was left went out: that is a full delivery.
+    if (rest === 0) {
+      const r = await this.orders.deliver(auth, id, file);
+      return { status: r.status, deliveredCartons: now, stayCartons: 0 };
+    }
+    if (!this.files.isAllowed(file.mimetype)) throw new BadRequestException({ message: 'Upload a photo (JPG, PNG, HEIC) or a PDF', fields: { file: 'Upload a photo (JPG, PNG, HEIC) or a PDF' } });
+    const saved = await this.files.save(file);
+    return this.db.transaction(async (tx) => {
+      const { order, lines } = await this.orders.load(auth, id, tx, true);
+      if (order.status !== 'at_warehouse') throw new ConflictException({ message: 'This order is not at the warehouse' });
+      const byFlavour: Partial<Record<Flavour, number>> = {};
+      let done = 0;
+      let stays = 0;
+      for (const l of lines) {
+        const open = l.cartons - (l.deliveredCartons ?? 0);
+        const n = Math.min(open, Math.max(0, Math.floor(body.delivered[l.flavour] ?? 0)));
+        stays += open - n;
+        if (n <= 0) continue;
+        byFlavour[l.flavour] = n;
+        done += n;
+        await tx.update(orderLines).set({ deliveredCartons: (l.deliveredCartons ?? 0) + n }).where(eq(orderLines.id, l.id));
+      }
+      if (done === 0 || stays === 0) throw new ConflictException({ message: 'This order changed meanwhile. Open it again.' });
+      await tx.insert(documents).values({
+        type: 'delivery_note',
+        orderId: id,
+        customerId: order.customerId,
+        filePath: saved.path,
+        fileName: saved.name,
+        mimeType: saved.mime,
+        label: 'Signed delivery note · part',
+        data: { part: true, cartons: done, byFlavour, stays },
+        createdById: auth.user.id,
+      });
+      await this.audit.log(auth, { category: 'orders', action: 'part_delivered', recordType: 'order', recordId: id, recordLabel: order.number, meta: { cartons: byFlavour, stays } }, tx);
+      const title = `${order.number} part delivered · ${stays} cartons still to ship`;
+      await this.notify.toRoles(['system_admin', 'admin'], { type: 'delivered', title, link: `/sales/${id}` }, tx);
+      await this.notify.toUsers([order.agentId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
+      return { status: order.status, deliveredCartons: done, stayCartons: stays };
+    });
   }
 
   /**

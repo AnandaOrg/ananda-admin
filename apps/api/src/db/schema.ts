@@ -38,7 +38,7 @@ export const purchaseStatusEnum = pgEnum('purchase_status', ['ordered', 'on_the_
 export const approvalTypeEnum = pgEnum('approval_type', ['new_customer', 'special_price', 'correction']);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'declined', 'withdrawn']);
 export const commissionStatusEnum = pgEnum('commission_status', ['coming', 'ready', 'sent', 'paid', 'void']);
-export const documentTypeEnum = pgEnum('document_type', ['proforma', 'invoice', 'credit_note', 'purchase_order', 'delivery_note', 'upload']);
+export const documentTypeEnum = pgEnum('document_type', ['proforma', 'invoice', 'credit_note', 'purchase_order', 'delivery_note', 'upload', 'agent_agreement']);
 export const payableKindEnum = pgEnum('payable_kind', ['supplier_invoice', 'freight', 'excise']);
 export const userStatusEnum = pgEnum('user_status', ['invited', 'active', 'deactivated']);
 export const movementKindEnum = pgEnum('movement_kind', [
@@ -125,6 +125,9 @@ export const customers = pgTable(
     invoiceEmail: text('invoice_email').notNull(),
     proformaLanguage: text('proforma_language').$type<'en' | 'bg'>().notNull().default('bg'),
     paymentTermsDays: integer('payment_terms_days').notNull().default(7),
+    /** 'before_shipping' (100% before it ships), 'half_before_shipping' (50% now, 50% before shipping) or 'after_delivery_30' (30 days after delivery). */
+    paymentTerms: text('payment_terms').$type<'before_shipping' | 'half_before_shipping' | 'after_delivery_30'>().notNull().default('before_shipping'),
+    postcode: text('postcode'),
     note: text('note'),
     agentId: uuid('agent_id').references(() => users.id),
     ownedUntil: date('owned_until'),
@@ -190,6 +193,8 @@ export const orders = pgTable(
     paymentDueOn: date('payment_due_on'),
     note: text('note'),
     partDeliveryOutcome: text('part_delivery_outcome').$type<'credit_note' | 'redeliver'>(),
+    // Customer's payment terms when the payment request was sent (FR-SALE-6): 100% before shipping, 50% deposit then the rest before shipping, or invoice due 30 days after delivery.
+    paymentTerms: text('payment_terms').$type<'before_shipping' | 'half_before_shipping' | 'after_delivery_30'>().notNull().default('before_shipping'),
     createdById: uuid('created_by_id'),
     createdAt: createdAt(),
     requestSentAt: ts('request_sent_at'),
@@ -258,6 +263,8 @@ export const documents = pgTable(
     number: text('number'),
     orderId: uuid('order_id').references(() => orders.id),
     purchaseId: uuid('purchase_id'),
+    // Supplier contracts and price lists (Purchasing → Suppliers).
+    supplierId: uuid('supplier_id'),
     customerId: uuid('customer_id').references(() => customers.id),
     referencesDocumentId: uuid('references_document_id'),
     supersededById: uuid('superseded_by_id'),
@@ -443,6 +450,48 @@ export const commissionEntries = pgTable(
   (t) => [index('commission_agent_idx').on(t.agentId), index('commission_order_idx').on(t.orderId)],
 );
 
+/**
+ * Agent onboarding: company and bank details the agent fills in after accepting the invitation, and
+ * the agent agreement (a documents row, type agent_agreement) the agent signs and an Admin countersigns.
+ * Set-up is finished only once countersigned.
+ */
+export const agentProfiles = pgTable('agent_profiles', {
+  userId: uuid('user_id').primaryKey().references(() => users.id),
+  /** bg = Bulgaria, eu = another EU country, other = outside the EU. */
+  registeredIn: text('registered_in').$type<'bg' | 'eu' | 'other'>().notNull().default('bg'),
+  companyName: text('company_name'),
+  vatNumber: text('vat_number'),
+  companyRegNumber: text('company_reg_number'),
+  vatRegistered: boolean('vat_registered'),
+  address: text('address'),
+  city: text('city'),
+  country: text('country').notNull().default('BG'),
+  managerName: text('manager_name'),
+  managerRole: text('manager_role'),
+  payoutEmail: text('payout_email'),
+  companyAt: ts('company_at'),
+  bankName: text('bank_name'),
+  iban: text('iban'),
+  bic: text('bic'),
+  accountHolder: text('account_holder'),
+  bankAddress: text('bank_address'),
+  currency: text('currency').notNull().default('EUR'),
+  bankConfirmationDocumentId: uuid('bank_confirmation_document_id'),
+  detailsAt: ts('details_at'),
+  agreementDocumentId: uuid('agreement_document_id'),
+  /** app = signed in the app with a typed e-signature; paper = signed by hand, scan uploaded. */
+  signMethod: text('sign_method').$type<'app' | 'paper'>(),
+  signedScanDocumentId: uuid('signed_scan_document_id'),
+  signedAt: ts('signed_at'),
+  signedName: text('signed_name'),
+  signedIp: text('signed_ip'),
+  countersignedAt: ts('countersigned_at'),
+  countersignedById: uuid('countersigned_by_id'),
+  countersignedName: text('countersigned_name'),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+  createdAt: createdAt(),
+});
+
 export const agentNudges = pgTable('agent_nudges', {
   id: pk(),
   agentId: uuid('agent_id').notNull().references(() => users.id),
@@ -514,6 +563,8 @@ export const notifications = pgTable(
     title: text('title').notNull(),
     body: text('body'),
     link: text('link'),
+    // Values for the translated title/body of this kind (messages common.notify.<type>); title/body stay as the English fallback.
+    data: jsonb('data').$type<Record<string, string | number>>(),
     readAt: ts('read_at'),
     createdAt: createdAt(),
   },
@@ -533,6 +584,21 @@ export const emailLog = pgTable('email_log', {
   error: text('error'),
   createdAt: createdAt(),
 });
+
+/** What was taken at an event, per recorded sale (FR-EVT-3): units and money excl. VAT. */
+export const eventSales = pgTable(
+  'event_sales',
+  {
+    id: pk(),
+    eventId: uuid('event_id').notNull().references(() => events.id),
+    agentId: uuid('agent_id').notNull().references(() => users.id),
+    units: integer('units').notNull(),
+    netCents: integer('net_cents').notNull(),
+    recordedById: uuid('recorded_by_id'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('event_sales_event_idx').on(t.eventId)],
+);
 
 // ---------- Relations ----------
 

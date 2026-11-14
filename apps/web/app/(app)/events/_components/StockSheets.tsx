@@ -6,7 +6,7 @@ import { FLAVOURS, UNITS_PER_CARTON, type CartonsByFlavour } from '@ananda/share
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
-import { Banner, Button, CartonsEditor, Segmented, Select, Sheet } from '@/components/ui';
+import { Banner, Button, CartonsEditor, MoneyField, Segmented, Select, Sheet } from '@/components/ui';
 import type { EventDetail } from './types';
 
 const total = (c: CartonsByFlavour) => FLAVOURS.reduce((s, f) => s + (c[f] ?? 0), 0);
@@ -73,15 +73,17 @@ export function SaleSheet({ data, open, onClose }: { data: EventDetail; open: bo
   const { num, money } = useFmt();
   const [agentId, setAgentId] = useState('');
   const [cartons, setCartons] = useState<CartonsByFlavour>({});
+  const [amount, setAmount] = useState<number | null>(null);
   useEffect(() => {
     setCartons({});
+    setAmount(null);
     setAgentId(data.agents.length === 1 ? data.agents[0].id : '');
     // Reset only when the sheet opens, not on every background refetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
   const max: CartonsByFlavour = Object.fromEntries(data.stock.map((s) => [s.flavour, s.cartons]));
   const name = data.agents.find((a) => a.id === agentId)?.name ?? '';
-  const act = useAction(() => api.post<{ cartons: number; commissionCents: number }>(`/events/${data.event.id}/sales`, { agentId, cartons }), {
+  const act = useAction(() => api.post<{ cartons: number; commissionCents: number }>(`/events/${data.event.id}/sales`, { agentId, cartons, amountNetCents: amount }), {
     success: (r) => t('sale.done', { n: r.cartons, name, amount: money(r.commissionCents) }),
     onDone: onClose,
   });
@@ -98,7 +100,7 @@ export function SaleSheet({ data, open, onClose }: { data: EventDetail; open: bo
       footer={
         <>
           <Button onClick={onClose}>{tc('cancel')}</Button>
-          <Button variant="primary" busy={act.isPending} disabled={n === 0 || !agentId} onClick={() => act.mutate(undefined)}>
+          <Button variant="primary" busy={act.isPending} disabled={n === 0 || !agentId || amount == null || amount < 0} onClick={() => act.mutate(undefined)}>
             {t('sale.submit')}
           </Button>
         </>
@@ -115,6 +117,7 @@ export function SaleSheet({ data, open, onClose }: { data: EventDetail; open: bo
             <span className="muted">{tc('total')}</span>
             <bdi className="strong num">{t('move.total', { n, u: num(n * UNITS_PER_CARTON) })}</bdi>
           </div>
+          <MoneyField key={String(open)} label={t('sale.amount')} help={t('sale.amountHelp')} cents={amount} onCents={setAmount} error={act.fields.amountNetCents} />
           {err && <span className="an-help error">{err}</span>}
         </>
       )}

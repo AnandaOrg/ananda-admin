@@ -58,6 +58,12 @@ export interface DocumentSettings {
   languages: Array<'en' | 'bg'>;
   proformaValidityDays: number;
   logoUrl: string | null;
+  /** Uploaded logo printed top left on proformas, invoices and credit notes (Settings › Documents). */
+  logo?: { path: string; name: string; mime: string } | null;
+  /** One line printed at the bottom of every customer document. */
+  footer?: string;
+  /** Number prefixes for new documents, e.g. "S-"; numbers already issued never change. */
+  prefixes?: Partial<Record<'order' | 'invoice' | 'credit_note', string>>;
 }
 
 export interface SecuritySettings {

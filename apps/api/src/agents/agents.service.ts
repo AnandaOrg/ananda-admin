@@ -2,11 +2,17 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { and, asc, desc, eq, gte, inArray, isNotNull, notInArray, sql } from 'drizzle-orm';
 import { VAT_RATE, isoDate, vatOf } from '@ananda/shared';
 import { InjectDb, type Db, type Tx } from '../db/db.module';
-import { agentNudges, commissionEntries, customers, events, orders, roles, users } from '../db/schema';
+import { agentNudges, agentProfiles, commissionEntries, customers, events, orders, roles, users } from '../db/schema';
 import { AuditService } from '../core/audit.service';
 import { MailService } from '../core/mail.service';
+import { NotifyService } from '../core/notify.service';
 import { SettingsService } from '../core/settings.service';
 import { agentFilter } from '../core/scope';
+import { OWED_STATUSES, outstandingSql } from '../core/figures.service';
+import { randomToken, sha256 } from '../core/crypto';
+import { webOrigin } from '../core/origin';
+import { setupStatus } from './setup.service';
+import type { AgentInviteInput } from './agents.schemas';
 import type { AuthContext } from '../common/context';
 
 function monthStart(now = new Date()) {
@@ -16,6 +22,7 @@ function dayStart(now = new Date()) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 const euros = (cents: number) => `€${(cents / 100).toFixed(2)}`;
+const from0 = (rows: { status: string }[]) => (rows.every((r) => r.status === 'sent') ? 'sent' : 'ready');
 
 /** Orders that count as a sale: the payment request went out and the order was not cancelled. */
 const SOLD = sql`${orders.requestSentAt} is not null and ${orders.status} <> 'cancelled'`;
@@ -33,6 +40,7 @@ export class AgentsService {
     private readonly audit: AuditService,
     private readonly mail: MailService,
     private readonly settings: SettingsService,
+    private readonly notify: NotifyService,
   ) {}
 
   private totalsSql() {
@@ -41,6 +49,7 @@ export class AgentsService {
       comingCents: sql<number>`coalesce(sum(${commissionEntries.amountCents}) filter (where ${commissionEntries.status} = 'coming'), 0)::int`,
       sentCents: sql<number>`coalesce(sum(${commissionEntries.amountCents}) filter (where ${commissionEntries.status} = 'sent'), 0)::int`,
       paidThisYearCents: sql<number>`coalesce(sum(${commissionEntries.amountCents}) filter (where ${commissionEntries.status} = 'paid' and ${commissionEntries.paidAt} >= ${new Date(new Date().getFullYear(), 0, 1)}), 0)::int`,
+      paidTodayCents: sql<number>`coalesce(sum(${commissionEntries.amountCents}) filter (where ${commissionEntries.status} = 'paid' and ${commissionEntries.paidAt} >= ${dayStart()}), 0)::int`,
     };
   }
 
@@ -60,7 +69,7 @@ export class AgentsService {
     const people = await this.agentUsers();
     const ids = people.map((p) => p.id);
     const none = ids.length === 0;
-    const [money, custs, sold, nudges, [newCustomers]] = await Promise.all([
+    const [money, custs, sold, nudges, [newCustomers], profiles] = await Promise.all([
       none ? [] : this.db.select({ agentId: commissionEntries.agentId, ...this.totalsSql() }).from(commissionEntries).where(inArray(commissionEntries.agentId, ids)).groupBy(commissionEntries.agentId),
       none
         ? []
@@ -85,11 +94,13 @@ export class AgentsService {
         .select({ n: sql<number>`count(*)::int` })
         .from(customers)
         .where(and(isNotNull(customers.approvedAt), gte(customers.approvedAt, since), inArray(customers.status, ['active', 'archived']))),
+      none ? [] : this.db.select().from(agentProfiles).where(inArray(agentProfiles.userId, ids)),
     ]);
     const agents = people.map((p) => {
       const m = money.find((x) => x.agentId === p.id);
       const s = sold.find((x) => x.agentId === p.id);
       const lastNudge = nudges.find((x) => x.agentId === p.id)?.last ?? null;
+      const prof = profiles.find((x) => x.userId === p.id) ?? null;
       return {
         id: p.id,
         name: p.name,
@@ -104,11 +115,18 @@ export class AgentsService {
         comingCents: Number(m?.comingCents ?? 0),
         sentCents: Number(m?.sentCents ?? 0),
         paidThisYearCents: Number(m?.paidThisYearCents ?? 0),
+        paidTodayCents: Number(m?.paidTodayCents ?? 0),
+        setup: setupStatus(p.status, prof),
+        signedAt: prof?.signedAt?.toISOString() ?? null,
+        bank: prof?.iban ? { accountHolder: prof.accountHolder, bankName: prof.bankName, iban: prof.iban, bic: prof.bic } : null,
+        companyName: prof?.companyName ?? null,
         lastNudgedAt: lastNudge ? new Date(lastNudge).toISOString() : null,
         nudgedToday: !!lastNudge && new Date(lastNudge) >= today,
       };
     });
-    const active = agents.filter((a) => a.status === 'active');
+    // Agents still setting up are not expected to sell yet.
+    const active = agents.filter((a) => a.status === 'active' && a.setup === 'done');
+    const range = { from: isoDate(since), to: isoDate() };
     const didntSell = active.filter((a) => a.ordersThisMonth === 0);
     const rules = await this.settings.rules();
     const security = await this.settings.get('security');
@@ -122,6 +140,7 @@ export class AgentsService {
         activeAgents: active.length,
         newCustomersThisMonth: Number(newCustomers.n),
       },
+      range,
       didntSellIds: didntSell.map((a) => a.id),
       agents,
       terms: { commissionPerUnitCents: rules.commissionPerUnitCents, vatRate: VAT_RATE, inviteValidityDays: security.inviteValidityDays },
@@ -138,6 +157,13 @@ export class AgentsService {
     const [agent] = lock ? await q.for('update', { of: users }) : await q;
     if (!agent) throw new NotFoundException({ message: 'Agent not found' });
     return agent;
+  }
+
+  /** Commission goes to the bank account in the countersigned agreement: no payout before the set-up is finished. */
+  private async assertSetUp(tx: Db | Tx, agent: { id: string; name: string; status: string }) {
+    const [p] = await tx.select().from(agentProfiles).where(eq(agentProfiles.userId, agent.id));
+    if (p && !p.countersignedAt) throw new ConflictException({ message: `${agent.name}'s set-up isn't finished: countersign the agent agreement first` });
+    return p ?? null;
   }
 
   /** The agent's own earnings (FR-AGT-5), or one agent's for an Admin. Agents see only their own. */
@@ -204,15 +230,25 @@ export class AgentsService {
     return { ok: true };
   }
 
+  /** A plain e-mail to an agent from their panel ("E-mail Daniel"). */
+  async email(auth: AuthContext, agentId: string, input: { subject: string; message: string }) {
+    const agent = await this.assertAgent(agentId);
+    if (agent.status !== 'active') throw new ConflictException({ message: 'This agent has not accepted the invitation yet' });
+    await this.mail.send({ kind: 'agent_email', to: [agent.email], subject: input.subject, body: input.message, recordType: 'user', recordId: agentId });
+    await this.audit.log(auth, { category: 'users_access', action: 'agent_emailed', recordType: 'user', recordId: agentId, recordLabel: agent.name, meta: { subject: input.subject } });
+    return { ok: true };
+  }
+
   /**
    * Send to pay (A4): the accountant gets a statement by e-mail and the agent's Ready to pay
    * entries move to Sent. Negative entries (credit-note offsets, A5) are part of the sum.
    */
-  async sendToPay(auth: AuthContext, agentId: string, entryIds?: string[]) {
+  async sendToPay(auth: AuthContext, agentId: string, entryIds?: string[], note?: string) {
     const email = await this.settings.get('email');
     if (!email.accounting) throw new BadRequestException({ message: "Add the accountant's e-mail in Settings first" });
     const result = await this.db.transaction(async (tx) => {
       const agent = await this.assertAgent(agentId, tx, true);
+      const bank = await this.assertSetUp(tx, agent);
       const rows = await tx
         .select({ id: commissionEntries.id, units: commissionEntries.units, amountCents: commissionEntries.amountCents, orderNumber: orders.number, eventName: events.name, note: commissionEntries.note })
         .from(commissionEntries)
@@ -239,7 +275,8 @@ export class AgentsService {
         },
         tx,
       );
-      return { agent, rows, sum };
+      await this.notify.send('commission_sent', { users: [agentId] }, { amountCents: sum }, '/agents', tx);
+      return { agent, rows, sum, bank };
     });
     const vat = vatOf(result.sum);
     const company = await this.settings.get('company');
@@ -259,6 +296,8 @@ export class AgentsService {
         `VAT ${Math.round(VAT_RATE * 100)}%: ${euros(vat)}`,
         `Total to pay: ${euros(result.sum + vat)}`,
         '',
+        ...(result.bank?.iban ? [`Pay to: ${result.bank.accountHolder ?? result.agent.name}${result.bank.bankName ? `, ${result.bank.bankName}` : ''}`, `IBAN ${result.bank.iban}${result.bank.bic ? ` · BIC ${result.bank.bic}` : ''}`, ''] : []),
+        ...(note?.trim() ? [`Note: ${note.trim()}`, ''] : []),
         `Sent by ${auth.user.name}, ${company.name}`,
       ].join('\n'),
       recordType: 'user',
@@ -280,7 +319,8 @@ export class AgentsService {
       const pick = entryIds?.length ? rows : sent.length ? sent : rows;
       const sum = pick.reduce((s, r) => s + r.amountCents, 0);
       if (!pick.length || sum <= 0) throw new ConflictException({ message: 'There is nothing to mark as paid for this agent' });
-      const from = pick.every((r) => r.status === 'sent') ? 'sent' : 'ready';
+      if (from0(pick) === 'ready') await this.assertSetUp(tx, agent);
+      const from = from0(pick);
       await tx.update(commissionEntries).set({ status: 'paid', paidAt: new Date() }).where(inArray(commissionEntries.id, pick.map((r) => r.id)));
       await this.audit.log(
         auth,
@@ -296,7 +336,79 @@ export class AgentsService {
         },
         tx,
       );
+      const what = await tx
+        .select({ order: orders.number, customer: customers.companyName, event: events.name })
+        .from(commissionEntries)
+        .leftJoin(orders, eq(orders.id, commissionEntries.orderId))
+        .leftJoin(customers, eq(customers.id, orders.customerId))
+        .leftJoin(events, eq(events.id, commissionEntries.eventId))
+        .where(inArray(commissionEntries.id, pick.map((r) => r.id)));
+      const list = (xs: (string | null)[]) => {
+        const u = [...new Set(xs.filter((x): x is string => !!x))];
+        return u.length > 2 ? `${u.slice(0, 2).join(', ')} +${u.length - 2}` : u.join(', ');
+      };
+      await this.notify.send('commission_paid', { users: [agentId] }, { amountCents: sum, order: list(what.map((w) => w.order ?? w.event)), customer: list(what.map((w) => w.customer)) || '—' }, '/agents', tx);
       return { ok: true, amountCents: sum, entries: pick.length };
     });
+  }
+
+  /** One agent for the side panel: figures and their customers with what each owes. */
+  async detail(agentId: string) {
+    const agent = await this.assertAgent(agentId);
+    const rows = await this.db
+      .select({
+        id: customers.id,
+        name: customers.companyName,
+        lastOrderAt: sql<string | null>`max(${orders.requestSentAt})`,
+        owedCents: sql<number>`coalesce(sum(${outstandingSql}) filter (where ${inArray(orders.status, [...OWED_STATUSES])}), 0)::int`,
+      })
+      .from(customers)
+      .leftJoin(orders, and(eq(orders.customerId, customers.id), SOLD))
+      .where(and(eq(customers.agentId, agentId), eq(customers.status, 'active')))
+      .groupBy(customers.id)
+      .orderBy(sql`max(${orders.requestSentAt}) desc nulls last`);
+    return {
+      agent: { id: agent.id, name: agent.name, email: agent.email },
+      customers: rows.map((r) => ({ id: r.id, name: r.name, lastOrderAt: r.lastOrderAt ? new Date(r.lastOrderAt).toISOString() : null, owedCents: Number(r.owedCents) })),
+    };
+  }
+
+  /**
+   * Invite new agent (FR-AGT-4) with the invitation e-mail exactly as written in the panel; the
+   * set-password link and its validity are added at the end. After setting a password the agent
+   * fills in company and bank details and signs the agent agreement (AgentSetupService).
+   */
+  async invite(auth: AuthContext, input: AgentInviteInput) {
+    const security = await this.settings.get('security');
+    const result = await this.db.transaction(async (tx) => {
+      const [role] = await tx.select().from(roles).where(eq(roles.key, 'agent'));
+      if (!role) throw new BadRequestException({ message: 'The agent role is missing' });
+      const [existing] = await tx.select().from(users).where(eq(users.email, input.email)).for('update');
+      const reusable = existing && existing.status === 'deactivated' && !existing.passwordHash;
+      if (existing && !reusable) {
+        throw new ConflictException({ message: 'Check the highlighted fields', fields: { email: existing.status === 'invited' ? 'This person is already invited. Resend the invitation from Users & roles.' : 'This e-mail already has an account' } });
+      }
+      const token = randomToken();
+      const expiresAt = new Date(Date.now() + security.inviteValidityDays * 86_400_000);
+      const values = { name: input.name, email: input.email, roleId: role.id, language: input.language, status: 'invited' as const, inviteTokenHash: sha256(token), inviteExpiresAt: expiresAt, invitedById: auth.user.id };
+      const [user] = existing ? await tx.update(users).set(values).where(eq(users.id, existing.id)).returning() : await tx.insert(users).values(values).returning();
+      await this.audit.log(
+        auth,
+        { category: 'users_access', action: 'member_invited', recordType: 'user', recordId: user.id, recordLabel: `${user.name} · ${user.email}`, changes: { role: { from: null, to: role.name }, status: { from: existing?.status ?? null, to: 'invited' } }, meta: { expiresAt: expiresAt.toISOString(), subject: input.subject } },
+        tx,
+      );
+      return { user, token, expiresAt };
+    });
+    const first = result.user.name.trim().split(/\s+/)[0];
+    const link = `${webOrigin()}/invite/${result.token}`;
+    await this.mail.send({
+      kind: 'invitation',
+      to: [result.user.email],
+      subject: input.subject,
+      body: [input.letter.replace(/\[Name\]/g, first).trim(), '', link].join('\n'),
+      recordType: 'user',
+      recordId: result.user.id,
+    });
+    return { id: result.user.id };
   }
 }

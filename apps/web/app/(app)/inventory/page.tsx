@@ -1,168 +1,245 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { UNITS_PER_CARTON, type Flavour } from '@ananda/shared';
+import { isoDate, type Flavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { Banner, Button, Card, ErrorState, KeyValue, KpiTile, PageHeader, PageSkeleton, Pill, Plus, Segmented, SlidersHorizontal, StockBars } from '@/components/ui';
-import { AllocateSheet } from './_components/AllocateSheet';
+import { Button, Card, EmptyState, ErrorState, FLAVOUR_VAR, IconButton, KpiTile, List, Package, PageHeader, PageSkeleton, Pill, ShoppingCart, SlidersHorizontal } from '@/components/ui';
+import { AllocateButton, AllocateSheet } from './_components/AllocateSheet';
 import { AdjustSheet } from './_components/AdjustSheet';
-import { Movements } from './_components/Movements';
-import { Counts } from './_components/Counts';
 import type { FlavourStock, InventoryOverview } from './_components/types';
 
-type Tab = 'stock' | 'movements' | 'counts';
-
-/** Inventory (PRD §5.6): tiles, one card per flavour, Allocate, adjustments, movements, counts. */
+/** Inventory (PRD §5.6): four totals, one card per flavour that says how long it lasts, Allocate and Stock adjustment. */
 export default function InventoryPage() {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
   const router = useRouter();
   const params = useSearchParams();
   const { canEdit, readOnly } = useSession();
-  const { money, num } = useFmt();
+  const { money, num, unit, dateShort } = useFmt();
   const editable = canEdit('inventory') && !readOnly;
-  const initialTab = params.get('tab') as Tab | null;
-  const [tab, setTab] = useState<Tab>(initialTab && ['stock', 'movements', 'counts'].includes(initialTab) ? initialTab : 'stock');
+  const canOrder = canEdit('purchasing') && !readOnly;
   const [allocating, setAllocating] = useState(params.get('allocate') === '1');
-  const [adjusting, setAdjusting] = useState<{ flavour?: Flavour } | null>(null);
+  const [adjusting, setAdjusting] = useState(false);
   const q = useQuery({ queryKey: ['inventory', 'overview'], queryFn: () => api.get<InventoryOverview>('/inventory') });
 
-  const go = (next: Tab) => {
-    setTab(next);
-    router.replace(next === 'stock' ? '/inventory' : `/inventory?tab=${next}`, { scroll: false });
-  };
+  // Stock movements and stock counts have their own pages; old links with ?tab= still land there.
+  const tab = params.get('tab');
+  useEffect(() => {
+    if (tab === 'movements' || tab === 'counts') router.replace(`/inventory/${tab}`);
+  }, [tab, router]);
+
   const closeAllocate = () => {
     setAllocating(false);
-    if (params.get('allocate')) router.replace(tab === 'stock' ? '/inventory' : `/inventory?tab=${tab}`, { scroll: false });
+    if (params.get('allocate')) router.replace('/inventory', { scroll: false });
   };
 
   if (q.isLoading) return <PageSkeleton />;
   if (q.error || !q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
   const d = q.data;
-  const max = Math.max(1, ...d.flavours.map((f) => f.inStock + f.onTheWay));
+  const next = d.nextPurchase;
+  const empty = d.totals.inStock === 0 && d.totals.onTheWay === 0 && d.totals.reserved === 0;
+  const now = d.flavours.filter((f) => f.runway.status === 'reorder_now').length;
+  const soon = d.flavours.filter((f) => f.runway.status === 'reorder_soon').length;
+
+  const kicker = empty ? (
+    t('kickerEmpty')
+  ) : (
+    <>
+      {t('kicker.flavours', { n: d.flavours.length })}
+      {' · '}
+      {now > 0 && <span className="bad">{t('kicker.now', { n: now })}</span>}
+      {now > 0 && soon > 0 && ' · '}
+      {soon > 0 && <span className="warn">{t('kicker.soon', { n: soon })}</span>}
+      {now + soon === 0 && t('kicker.none')}
+      {' · '}
+      {t('kicker.warehouses', { n: 1 })}
+    </>
+  );
+
+  const allocate = editable && d.waiting.orders > 0 ? <AllocateButton waiting={d.waiting} next={next} onOpen={() => setAllocating(true)} /> : null;
+
+  const onTheWayTile = (
+    <KpiTile
+      label={t('tiles.onTheWay')}
+      value={empty ? '0' : next && next.daysLate > 0 ? <span className="warn">{num(d.totals.onTheWay)}</span> : num(d.totals.onTheWay)}
+      sub={empty ? undefined : next ? (next.daysLate > 0 ? t('tiles.onTheWayLate', { number: next.number }) : t('tiles.onTheWayNext', { number: next.number, date: dateShort(next.expectedOn) })) : t('tiles.nothingOnTheWay')}
+      onClick={next ? () => router.push(`/purchasing/${next.id}`) : undefined}
+    />
+  );
 
   return (
     <div className="page">
       <PageHeader
         crumbs={[{ label: tc('nav.inventory') }]}
-        kicker={t('kicker', { n: num(d.totals.inStock), c: num(Math.floor(d.totals.inStock / UNITS_PER_CARTON)) })}
+        kicker={kicker}
         title={tc('nav.inventory')}
         actions={
-          editable ? (
-            <>
-              <Button size="sm" icon={SlidersHorizontal} onClick={() => setAdjusting({})}>
-                {t('adjust.title')}
-              </Button>
-              {d.waiting.orders > 0 && (
-                <Button size="sm" variant={d.waiting.canAllocate ? 'primary' : 'secondary'} onClick={() => setAllocating(true)}>
-                  {t('allocate.title')}
+          empty ? undefined : (
+            <span className="row wrap only-wide">
+              {allocate}
+              {editable && (
+                <Button size="sm" icon={SlidersHorizontal} onClick={() => setAdjusting(true)}>
+                  {t('adjust.title')}
                 </Button>
               )}
-            </>
-          ) : undefined
+              <Button size="sm" icon={List} onClick={() => router.push('/inventory/movements')}>
+                {t('movements.title')}
+              </Button>
+            </span>
+          )
         }
       />
-      <Segmented
-        label={t('tabs.label')}
-        value={tab}
-        onChange={go}
-        options={[
-          { value: 'stock', label: t('tabs.stock') },
-          { value: 'movements', label: t('tabs.movements') },
-          { value: 'counts', label: d.openCounts ? t('tabs.countsOpen', { n: d.openCounts }) : t('tabs.counts') },
-        ]}
-      />
 
-      {tab === 'stock' && (
+      <div className="kpis">
+        <KpiTile label={t('tiles.available')} value={num(d.totals.available)} sub={empty ? undefined : t('tiles.availableSub')} />
+        <KpiTile label={t('tiles.reserved')} value={num(d.totals.reserved)} sub={empty ? undefined : t('tiles.reservedSub')} />
+        {onTheWayTile}
+        <KpiTile label={t('tiles.value')} value={money(d.totals.stockValueCents, true)} sub={empty ? undefined : t('tiles.valueSub', { amount: unit(d.totals.avgLandedCostCents) })} />
+      </div>
+
+      {empty ? (
+        <Card>
+          <EmptyState
+            icon={Package}
+            title={t('empty.title')}
+            text={t('empty.text')}
+            action={
+              <Button variant="primary" icon={ShoppingCart} onClick={() => router.push('/purchasing')}>
+                {t('empty.cta')}
+              </Button>
+            }
+          />
+        </Card>
+      ) : (
         <>
-          <div className="kpis">
-            <KpiTile label={t('tiles.available')} value={num(d.totals.available)} sub={t('tiles.cartons', { n: num(Math.floor(d.totals.available / UNITS_PER_CARTON)) })} />
-            <KpiTile label={t('tiles.reserved')} value={num(d.totals.reserved)} sub={t('tiles.reservedSub')} />
-            <KpiTile label={t('tiles.onTheWay')} value={num(d.totals.onTheWay)} sub={t('tiles.cartons', { n: num(Math.floor(d.totals.onTheWay / UNITS_PER_CARTON)) })} link={{ href: '/purchasing?filter=open', label: tc('nav.purchasing') }} />
-            <KpiTile label={t('tiles.value')} value={money(d.totals.stockValueCents, true)} sub={t('tiles.valueSub')} />
+          {allocate && <div className="only-phone stack">{allocate}</div>}
+          <div className="overline only-phone">
+            {now + soon > 0 && `${t('toReorder', { n: now + soon })} · `}
+            {t('byFlavour')}
           </div>
-          {d.waiting.orders > 0 && (
-            <Banner tone={d.waiting.canAllocate ? 'info' : 'bad'} action={editable ? { label: t('allocate.title'), onClick: () => setAllocating(true) } : undefined} sub={d.waiting.canAllocate ? t('waiting.canAllocate') : t('waiting.notYet')}>
-              {t('waiting.title', { n: d.waiting.orders })}
-            </Banner>
-          )}
-          {d.openCounts > 0 && (
-            <Banner action={{ label: t('counts.review'), onClick: () => go('counts') }}>{t('counts.banner', { n: d.openCounts })}</Banner>
-          )}
-          <div className="cols even">
+          <div className="kpis one-on-phone" style={{ alignItems: 'stretch' }}>
             {d.flavours.map((f) => (
-              <FlavourCard key={f.flavour} f={f} max={max} onAdjust={editable ? () => setAdjusting({ flavour: f.flavour }) : undefined} canOrder={canEdit('purchasing') && !readOnly} />
+              <FlavourCard key={f.flavour} f={f} counted={d.lastCount?.units[f.flavour] ?? null} countedOn={d.lastCount?.createdAt ?? null} onOrder={canOrder ? () => router.push(`/purchasing?new=1&flavour=${f.flavour}`) : undefined} />
             ))}
           </div>
-          <p className="caption muted">{t('caption', { days: 60 })}</p>
+          {d.lastCount ? (
+            d.openCounts > 0 && (
+              <div className="row between" style={{ background: 'var(--surface-1)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2) var(--space-3)' }}>
+                <span className="caption muted">{t('counts.banner', { n: d.openCounts })}</span>
+                <Button size="sm" onClick={() => router.push('/inventory/counts')}>
+                  {t('counts.review')}
+                </Button>
+              </div>
+            )
+          ) : (
+            <div className="caption muted" style={{ background: 'var(--surface-1)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2) var(--space-3)' }}>
+              <span className="only-wide">{t('noCount')}</span>
+              <span className="only-phone">{t('noCountPhone')}</span>
+            </div>
+          )}
+          {editable && (
+            <div className="only-phone stack">
+              <Button icon={SlidersHorizontal} block onClick={() => setAdjusting(true)}>
+                {t('adjust.title')}
+              </Button>
+            </div>
+          )}
         </>
       )}
-      {tab === 'movements' && <Movements />}
-      {tab === 'counts' && <Counts editable={editable} />}
 
       {editable && <AllocateSheet open={allocating} onClose={closeAllocate} />}
-      {editable && <AdjustSheet open={!!adjusting} flavour={adjusting?.flavour} stock={d.flavours} onClose={() => setAdjusting(null)} />}
+      {editable && <AdjustSheet open={adjusting} onClose={() => setAdjusting(false)} />}
     </div>
   );
 }
 
-/** FR-INV-2: one card per flavour. */
-function FlavourCard({ f, max, onAdjust, canOrder }: { f: FlavourStock; max: number; onAdjust?: () => void; canOrder: boolean }) {
+/** FR-INV-2: one card per flavour, leading with what is available to sell and how long it lasts. */
+function FlavourCard({ f, counted, countedOn, onOrder }: { f: FlavourStock; counted: number | null; countedOn: string | null; onOrder?: () => void }) {
   const t = useTranslations('inventory');
-  const tc = useTranslations('common');
-  const { money, num, date, unit } = useFmt();
+  const { money, num, dateShort, date } = useFmt();
   const r = f.runway;
+  const low = r.status !== 'ok';
+  const tone = r.status === 'reorder_now' ? 'bad' : r.status === 'reorder_soon' ? 'warn' : '';
+  const late = f.onTheWay > 0 && !!f.nextArrivalOn && f.nextArrivalOn < isoDate();
   const status =
     r.status === 'reorder_now' ? (
       <Pill tone="bad">{t('status.reorder_now')}</Pill>
     ) : r.status === 'reorder_soon' ? (
       <Pill tone="warn">{t('status.reorder_soon')}</Pill>
     ) : r.monthsLeft != null ? (
-      <Pill tone="good">{t('status.months', { n: num(r.monthsLeft, 1) })}</Pill>
+      <Pill tone="good">{t('status.months', { n: Math.max(1, Math.round(r.monthsLeft)) })}</Pill>
     ) : (
       <Pill tone="mute">{t('status.noSales')}</Pill>
     );
+  const border = r.status === 'reorder_now' ? 'var(--bad-line)' : r.status === 'reorder_soon' ? 'color-mix(in srgb, var(--warn) 35%, transparent)' : undefined;
+  const name = f.flavour.toUpperCase() as Uppercase<Flavour>;
   return (
-    <Card>
-      <StockBars
-        flavour={f.flavour}
-        value={f.available}
-        max={max}
-        badge={<span style={{ marginInlineStart: 'auto' }}>{status}</span>}
-        detail={<span>{t('card.availableCaption')}</span>}
-      />
-      <KeyValue
-        items={[
+    <section className="an-card" style={{ gap: 'var(--space-2)', minWidth: 0, ...(border ? { borderColor: border } : {}) }}>
+      <div className="row wrap" style={{ minHeight: 'var(--pill-height)', rowGap: 'var(--space-1)' }}>
+        <i aria-hidden style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: FLAVOUR_VAR[f.flavour], flex: 'none' }} />
+        <span className="body-strong" style={{ letterSpacing: '.12em' }}>
+          {name}
+        </span>
+        <span className="ms-auto row" style={{ gap: 'var(--space-1)' }}>
+          {status}
+          {low && onOrder && <IconButton icon={ShoppingCart} label={t('card.orderMore', { flavour: name })} title={t('card.orderMore', { flavour: name })} onClick={onOrder} style={{ width: 26, height: 26, borderRadius: 'var(--radius-sm)' }} />}
+        </span>
+      </div>
+      <div className="row wrap" style={{ alignItems: 'baseline', columnGap: 'var(--space-2)', rowGap: 0 }}>
+        <span className="display num">
+          <bdi>{num(f.available)}</bdi>
+        </span>
+        <span className="caption muted only-wide" style={{ flexBasis: '100%', marginBlockEnd: 'var(--space-4)' }}>
+          {t('card.availableCaption')}
+        </span>
+        <span className="caption muted only-phone">{t('card.availablePhone')}</span>
+      </div>
+      <hr className="divider only-phone" />
+      <Rows
+        lines={[
           [t('card.reserved'), num(f.reserved)],
-          [t('card.inStock'), tc('cartonsUnits', { c: num(Math.floor(f.inStock / UNITS_PER_CARTON)), u: num(f.inStock) })],
-          [t('card.value'), <bdi key="v">{money(f.stockValueCents, true)}{f.avgLandedCostCents > 0 && <span className="muted"> · {t('card.perUnit', { amount: unit(f.avgLandedCostCents, 4) })}</span>}</bdi>],
-          [t('card.onTheWay'), f.onTheWay > 0 ? t('card.onTheWayValue', { n: num(f.onTheWay), date: date(f.nextArrivalOn) }) : <span className="muted" key="n">{tc('none')}</span>],
-          [t('card.runsOut'), r.runsOutOn ? date(r.runsOutOn) : <span className="muted" key="r">{t('card.noSales')}</span>],
-          [t('card.soldPerDay'), t('card.soldPerDayValue', { n: num(r.soldPerDay, 1) })],
-          [t('card.leadTime'), t('card.days', { n: f.leadTimeDays })],
+          [t('card.inStock'), num(f.inStock)],
+          [t('card.value'), money(f.stockValueCents)],
         ]}
       />
-      {(onAdjust || (canOrder && r.status !== 'ok')) && (
-        <div className="row wrap">
-          {canOrder && r.status !== 'ok' && (
-            <Link href={`/purchasing?new=1&flavour=${f.flavour}`} className={`an-btn sm ${r.status === 'reorder_now' ? 'primary' : 'secondary'}`}>
-              <Plus className="an-ic sm" aria-hidden />
-              {t('card.reorder')}
-            </Link>
-          )}
-          {onAdjust && (
-            <Button size="sm" onClick={onAdjust}>
-              {t('card.adjust')}
-            </Button>
-          )}
+      <hr className="divider only-wide" />
+      <Rows
+        lines={[
+          [
+            t('card.onTheWay'),
+            f.onTheWay > 0 ? (
+              <>
+                {num(f.onTheWay)} · <span className={late ? 'bad' : ''}>{dateShort(f.nextArrivalOn)}</span>
+              </>
+            ) : (
+              t('card.none')
+            ),
+          ],
+          [t('card.runsOut'), r.runsOutOn ? <span className={tone}>{date(r.runsOutOn)}</span> : t('card.noSales')],
+          [t('card.soldPerDay'), num(r.soldPerDay, 1)],
+          ...(counted != null ? ([[t('card.counted', { date: dateShort(countedOn) }), t('card.countedUnits', { n: num(counted) })]] as [ReactNode, ReactNode][]) : []),
+        ]}
+      />
+      {r.status === 'reorder_now' && <span className="caption muted">{t('card.nowHint')}</span>}
+    </section>
+  );
+}
+
+/** Label and figure rows inside a flavour card. */
+function Rows({ lines }: { lines: [ReactNode, ReactNode][] }) {
+  return (
+    <div className="stack" style={{ gap: 'var(--space-2)' }}>
+      {lines.map(([k, v], i) => (
+        <div key={i} className="row between body" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <span className="muted">{k}</span>
+          <bdi>{v}</bdi>
         </div>
-      )}
-    </Card>
+      ))}
+    </div>
   );
 }

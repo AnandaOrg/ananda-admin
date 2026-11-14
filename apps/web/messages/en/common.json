@@ -89,23 +89,23 @@
     "stop": "Stop preview"
   },
   "tabs": {
-    "home": "Home",
+    "home": "Overview",
     "orders": "Orders",
     "customers": "Customers",
-    "collections": "Money",
+    "collections": "Collections",
     "more": "More",
     "toShip": "To ship",
     "delivered": "Delivered",
-    "count": "Count"
+    "count": "Stock count"
   },
   "nav": {
-    "home": "Home",
+    "home": "Overview",
     "sales": "Sales & orders",
     "customers": "Customers",
     "collections": "Collections",
     "purchasing": "Purchasing",
     "inventory": "Inventory",
-    "warehouse": "Warehouse & shipments",
+    "warehouse": "Warehouse",
     "agents": "Agents & commissions",
     "earnings": "My earnings",
     "events": "Events & festivals",
@@ -114,7 +114,7 @@
     "expenses": "Expenses",
     "users": "Users & roles",
     "audit": "Audit log",
-    "settings": "Settings & rules"
+    "settings": "Settings"
   },
   "navGroup": {
     "sales": "Sales",
@@ -185,6 +185,8 @@
     "cancel": {
       "customer_cancelled": "Customer cancelled",
       "duplicate": "Duplicate",
+      "stock_unavailable": "Stock not available in time",
+      "not_paid": "Customer didn't pay",
       "other": "Other"
     }
   },
@@ -196,5 +198,168 @@
     "to": "To",
     "subject": "Subject",
     "message": "Message"
+  },
+  "reload": "Reload",
+  "welcomeBack": "Welcome back,",
+  "lookBack": {
+    "blocked": "You're looking back at a past day. Nothing can be changed.",
+    "blockedShort": "Off while looking back at a past day",
+    "bar": "Looking back to {date}.",
+    "barSub": "Figures are as they were that evening. Nothing can be changed here.",
+    "today": "Back to today",
+    "title": "Show figures as of",
+    "quickToday": "Today",
+    "endMonth": "End of last month",
+    "endQuarter": "End of last quarter",
+    "endYear": "End of last year",
+    "footDesk": "Figures as at the end of the chosen day. Later dates can't be picked.",
+    "footPhone": "Later dates can't be picked: there are no figures yet.",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "calendar": "Calendar"
+  },
+  "errors": {
+    "network": "Check your connection and try again.",
+    "server": "Something went wrong on our side. Try again in a minute.",
+    "actionFailed": "That didn't go through",
+    "somethingWrong": "Something went wrong",
+    "loadList": "Couldn't load this list",
+    "loadPage": "Couldn't load this page",
+    "loadSub": "Check your connection, then try again. Nothing was changed.",
+    "loadServer": "Something went wrong on our side. Try again in a minute. Nothing was changed.",
+    "conflict": "Someone changed this",
+    "accessTitle": "You don't have access to this page",
+    "accessText": "Your role can't open this page. Ask an Admin if you need it.",
+    "accessArea": {
+      "deal_profit": "Deal profit is for Admins and Finance. Ask an Admin if you need it."
+    },
+    "backHome": "Back to Overview",
+    "notFoundTitle": "We can't find this page",
+    "notFoundText": "It may have been deleted, or the link is out of date.",
+    "offlineTitle": "You're offline.",
+    "offlineText": "What you see may be out of date, and changes can't be saved until you're back online.",
+    "backOnline": "You're back online",
+    "updateTitle": "ANANDA was updated.",
+    "updateText": "Reload to get the latest version. Nothing you entered is lost.",
+    "signedOutTitle": "You've been signed out",
+    "signedOutText": "For your security, this happens after a while. Your edits are saved.",
+    "signIn": "Sign in",
+    "signedInAgain": "Signed in again"
+  },
+  "unsaved": {
+    "title": "Discard your changes?",
+    "text": "What you typed here will be lost.",
+    "keep": "Keep editing"
+  },
+  "columns": {
+    "label": "Columns",
+    "hidden": "{n} hidden",
+    "title": "Columns shown",
+    "always": "Always shown",
+    "full": "The table is full. Turn one column off to add another."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "all": "All",
+    "unread": "Unread",
+    "markAll": "Mark all as read",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "earlier": "Earlier",
+    "emptyTitle": "No notifications yet",
+    "emptyAdmin": "Approvals, uploads, late payments and stock alerts show up here.",
+    "emptyAgent": "You'll hear here when a customer is approved, pays or gets their delivery.",
+    "caughtUp": "You're all caught up",
+    "caughtUpText": "Nothing unread. Older notifications are under All.",
+    "settings": "Notification settings",
+    "unreadCount": "{n, plural, one {# unread} other {# unread}}",
+    "allRead": "All read",
+    "unreadDot": "Unread"
+  },
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "toLight": "Switch to light mode",
+    "toDark": "Switch to dark mode"
+  },
+  "me": {
+    "admin": "Admin",
+    "twoStep": "Two-factor sign-in",
+    "on": "On",
+    "off": "Off",
+    "account": "Account"
+  },
+  "moreSub": "Grouped like the desktop sidebar.",
+  "searchNone": "Nothing matches “{q}”",
+  "notify": {
+    "customer_approval": {
+      "title": "{agent} wants to add {customer}",
+      "body": "New customer"
+    },
+    "special_price": {
+      "title": "{agent} asks for a special price",
+      "body": "{order} · {customer}"
+    },
+    "correction": {
+      "title": "{agent} asks for a correction",
+      "body": "{order} · {customer}"
+    },
+    "agent_upload": {
+      "title": "{agent} uploaded a document",
+      "body": "{doc} · {order} · {customer}"
+    },
+    "agent_signed": {
+      "title": "{agent} signed the agent agreement",
+      "body": "Company and bank details are in. Countersign to finish their set-up."
+    },
+    "delivered": {
+      "title": "{order} delivered",
+      "body": "The warehouse uploaded the signed note."
+    },
+    "purchase_late": {
+      "title": "{purchase} is {days} days late",
+      "body": "{supplier}"
+    },
+    "payment_confirmed": {
+      "title": "Payment confirmed for {order}",
+      "body": "{customer} · {amount}"
+    },
+    "payment_late": {
+      "title": "{customer} is {days} days late",
+      "body": "{amount} owed on {order}"
+    },
+    "upload_opened": {
+      "title": "The Admin opened your upload",
+      "body": "{doc} · {order} · {customer}"
+    },
+    "commission_paid": {
+      "title": "Commission paid: {amount}",
+      "body": "{order} · {customer}. It's on its way to your bank."
+    },
+    "sent_for_approval": {
+      "title": "{customer} sent for approval",
+      "body": "An Admin reviews it. You'll hear back here."
+    },
+    "commission_sent": {
+      "title": "Commission sent to pay: {amount}",
+      "body": "With the accountant. You will see it as paid once it leaves the bank."
+    },
+    "agent_setup_done": {
+      "title": "Your set-up is finished",
+      "body": "{admin} countersigned your agent agreement."
+    },
+    "event": {
+      "title": "You are invited to {event}",
+      "body": "{startsOn} – {endsOn}, {place}"
+    }
+  },
+  "systemRole": {
+    "system_admin": "System admin",
+    "admin": "Admin",
+    "agent": "Agent",
+    "warehouse": "Warehouse",
+    "finance": "Finance"
   }
 }

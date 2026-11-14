@@ -19,30 +19,69 @@
     "cols": {
       "name": "Name",
       "role": "Role",
-      "sees": "What they see",
-      "twoStep": "Two-step sign-in",
-      "actions": "Actions"
+      "sees": "Sees",
+      "twoStep": "Two-factor sign-in",
+      "actions": "Actions",
+      "invited": "Invited"
     },
     "status": {
       "active": "Active",
       "invited": "Invited",
-      "deactivated": "Deactivated"
+      "deactivated": "Suspended"
     },
     "twoStep": {
       "on": "On",
       "off": "Off",
-      "atSignIn": "Set up at sign-in"
+      "atSignIn": "Set up at sign-in",
+      "phoneOn": "2-step on",
+      "phoneOff": "2-step off"
     },
     "add": {
       "button": "Add member",
       "title": "Add member",
       "sub": "They get an e-mail to set a password. The link works for {n, plural, one {# day} other {# days}}.",
-      "name": "Full name",
-      "pickRole": "Pick a role",
+      "name": "Name",
+      "pickRole": "Choose a role",
       "roleHelp": "The role sets what they see and what they can do.",
       "messagePlaceholder": "A short note added to the invitation e-mail",
       "send": "Send invitation",
-      "sent": "Invitation sent to {email}"
+      "sent": "Invitation sent to {email}",
+      "namePh": "e.g. Elena Dimitrova",
+      "email": "E-mail",
+      "emailPh": "name@company.bg",
+      "letter": "Invitation e-mail",
+      "subject": "You're invited to ANANDA",
+      "subjectLine": "Subject: {subject}",
+      "polish": "Polish with AI",
+      "polishAgain": "Polish again",
+      "polished": "Polished",
+      "undo": "Undo",
+      "tones": {
+        "friendly": "Friendlier",
+        "short": "Shorter",
+        "formal": "More formal"
+      },
+      "foot": "They set their own password from the link.",
+      "sentToast": "Invitation sent. It waits under Invitations.",
+      "namePlaceholder": "[Name]",
+      "body": "Hi {name},\n\nYou're invited to join ANANDA as {role}. {line}\n\nClick the link to set your password{tfa}. It works for {days, plural, one {# day} other {# days}}.\n\n{me}",
+      "tfa": " and turn on two-step verification",
+      "roleAs": {
+        "system_admin": "a System admin",
+        "admin": "an Admin",
+        "agent": "an agent",
+        "warehouse": "part of the warehouse team",
+        "finance": "part of the finance team",
+        "custom": "{role}"
+      },
+      "roleLine": {
+        "system_admin": "You'll see and change everything, including users, roles and settings.",
+        "admin": "You'll approve new customers, special prices and corrections, confirm payments and see all reports.",
+        "agent": "You'll see your own customers and orders, create new sales, and track your commission ({commission} a unit, paid once the customer has paid in full).",
+        "warehouse": "You'll see the orders to ship, upload signed delivery notes from your phone and send stock counts.",
+        "finance": "You'll see payments, invoices, expenses and reports, and pay agents' commissions."
+      },
+      "aiOff": "Polishing needs the AI service, which isn’t set up yet."
     },
     "invite": {
       "invitedBy": "Invited by",
@@ -54,11 +93,19 @@
       "resent": "Invitation sent again",
       "cancelled": "Invitation cancelled",
       "emptyTitle": "No open invitations",
-      "emptyText": "People you invite show up here until they set their password."
+      "emptyText": "People you invite show up here until they set their password.",
+      "waiting": "Waiting to accept",
+      "none": "No open invitations.",
+      "resendFull": "Resend invitation",
+      "sentOn": "Invited {date} · the link works until {until}"
     },
     "history": {
       "emptyTitle": "No changes yet",
-      "emptyText": "Invitations, role changes and deactivations are listed here, newest first."
+      "emptyText": "Invitations, role changes and deactivations are listed here, newest first.",
+      "when": "When",
+      "who": "Who",
+      "what": "What changed",
+      "foot": "Changes to members, roles and access. Everything else is in the Audit log."
     },
     "member": {
       "saveRole": "Save role",
@@ -72,7 +119,45 @@
       "lastSignIn": "Last sign-in",
       "never": "Never",
       "phone": "Phone",
-      "openRole": "Open role {role}"
+      "openRole": "Open role {role}",
+      "status": "Status",
+      "signedInOn": "Signed in on",
+      "noDevice": "No device right now",
+      "phoneDevice": "Phone",
+      "desktopDevice": "Desktop",
+      "roleGroup": "Role",
+      "agentFixed": "An agent's account stays an agent. If they also need Admin, Warehouse or Finance access, invite them again with another e-mail.",
+      "fixed": "Fixed",
+      "suspend": "Suspend access",
+      "restore": "Restore access",
+      "save": "Save",
+      "savedRole": "{name} is now {role}.",
+      "suspended": "Access suspended. {name} is signed out on every device.",
+      "restored": "Access restored for {name}.",
+      "cancelInvite": "Cancel invitation"
+    },
+    "kickerActive": "{n, plural, one {# active member} other {# active members}}",
+    "kickerAlone": "Only you so far",
+    "tabLabel": {
+      "team": "Team · {n}",
+      "roles": "Roles · {n}",
+      "invitations": "Invitations · {n}",
+      "history": "Change history",
+      "invitesShort": "Invites · {n}",
+      "historyShort": "History"
+    },
+    "seesBy": {
+      "system_admin": "Everything",
+      "admin": "All customers and orders",
+      "agent": "Own customers only",
+      "warehouse": "Orders to ship, no prices",
+      "finance": "Money and reports",
+      "custom": "Custom"
+    },
+    "alone": {
+      "title": "You're the only member",
+      "text": "Invite an Admin, your agents, the warehouse and your accountant. Each role sees only what it needs.",
+      "button": "Invite someone"
     }
   },
   "roles": {
@@ -85,7 +170,8 @@
       "scope": "Record scope",
       "members": "Members",
       "area": "Area",
-      "access": "Access"
+      "access": "Access",
+      "canDo": "Can do"
     },
     "scope": {
       "all": "All records",
@@ -119,9 +205,9 @@
       "change_rules": "Change business rules"
     },
     "members": "Members",
-    "noMembers": "Nobody has this role yet.",
+    "noMembers": "Nobody has this role yet. Pick it when you add or edit a member.",
     "lastSeen": "last sign-in {date}",
-    "systemNote": "System roles can't be changed. Duplicate it to make a custom role you can edit.",
+    "systemNote": "System roles can't be changed, so everyone knows what they mean. Duplicate it to make an adjusted version.",
     "preview": "Preview as role",
     "duplicate": "Duplicate as custom role",
     "duplicated": "Custom role created",
@@ -133,15 +219,60 @@
     "remove": "Remove role",
     "removeTitle": "Remove {name}?",
     "removeText": "Nobody has this role, so nothing else changes. The change history keeps a record.",
-    "removed": "Role removed"
+    "removed": "Role removed",
+    "sum": "{edit} edit · {view} view · {hidden} hidden",
+    "phoneSum": "{edit} edit · {view} view · {hidden} hidden · {members, plural, one {# member} other {# members}}",
+    "phoneSystem": "System",
+    "phoneCustom": "Custom",
+    "locked": "System role · locked",
+    "listFoot": "System roles are templates and can't be changed. Open one and choose Duplicate as custom role to give someone a different mix.",
+    "phoneFoot": "Custom roles are set up on desktop, where each area can be Hidden, View or Edit.",
+    "allRoles": "All roles",
+    "previewAs": "Preview as {name}",
+    "delete": "Delete role",
+    "deleted": "Role deleted",
+    "agentNote": "The agent role is fixed: agents always see only their own customers and orders.",
+    "matrixTitle": "What this role sees and edits",
+    "matrixSub": "Hidden areas disappear from the menu. View can open and export; Edit can also change.",
+    "records": "Which records",
+    "hints": {
+      "see_prices": "Off for the warehouse",
+      "confirm_payment": "Needs two-step sign-in",
+      "pay_commission": "Send to pay and Mark as paid · needs two-step sign-in",
+      "record_supplier_payment": "Needs two-step sign-in",
+      "change_rules": "System admin only · needs two-step sign-in"
+    },
+    "tfaNote": "Two-step sign-in is required for this role because it can move money.",
+    "memberSub": {
+      "on": "Two-step sign-in on",
+      "off": "Two-step sign-in off"
+    },
+    "names": {
+      "system_admin": "System admin",
+      "admin": "Admin",
+      "agent": "Agent",
+      "warehouse": "Warehouse",
+      "finance": "Finance"
+    },
+    "descriptions": {
+      "system_admin": "Everything, including users, roles and settings.",
+      "admin": "Approvals, payments, warehouse, invoices, all reports.",
+      "agent": "Own customers and orders, New sale, own commission.",
+      "warehouse": "Orders to ship, signed notes, stock counts. Never prices.",
+      "finance": "Payments, invoices, expenses and reports."
+    },
+    "customName": "{name} (custom)",
+    "customDesc": "Based on {name}.",
+    "created": "{name} created. Rename and adjust it.",
+    "nameLabel": "Role name"
   },
   "audit": {
     "kicker": "{n, plural, one {# entry} other {# entries}} · permanent, newest first",
     "category": "Category",
-    "search": "Search action, record or person",
+    "search": "Search name or number",
     "anyone": "Anyone",
     "period": "Period",
-    "moneyOnly": "Money changes only",
+    "moneyOnly": "Money only",
     "system": "System",
     "moneyTag": "Money",
     "to": "to",
@@ -249,7 +380,8 @@
       "inviteValidityDays": "Invitation validity days",
       "passwordMinLength": "Password length",
       "copyAgent": "Copy agent",
-      "replyTo": "Reply-to"
+      "replyTo": "Reply-to",
+      "scope": "Which records"
     },
     "actions": {
       "signed_in": "Signed in",
@@ -298,123 +430,275 @@
       "supplier_payment_recorded": "Recorded a supplier payment",
       "reminder_sent": "Sent a payment reminder",
       "uploaded": "Uploaded a file"
+    },
+    "kickerN": "{n, plural, one {# entry} other {# entries}} · {range} · newest first",
+    "kickerEmpty": "Newest first",
+    "everyone": "Everyone",
+    "export": "Export",
+    "csv": "CSV",
+    "csvSub": "Filtered entries",
+    "pdf": "PDF",
+    "pdfSub": "For the accountant or an auditor",
+    "col": {
+      "time": "Time",
+      "who": "Who",
+      "what": "What happened",
+      "record": "Record"
+    },
+    "todayGroup": "Today · {date}",
+    "foot": "Entries can't be edited or deleted by anyone, the System admin included. A correction shows up as a new entry. Kept for 10 years.",
+    "phoneFoot": "Entries can't be edited or deleted by anyone. A correction shows up as a new entry.",
+    "noMatch": "Nothing matches these filters.",
+    "nothingTitle": "Nothing recorded yet",
+    "nothingText": "Every approval, payment, invoice and change is written here in plain words, with who did it.",
+    "entry": {
+      "title": "Audit entry",
+      "when": "When",
+      "who": "Who",
+      "record": "Record",
+      "device": "Device",
+      "beforeAfter": "Before → after",
+      "open": "Open {record}",
+      "permanent": "This entry is permanent. It can't be edited or deleted."
+    },
+    "print": {
+      "generated": "Read-only record. Generated {date} by {name}.",
+      "date": "Date"
+    },
+    "cartons": "{flavour} {from} → {to} cartons",
+    "browserOn": "{browser} on {os}",
+    "say": {
+      "signed_in": "Signed in",
+      "sign_in_failed": "Failed sign-in",
+      "signed_out_device": "Signed out a device",
+      "signed_out_other_devices": "Signed out all other devices",
+      "two_step_enabled": "Turned on two-factor sign-in",
+      "password_changed": "Changed their password",
+      "member_invited": "Invited {name} as {role}",
+      "invitation_resent": "Sent the invitation to {name} again",
+      "invitation_cancelled": "Cancelled the invitation for {name}",
+      "invitation_accepted": "Accepted the invitation and set a password",
+      "member_deactivated": "Suspended access for {name}",
+      "member_reactivated": "Restored access for {name}",
+      "member_role_changed": "Changed {name}'s role",
+      "role_changed": "Changed role {name}",
+      "role_duplicated": "Created custom role {name}",
+      "role_removed": "Deleted custom role {name}",
+      "rule_changed": "Changed the business rule {rec}",
+      "setting_changed": "Changed the {rec} settings",
+      "expense_added": "Added expense {rec}",
+      "expense_paid": "Marked expense {rec} as paid",
+      "bank_balance_recorded": "Recorded the bank balance {rec}",
+      "payment_confirmed": "Confirmed payment on {rec}",
+      "part_payment_confirmed": "Confirmed a part payment on {rec}",
+      "payment_request_sent": "Sent a payment request for {rec}",
+      "proforma_issued": "Issued proforma {rec}",
+      "invoice_issued": "Issued an invoice for {rec}",
+      "credit_note_issued": "Issued a credit note for {rec}",
+      "sent_to_warehouse": "Sent {rec} to the warehouse",
+      "delivered": "Marked {rec} as delivered",
+      "draft_created": "Created draft {rec}",
+      "draft_updated": "Updated draft {rec}",
+      "draft_deleted": "Deleted draft {rec}",
+      "cancelled": "Cancelled {rec}",
+      "correction_requested": "Asked for a correction on {rec}",
+      "correction_applied": "Applied the correction on {rec}",
+      "special_price_requested": "Asked for a special price on {rec}",
+      "special_price_approved": "Approved the special price on {rec}",
+      "customer_approved": "Approved new customer {rec}",
+      "customer_declined": "Declined new customer {rec}",
+      "customer_updated": "Updated customer {rec}",
+      "customer_claimed": "Claimed customer {rec}",
+      "contact_added": "Added a contact to {rec}",
+      "agent_changed": "Changed the agent for {rec}",
+      "agent_nudged": "Nudged {rec}",
+      "commission_sent_to_pay": "Sent {rec}'s commission to the accountant to pay",
+      "commission_paid": "Marked commission as paid for {rec}",
+      "event_commission_ready": "Commission ready for event {rec}",
+      "stock_adjusted": "Adjusted stock: {rec}",
+      "stock_hold_released": "Released the stock hold on {rec}",
+      "allocated": "Allocated stock to {rec}",
+      "stock_count_sent": "Sent stock count {rec}",
+      "stock_count_reconciled": "Reconciled stock count {rec}",
+      "purchase_created": "Created purchase {rec}",
+      "purchase_on_the_way": "Marked purchase {rec} as on the way",
+      "purchase_received": "Marked purchase {rec} as received",
+      "freight_saved": "Saved the freight for {rec}",
+      "supplier_created": "Added supplier {rec}",
+      "supplier_updated": "Updated supplier {rec}",
+      "supplier_asked": "Asked {rec} for an update",
+      "supplier_answered": "Recorded the answer from {rec}",
+      "supplier_invoice_recorded": "Recorded the supplier invoice for {rec}",
+      "supplier_payment_recorded": "Recorded a supplier payment for {rec}",
+      "reminder_sent": "Sent a payment reminder for {rec}",
+      "uploaded": "Uploaded {rec}",
+      "event_created": "Created event {rec}",
+      "event_sale_recorded": "Recorded an event sale at {rec}",
+      "vat_rechecked": "Checked the VAT number of {rec} again",
+      "numbering_changed": "Changed document numbering",
+      "two_step_policy_changed": "Changed the two-step sign-in rule",
+      "agent_bank_confirmation_uploaded": "Uploaded the bank confirmation for {rec}",
+      "agent_agreement_signed": "Signed the agent agreement {rec}",
+      "agent_agreement_countersigned": "Countersigned the agent agreement {rec}",
+      "document_emailed": "E-mailed {rec}",
+      "correction_sent": "Sent the corrected proforma for {rec}",
+      "cancel_undone": "Undid the cancellation of {rec}",
+      "document_uploaded": "Uploaded a document to {rec}",
+      "part_delivered": "Marked {rec} as partly delivered",
+      "special_price_undone": "Undid the special price on {rec}",
+      "correction_undone": "Undid the correction on {rec}",
+      "agent_details_added": "Added agent details for {rec}"
     }
   },
   "settings": {
-    "kicker": "Changes apply from the day you save them",
+    "title": "Settings & rules",
+    "kicker": "Company: {name}",
+    "tabsLabel": "Settings sections",
+    "tabs": {
+      "rules": "Business & company",
+      "me": "Profile & devices"
+    },
     "viewOnly": "You can see the settings. Only a System admin can change them.",
     "rulesTitle": "Business rules",
-    "rulesHelp": "Each change needs your two-step code and applies from the save date. Earlier orders keep the rule they were made with.",
-    "rulesHelpView": "Only a System admin can change these rules, with a two-step code.",
-    "companyTitle": "Company, documents and e-mail",
-    "securityTitle": "Security",
+    "rulesSub": "What the app enforces, in plain words.",
+    "edit": "Edit",
     "notSet": "Not set",
-    "lastChanged": "Last changed {date} by {by}",
-    "inPlainWords": "In plain words",
-    "fillIn": "Fill in every field to see how the rule reads.",
-    "now": "Now",
-    "new": "New",
-    "appliesFrom": "Applies from",
-    "appliesNote": "The new rule is used from the save date. Nothing that already happened is recalculated.",
-    "saveRule": "Save rule",
-    "ruleSaved": "Rule saved",
-    "saved": "Settings saved",
-    "rules": {
+    "yes": "Yes",
+    "no": "No",
+    "days": "{n, plural, one {# day} other {# days}}",
+    "rule": {
       "ownership": {
         "title": "Customer ownership",
-        "sub": "How long a customer stays with the agent who brought them.",
-        "value": "{months, plural, one {# month} other {# months}} · warning {days, plural, one {# day} other {# days}} before",
-        "preview": "A customer stays with their agent for {months, plural, one {# month} other {# months}} counted from {from}. The agent is warned {days, plural, =0 {on the last day} one {# day before} other {# days before}}. At the end {end}.",
-        "months": "Duration in months",
-        "monthsHelp": "From 1 to 60 months.",
-        "countedFrom": "Counted from",
-        "warningDays": "Warning before the end, in days",
-        "warningHelp": "The agent gets a notice this many days before ownership ends.",
-        "atEnd": "What happens at the end",
-        "from": {
-          "each_order": "their latest order",
-          "first_order": "their first order"
-        },
-        "end": {
-          "free_to_claim": "the customer is free for any agent to claim",
-          "stay_with_agent": "the customer stays with the same agent until an admin moves them"
-        },
-        "fromOption": {
-          "each_order": "Each order",
-          "first_order": "First order"
-        },
-        "endOption": {
-          "free_to_claim": "Free to claim",
-          "stay_with_agent": "Stays with the agent"
-        }
+        "text": "An agent keeps a customer for {months, plural, one {# month} other {# months}} after its {from, select, first_order {first} other {last}} order. If no new order comes in, the agent is notified {days, plural, =0 {on the last day} one {# day before it ends} other {# days before it ends}}, then {end, select, stay_with_agent {it stays with the agent until an Admin moves it} other {any agent can claim it}}.",
+        "value": "{months, plural, one {# month} other {# months}} after the {from, select, first_order {first} other {last}} order · warned {days, plural, one {# day} other {# days}} before"
       },
-      "minOrderCartons": {
-        "title": "Minimum order",
-        "sub": "The smallest order a payment request can go out for.",
-        "value": "{n, plural, one {# carton} other {# cartons}}",
-        "preview": "An order needs at least {n, plural, one {# carton} other {# cartons}} across all flavours before a payment request can be sent.",
-        "field": "Minimum cartons per order",
-        "help": "24 units per carton."
-      },
-      "stockHoldDays": {
-        "title": "Stock hold",
-        "sub": "How long stock stays reserved for an unpaid payment request.",
-        "value": "{n, plural, one {# day} other {# days}}",
-        "preview": "Stock is reserved when a payment request is sent and released after {n, plural, one {# unpaid day} other {# unpaid days}}.",
-        "field": "Days to hold stock",
-        "help": "From 1 to 60 days."
-      },
-      "proformaValidityDays": {
-        "title": "Proforma validity",
-        "sub": "How long a proforma invoice can be paid.",
-        "value": "{n, plural, one {# day} other {# days}}",
-        "preview": "A proforma is valid for {n, plural, one {# day} other {# days}} from the day it is sent.",
-        "field": "Days a proforma is valid",
-        "help": "Printed on every new proforma."
-      },
-      "commissionPerUnitCents": {
-        "title": "Agent commission",
-        "sub": "What an agent earns per unit sold. Special prices are paid out of it.",
-        "value": "{amount} per unit + VAT",
-        "preview": "Agents earn {amount} per unit plus VAT ({carton} per carton), ready to pay once the customer has paid in full.",
-        "field": "Commission per unit, excl. VAT",
-        "help": "Applies to orders paid from the save date."
-      },
-      "supplierFollowUpDays": {
-        "title": "Supplier follow-up",
-        "sub": "When to remind you about an unanswered supplier message.",
-        "value": "{n, plural, one {# day} other {# days}}",
-        "preview": "If a supplier hasn't answered after {n, plural, one {# day} other {# days}}, it shows in Needs attention.",
-        "field": "Days before a follow-up",
-        "help": "From 1 to 60 days."
-      },
-      "paymentBeforeShipping": {
+      "payment": {
         "title": "Payment before shipping",
-        "value": "{n}% · fixed"
+        "text": "Paid {n}% before it ships.",
+        "value": "{n}% of the order"
+      },
+      "stockHold": {
+        "title": "Stock hold",
+        "text": "Stock is reserved automatically when a payment request goes out. On an unpaid order it's held for {n, plural, one {# day} other {# days}}, then released. An order waits only when a flavour is short; Allocate opens when a purchase arrives or stock is freed.",
+        "value": "{n, plural, one {# day} other {# days}}"
+      },
+      "priceList": {
+        "title": "Price list",
+        "text": "Price a unit excl. VAT, set by cartons in the order: {tiers}. Minimum order {min} cartons. From {advance} cartons only with payment in advance or a volume commitment.",
+        "value": "{high} to {low} a unit · minimum {min} cartons"
+      },
+      "commission": {
+        "title": "Agent commission",
+        "text": "{amount} a unit + VAT. Special prices come out of it.",
+        "value": "{amount} a unit + VAT"
+      },
+      "approvals": {
+        "title": "Approvals",
+        "text": "Admins approve customers, prices and corrections.",
+        "value": "New customers, special prices, corrections"
+      },
+      "corrections": {
+        "title": "Corrections",
+        "text": "Corrected proforma before shipping, credit note after.",
+        "value": "Corrected proforma before shipping; credit notes after the invoice"
       }
     },
-    "sections": {
-      "company": {
-        "title": "Company profile",
-        "sub": "Printed on proformas, invoices and credit notes."
+    "lang": {
+      "per_customer": "Per customer (English or Bulgarian)",
+      "en": "Always English",
+      "bg": "Always Bulgarian"
+    },
+    "cards": {
+      "docs": {
+        "title": "Documents",
+        "proformaLanguage": "Proforma language",
+        "validFor": "Proforma valid for",
+        "numbering": "Numbering",
+        "nextInvoice": "Next invoice",
+        "logo": "Brand and logo",
+        "logoSet": "Set",
+        "logoNone": "No logo"
+      },
+      "mail": {
+        "title": "E-mail",
+        "warehouse": "Warehouse e-mail",
+        "accounting": "Accounting e-mail",
+        "sender": "Sent from",
+        "replyTo": "Replies go to",
+        "agentCopied": "Agent copied"
       },
       "bank": {
-        "title": "Bank details",
-        "sub": "Printed on payment requests; accounts are used for bank balances."
-      },
-      "email": {
-        "title": "E-mail",
-        "sub": "Who gets which e-mails, and who they come from."
-      },
-      "documents": {
-        "title": "Documents",
-        "sub": "Languages, validity, numbering and logo."
-      },
-      "security": {
-        "title": "Security policy",
-        "sub": "Sessions, invitations and passwords for everyone.",
-        "value": "{h} h desktop · {d} days phone"
+        "title": "Bank and sign-in",
+        "bank": "Bank",
+        "iban": "IBAN on proformas",
+        "bic": "BIC",
+        "twoStep": "Two-step sign-in",
+        "signOut": "Sign out after"
       }
+    },
+    "twoStep": {
+      "admins_finance": "Required for Admins and Finance",
+      "everyone": "Required for everyone",
+      "optional": "Optional",
+      "custom": "Set per role in Users & roles"
+    },
+    "signOut": {
+      "short": "1 hour on desktop, 7 days on phone",
+      "standard": "8 hours on desktop, 30 days on phone",
+      "never": "Never",
+      "custom": "{h, plural, one {# hour} other {# hours}} on desktop, {d, plural, one {# day} other {# days}} on phone"
+    },
+    "rulePanel": {
+      "save": "Save rule",
+      "saved": "Rule saved. It applies to new orders.",
+      "value": "Value",
+      "months": "Months after the last order",
+      "holdDays": "Days an unpaid order holds stock",
+      "minOrder": "Minimum order, cartons",
+      "tier": "{from}–{to} cartons",
+      "tiersFixed": "The unit prices by cartons are the distributor price list.",
+      "commission": "Commission a unit, excl. VAT",
+      "appliesNote": "Applies to new orders only. Logged in the Audit log.",
+      "fixedNote": "This rule is part of how orders work, so it can't be changed here.",
+      "warnTitle": "Warn the agent",
+      "warnChip": "{n} days before",
+      "warnNote": "Only if there's no new order by then.",
+      "getsTitle": "What the agent gets",
+      "getsLine": "{n, plural, one {# day} other {# days}} left with {customer}",
+      "aCustomer": "a customer",
+      "noOrderSince": "No order since {date}.",
+      "getsText": "If {customer} doesn't order by {date}, {end, select, stay_with_agent {it stays with the agent until an Admin moves it} other {it becomes free for any agent to claim}}. Push notification and e-mail.",
+      "getsTextNone": "If the customer doesn't order by then, {end, select, stay_with_agent {it stays with the agent until an Admin moves it} other {it becomes free for any agent to claim}}. Push notification and e-mail."
+    },
+    "cardPanel": {
+      "saved": "{card} settings saved.",
+      "proformaLanguage": "Proforma language",
+      "validDays": "Proforma valid for (days)",
+      "orderPrefix": "Order prefix",
+      "invoicePrefix": "Invoice prefix",
+      "creditPrefix": "Credit note prefix",
+      "nextInvoice": "Next invoice number",
+      "logo": "Logo on documents",
+      "logoHelp": "Shown top left on proformas, invoices and credit notes",
+      "upload": "Upload a logo (SVG or PNG)",
+      "remove": "Remove",
+      "logoUploaded": "Logo uploaded.",
+      "logoRemoved": "Logo removed.",
+      "footer": "Footer on every document",
+      "companyTitle": "Company on documents",
+      "copyAgent": "Copy the agent on reminders",
+      "bic": "BIC / SWIFT",
+      "accounts": "Accounts",
+      "accountsHelp": "The accounts you record balances for, such as UniCredit Bulbank · EUR.",
+      "accountN": "Account {n}",
+      "removeAccount": "Remove account",
+      "addAccount": "Add account",
+      "note": {
+        "docs": "Numbering changes apply to the next document; numbers already issued never change.",
+        "mail": "The warehouse e-mail never includes prices.",
+        "bank": "Changing the IBAN asks for your two-step code and tells the other Admins."
+      },
+      "logged": "Every change is logged in the Audit log."
     },
     "fields": {
       "name": "Trading name",
@@ -424,94 +708,60 @@
       "address": "Registered address",
       "city": "City",
       "email": "Company e-mail",
-      "phone": "Phone",
-      "bank": "Bank",
-      "iban": "IBAN",
-      "ibanHelp": "Spaces are removed when you save.",
-      "bic": "BIC",
-      "accounts": "Accounts",
-      "accountsHelp": "Names of the accounts you record balances for, such as UniCredit Bulbank · EUR.",
-      "accountN": "Account {n}",
-      "removeAccount": "Remove account",
-      "addAccount": "Add account",
-      "warehouse": "Warehouse",
-      "warehouseHelp": "Gets every order sent for shipping.",
-      "accounting": "Accounting",
-      "accountingHelp": "Gets a copy of every invoice and credit note.",
-      "sender": "Sender",
-      "senderHelp": "Shown as the sender, for example ANANDA <office@ananda.bg>.",
-      "replyTo": "Reply-to",
-      "replyToHelp": "Where customers' replies go.",
-      "copyAgent": "Copy the agent on customer e-mails",
-      "languages": "Document languages",
-      "bothLanguages": "English and Bulgarian",
-      "languagesHelp": "Each customer gets documents in their proforma language.",
-      "validity": "Proforma validity",
-      "next": {
-        "order": "Next order number",
-        "proforma": "Next proforma number",
-        "invoice": "Next invoice number",
-        "credit_note": "Next credit note number",
-        "purchase": "Next purchase number"
-      },
-      "numbersHelp": "Numbers run in order without gaps and can't be changed by hand.",
-      "logoUrl": "Logo link",
-      "logoHelp": "Optional. A link to a PNG or SVG, printed at the top of documents.",
-      "desktopSessionHours": "Desktop session, hours",
-      "phoneSessionDays": "Phone session, days",
-      "inviteValidityDays": "Invitation link, days",
-      "inviteHelp": "How long a new member can use the link to set a password.",
-      "passwordMinLength": "Shortest password",
-      "passwordHelp": "Passwords also need letters and numbers.",
-      "twoStep": "Two-step sign-in",
-      "twoStepValue": "Required for System admin, Admin and Finance"
+      "phone": "Phone"
     }
   },
   "profile": {
-    "you": "You",
-    "preferences": "Preferences",
-    "languageHelp": "The app and your e-mails use this language.",
+    "title": "Profile & devices",
+    "kicker": "{name} · {role}",
+    "profileTitle": "Profile",
+    "language": "Language",
+    "languageSub": "The app and its e-mails to you",
     "theme": "Theme",
-    "themeHelp": "A light theme is coming later.",
+    "themeSub": "How the app looks for you",
     "dark": "Dark",
-    "security": "Sign-in and security",
-    "twoStep": "Two-step sign-in",
-    "twoStepOn": "You enter a code from your authenticator app when you sign in.",
-    "twoStepRequired": "Your role needs it. You'll set it up at your next sign-in.",
-    "twoStepOff": "Not needed for your role.",
+    "light": "Light",
     "password": "Password",
+    "passwordChanged": "Changed {date}",
     "passwordHelp": "Change it if you think someone else knows it.",
-    "changePassword": "Change password",
-    "savePassword": "Change password",
-    "passwordChanged": "Password changed",
-    "current": "Current password",
-    "new": "New password",
-    "repeat": "Repeat new password",
-    "mismatch": "The passwords don't match",
-    "signOutOthers": "Sign out on my other devices",
-    "rules": {
-      "title": "Password rules",
-      "length": "At least {n} characters",
-      "letters": "Letters",
-      "numbers": "Numbers",
-      "different": "Different from the current password",
-      "met": "done",
-      "notMet": "not yet"
-    },
+    "change": "Change",
+    "twoStep": "Two-step verification",
+    "twoStepRequired": "Required for your role · authenticator app",
+    "twoStepOptional": "Optional for your role · authenticator app",
+    "on": "On",
+    "off": "Off",
     "devices": {
       "title": "Signed-in devices",
-      "name": "{browser} on {os}",
+      "name": "{device} · {browser}",
       "kind": {
+        "mac": "Mac",
+        "windows": "Windows PC",
+        "iphone": "iPhone",
+        "ipad": "iPad",
+        "android": "Android phone",
+        "linux": "Linux PC",
         "desktop": "Computer",
         "phone": "Phone"
       },
+      "justNow": "Just now",
+      "activeNow": "Active now",
       "thisDevice": "This device",
-      "current": "This device",
-      "lastActive": "Last active {date} · {ip}",
       "signOut": "Sign out",
-      "signOutOthers": "Sign out all others",
-      "signedOut": "Signed out",
-      "onlyThis": "You're signed in only on this device."
+      "signOutAll": "Sign out everywhere else",
+      "signedOut": "Signed out on that device.",
+      "signedOutAll": "Signed out everywhere else."
+    },
+    "pwd": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "newPlaceholder": "At least {n} characters",
+      "weak": "Use at least {n} characters with letters and numbers",
+      "repeat": "Repeat new password",
+      "mismatch": "The passwords don't match",
+      "note": "Other devices are signed out after the change.",
+      "save": "Change password",
+      "saved": "Password changed. Other devices signed out."
     }
   }
 }

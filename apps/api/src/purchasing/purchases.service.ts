@@ -104,8 +104,8 @@ export class PurchasesService {
         p: purchases,
         supplierName: suppliers.company,
         supplierCountry: suppliers.country,
-        payableCents: sql<number>`coalesce((select sum(${payables.amountCents}) from ${payables} where ${payables.purchaseId} = ${purchases.id}), 0)::int`,
-        paidCents: sql<number>`coalesce((select sum(${payables.paidCents}) from ${payables} where ${payables.purchaseId} = ${purchases.id}), 0)::int`,
+        payableCents: sql<number>`coalesce((select sum(${payables.amountCents}) from ${payables} where ${payables.purchaseId} = ${purchases.id} and ${payables.kind} = 'supplier_invoice'), 0)::int`,
+        paidCents: sql<number>`coalesce((select sum(${payables.paidCents}) from ${payables} where ${payables.purchaseId} = ${purchases.id} and ${payables.kind} = 'supplier_invoice'), 0)::int`,
       })
       .from(purchases)
       .innerJoin(suppliers, eq(suppliers.id, purchases.supplierId))
@@ -138,11 +138,14 @@ export class PurchasesService {
         totalUnits: r.p.totalUnits,
         unitsReceived: r.p.unitsReceived,
         supplierInvoiceReceived: r.p.supplierInvoiceReceived,
+        payableCents: m.payableCents,
         stillToPayCents: m.stillToPayCents,
         daysLate: daysLate(r.p.expectedOn, r.p.status, today),
       };
     });
-    return { items, counts, tiles: await this.tiles(today) };
+    const [sup] = await this.db.select({ n: sql<number>`count(*)::int` }).from(suppliers).where(eq(suppliers.status, 'approved'));
+    const nextNumber = await this.numbering.peek(this.db, 'purchase');
+    return { items, counts, tiles: await this.tiles(today), approvedSuppliers: Number(sup.n), nextNumber };
   }
 
   /** FR-PUR-1 tiles. On the way comes from StockService so it matches Inventory and Home. */
@@ -163,19 +166,25 @@ export class PurchasesService {
     const onTheWayUnits = overview.reduce((s, f) => s + f.onTheWay, 0);
     let toPaySuppliersCents = 0;
     let notInvoicedCents = 0;
-    for (const r of owedRows) {
+    const toPayNumbers: string[] = [];
+    for (const r of owedRows.sort((a, b) => a.p.number.localeCompare(b.p.number))) {
       const m = this.owed(r.p, r.country, Number(r.payableCents), Number(r.paidCents));
       toPaySuppliersCents += m.stillToPayCents;
       notInvoicedCents += m.notInvoicedCents;
+      if (m.stillToPayCents > 0) toPayNumbers.push(r.p.number);
     }
     const [late] = await this.db.select({ n: sql<number>`count(*)::int`, oldest: sql<string | null>`min(${purchases.expectedOn})::text` }).from(purchases).where(lateCond(today));
+    const [oldestLate] = late.oldest ? await this.db.select({ id: purchases.id, number: purchases.number }).from(purchases).where(lateCond(today)).orderBy(asc(purchases.expectedOn)).limit(1) : [];
     return {
       onTheWayUnits,
       onTheWayCartons: Math.round(onTheWayUnits / UNITS_PER_CARTON),
       toPaySuppliersCents,
       notInvoicedCents,
+      toPayNumbers,
       late: Number(late.n),
       oldestLateDays: late.oldest ? daysLate(late.oldest, 'ordered', today) : 0,
+      oldestLateNumber: oldestLate?.number ?? null,
+      oldestLateId: oldestLate?.id ?? null,
     };
   }
 
@@ -207,24 +216,26 @@ export class PurchasesService {
     const exciseCents = received ? p.exciseCents : exciseCentsForUnits(p.totalUnits);
     const inventoryCostCents = p.goodsCents + p.freightCents + exciseCents;
     const landed = received && p.landedUnitCostCents != null ? Number(p.landedUnitCostCents) : landedUnitCostCents(p.goodsCents, p.freightCents, exciseCents, units);
-    const m = this.owed(p, supplier.country, pays.reduce((s, x) => s + x.amountCents, 0), pays.reduce((s, x) => s + x.paidCents, 0));
-
     const invoice = pays.find((x) => x.kind === 'supplier_invoice');
+    const m = this.owed(p, supplier.country, invoice?.amountCents ?? 0, invoice?.paidCents ?? 0);
     const invoicePaid = !!invoice && invoice.paidCents >= invoice.amountCents;
     const invoicePayments = invoice ? payments.filter((x) => x.payableId === invoice.id) : [];
-    const departed = ships.find((s) => s.departOn)?.departOn ?? null;
     const steps = {
       ordered: { done: true, on: p.orderedOn },
-      on_the_way: { done: p.status === 'on_the_way' || received, on: departed },
+      on_the_way: { done: received, on: p.arrivedOn },
       supplier_invoice: { done: p.supplierInvoiceReceived, on: invoice ? isoDate(invoice.createdAt) : null, number: invoice?.invoiceNumber ?? null },
       paid_supplier: { done: invoicePaid, on: invoicePaid ? (invoicePayments.at(-1)?.paidOn ?? null) : null },
       landed_cost: { done: received && p.landedUnitCostCents != null, on: p.arrivedOn },
     };
 
     const flavours = lines.map((l) => l.flavour);
-    const waitingOn = waiting
-      .filter((o) => o.lines.some((l) => flavours.includes(l.flavour)))
-      .map((o) => ({ ...o, units: o.lines.filter((l) => flavours.includes(l.flavour)).reduce((s, l) => s + l.units, 0) }));
+    const waitingRaw = waiting.filter((o) => o.lines.some((l) => flavours.includes(l.flavour)));
+    const agentIds = [...new Set(waitingRaw.map((o) => o.agentId))];
+    const agents = agentIds.length ? await this.db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, agentIds)) : [];
+    const waitingOn = waitingRaw.map((o) => {
+      const mine = o.lines.filter((l) => flavours.includes(l.flavour));
+      return { ...o, agentName: agents.find((a) => a.id === o.agentId)?.name ?? null, since: o.paidAt, cartons: mine.reduce((s, l) => s + l.cartons, 0), units: mine.reduce((s, l) => s + l.units, 0) };
+    });
 
     const open = (OPEN as readonly string[]).includes(p.status);
     const actions: string[] = [];
@@ -232,6 +243,37 @@ export class PurchasesService {
     if (open) actions.push('receive');
     if (p.status !== 'cancelled') actions.push('ask', 'freight', 'upload');
     if (p.status !== 'cancelled' && !p.supplierInvoiceReceived) actions.push('invoice');
+
+    // One list for the Documents card: issued documents, bills, the received note and payments.
+    const fileUrl = (docId: string | null | undefined) => {
+      const d = docId ? docs.find((x) => x.d.id === docId) : undefined;
+      return d?.d.filePath ? `/api/documents/${d.d.id}/file` : null;
+    };
+    const used = new Set<string>();
+    const files: { kind: string; on: string | null; number?: string | null; label?: string | null; amountCents?: number | null; units?: number | null; part?: boolean; by?: string | null; href: string | null }[] = [];
+    const po = docs.find((x) => x.d.type === 'purchase_order');
+    if (po) files.push({ kind: 'purchase_order', on: p.orderedOn, number: po.d.number ?? p.number, href: `/api/purchases/${p.id}/order` });
+    if (invoice) {
+      if (invoice.documentId) used.add(invoice.documentId);
+      files.push({ kind: 'supplier_invoice', on: isoDate(invoice.createdAt), number: invoice.invoiceNumber, amountCents: invoice.amountCents, href: fileUrl(invoice.documentId) });
+    }
+    const freight = pays.find((x) => x.kind === 'freight');
+    if (freight) {
+      if (freight.documentId) used.add(freight.documentId);
+      files.push({ kind: 'carrier_invoice', on: isoDate(freight.createdAt), number: freight.invoiceNumber, amountCents: freight.netCents, href: fileUrl(freight.documentId) });
+    }
+    if (received) files.push({ kind: 'received_note', on: p.arrivedOn, units: p.unitsReceived, href: `/api/purchases/${p.id}/received-note` });
+    let paidSoFar = 0;
+    for (const pay of invoicePayments) {
+      paidSoFar += pay.amountCents;
+      if (pay.proofDocumentId) used.add(pay.proofDocumentId);
+      files.push({ kind: 'payment', on: pay.paidOn, amountCents: pay.amountCents, part: !!invoice && paidSoFar < invoice.amountCents, href: fileUrl(pay.proofDocumentId) });
+    }
+    for (const pay of payments) if (pay.proofDocumentId) used.add(pay.proofDocumentId);
+    for (const r of [...docs].reverse()) {
+      if (r.d.type !== 'upload' || used.has(r.d.id)) continue;
+      files.push({ kind: 'upload', on: isoDate(r.d.createdAt), label: r.d.label ?? r.d.fileName, by: r.by, href: r.d.filePath ? `/api/documents/${r.d.id}/file` : null });
+    }
 
     return {
       purchase: {
@@ -255,6 +297,7 @@ export class PurchasesService {
       },
       payables: pays.map((x) => ({ ...x, vatRate: Number(x.vatRate), stillToPayCents: Math.max(0, x.amountCents - x.paidCents), payments: payments.filter((y) => y.payableId === x.id) })),
       shipments: ships,
+      files,
       documents: docs.map((r) => ({ id: r.d.id, type: r.d.type, number: r.d.number, label: r.d.label, fileName: r.d.fileName, hasFile: !!r.d.filePath, totalCents: r.d.totalCents, createdAt: r.d.createdAt, by: r.by })),
       messages: messages.map((r) => ({ ...r.m, by: r.by })),
       waiting: waitingOn,
@@ -268,7 +311,7 @@ export class PurchasesService {
 
   /** FR-PUR-2: next P-number and a purchase order document, in one transaction. */
   async create(auth: AuthContext, input: PurchaseInput) {
-    return this.db.transaction(async (tx) => {
+    const created = await this.db.transaction(async (tx) => {
       const [supplier] = await tx.select().from(suppliers).where(eq(suppliers.id, input.supplierId)).for('share');
       if (!supplier || supplier.status !== 'approved') throw new BadRequestException({ message: 'Check the highlighted fields', fields: { supplierId: 'Choose an approved supplier' } });
       const cartons = input.cartons as CartonsByFlavour;
@@ -317,8 +360,33 @@ export class PurchasesService {
         { category: 'purchasing', action: 'purchase_created', recordType: 'purchase', recordId: p.id, recordLabel: number, money: true, changes: { goodsCents: { from: null, to: goodsCents } }, meta: { supplier: supplier.company, cartons: Object.fromEntries(lines.map((l) => [l.flavour, l.cartons])), expectedOn: input.expectedOn } },
         tx,
       );
-      return { id: p.id, number };
+      return { id: p.id, number, supplier, lines, expectedOn: input.expectedOn };
     });
+    // The purchase order goes to the supplier's orders address, with the printable order attached.
+    const html = await this.orderHtml(created.id);
+    const s = created.supplier;
+    await this.mail.send({
+      to: [s.ordersEmail],
+      cc: [auth.user.email],
+      subject: `Purchase order ${created.number}`,
+      body: [
+        `Hello ${s.contactName || s.company},`,
+        '',
+        `Please find our purchase order ${created.number} attached.`,
+        '',
+        ...created.lines.map((l) => `- ${l.flavour.toUpperCase()}: ${l.cartons} cartons (${l.units} units)`),
+        '',
+        `Expected on ${created.expectedOn}.`,
+        '',
+        'Thank you,',
+        'ANANDA',
+      ].join('\n'),
+      kind: 'purchase_order',
+      recordType: 'purchase',
+      recordId: created.id,
+      attachments: [{ filename: `${created.number}.html`, content: html, contentType: 'text/html' }],
+    });
+    return { id: created.id, number: created.number };
   }
 
   async markOnTheWay(auth: AuthContext, id: string, input: OnTheWayBody) {
@@ -572,6 +640,21 @@ export class PurchasesService {
       await this.audit.log(auth, { category: 'documents', action: 'uploaded', recordType: 'purchase', recordId: id, recordLabel: p.number, meta: { documentId: docId, label: label || saved!.name } }, tx);
       return { id: docId };
     });
+  }
+
+  /** Goods received note: what was counted, per flavour, on arrival. */
+  async receivedNoteHtml(id: string) {
+    const { p, supplier, lines } = await this.load(id);
+    if (p.status !== 'received') throw new NotFoundException({ message: 'This purchase has not been received yet' });
+    const esc = (v: unknown) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const rows = lines.map((l) => `<tr><td>${esc(l.flavour.toUpperCase())}</td><td class="n">${l.cartons}</td><td class="n">${l.units}</td><td class="n">${l.unitsReceived ?? ''}</td></tr>`).join('');
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Goods received note ${esc(p.number)}</title><style>
+body{font:14px/1.45 system-ui,sans-serif;color:#1a1a1a;background:#fff;max-width:760px;margin:32px auto;padding:0 16px}
+h1{font-weight:400;font-size:24px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:24px}
+th,td{padding:8px;border-bottom:1px solid #ddd;text-align:start}.n{text-align:center}.muted{color:#666}
+</style></head><body><h1>Goods received note · ${esc(p.number)}</h1><div class="muted">${esc(supplier.company)} · arrived ${esc(p.arrivedOn)} · ordered ${esc(p.orderedOn)}</div>
+<table><thead><tr><th>Flavour</th><th class="n">Cartons ordered</th><th class="n">Units ordered</th><th class="n">Units counted</th></tr></thead><tbody>${rows}</tbody>
+<tfoot><tr><td colspan="3"><strong>Units counted</strong></td><td class="n"><strong>${p.unitsReceived ?? ''}</strong></td></tr></tfoot></table></body></html>`;
   }
 
   /** Printable purchase order from its frozen snapshot. */

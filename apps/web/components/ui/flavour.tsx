@@ -103,12 +103,9 @@ export function FlavourRows({ cartons, unitsLabel = true }: { cartons: CartonsBy
 }
 
 /** One plain status per order (PRD §1.2), with the "N days late" overlay. */
+/** One plain status per order (prototype): an overdue open order shows only "N days late". */
 export function OrderStatusPill({ status, daysLate }: { status: OrderStatus; daysLate?: number }) {
   const t = useTranslations('common');
-  return (
-    <span className="row status-pills" style={{ gap: 6 }}>
-      <Pill tone={ORDER_STATUS_TONE[status]}>{t(`orderStatus.${status}`)}</Pill>
-      {!!daysLate && daysLate > 0 && <Pill tone="bad">{t('daysLate', { n: daysLate })}</Pill>}
-    </span>
-  );
+  if (daysLate && daysLate > 0 && status !== 'draft' && status !== 'cancelled') return <Pill tone="bad">{t('daysLate', { n: daysLate })}</Pill>;
+  return <Pill tone={ORDER_STATUS_TONE[status]}>{t(`orderStatus.${status}`)}</Pill>;
 }

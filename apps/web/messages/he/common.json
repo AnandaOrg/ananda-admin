@@ -1,12 +1,12 @@
 {
   "brandLine": "תפעול וכספים",
   "welcome": "ברוך שובך, {name}",
-  "asOf": "נכון ל־{date}",
+  "asOf": "נכון ל-{date}",
   "mainNav": "ראשי",
   "menu": "תפריט",
   "breadcrumb": "נתיב ניווט",
   "profile": "פרופיל ומכשירים",
-  "signOut": "יציאה",
+  "signOut": "התנתקות",
   "inbox": "תיבת הודעות",
   "inboxEmpty": "אין חדש. עדכונים על ההזמנות והבקשות שלך יופיעו כאן.",
   "markAllRead": "סימון הכול כנקרא",
@@ -70,7 +70,7 @@
   "unitsCount": "{n} יחידות",
   "upTo": "עד {n}",
   "cartonsUnits": "{c} קרטונים · {u} יחידות",
-  "daysLate": "{n, plural, one {# יום איחור} two {# ימי איחור} other {# ימי איחור}}",
+  "daysLate": "{n, plural, one {יום אחד באיחור} other {# ימים באיחור}}",
   "polish": "שיפור עם AI",
   "polishing": "משפר…",
   "tone": "טון",
@@ -89,38 +89,38 @@
     "stop": "הפסקת תצוגה"
   },
   "tabs": {
-    "home": "בית",
+    "home": "סקירה כללית",
     "orders": "הזמנות",
     "customers": "לקוחות",
-    "collections": "כספים",
+    "collections": "גבייה",
     "more": "עוד",
     "toShip": "למשלוח",
     "delivered": "נמסרו",
-    "count": "ספירה"
+    "count": "ספירת מלאי"
   },
   "nav": {
-    "home": "בית",
+    "home": "סקירה כללית",
     "sales": "מכירות והזמנות",
     "customers": "לקוחות",
     "collections": "גבייה",
     "purchasing": "רכש",
     "inventory": "מלאי",
-    "warehouse": "מחסן ומשלוחים",
+    "warehouse": "מחסן",
     "agents": "סוכנים ועמלות",
     "earnings": "ההכנסות שלי",
     "events": "אירועים ופסטיבלים",
-    "deal_profit": "רווח מעסקאות",
+    "deal_profit": "רווחיות עסקה",
     "pnl": "רווח והפסד חודשי",
     "expenses": "הוצאות",
-    "users": "משתמשים ותפקידים",
-    "audit": "יומן ביקורת",
-    "settings": "הגדרות וכללים"
+    "users": "משתמשים והרשאות",
+    "audit": "יומן פעולות",
+    "settings": "הגדרות"
   },
   "navGroup": {
     "sales": "מכירות",
     "stock": "מלאי",
     "people": "אנשים",
-    "money": "כספים",
+    "money": "כסף",
     "admin": "ניהול"
   },
   "orderStatus": {
@@ -185,6 +185,8 @@
     "cancel": {
       "customer_cancelled": "הלקוח ביטל",
       "duplicate": "כפילות",
+      "stock_unavailable": "המלאי לא זמין בזמן",
+      "not_paid": "הלקוח לא שילם",
       "other": "אחר"
     }
   },
@@ -196,5 +198,168 @@
     "to": "אל",
     "subject": "נושא",
     "message": "הודעה"
+  },
+  "reload": "רענון",
+  "welcomeBack": "ברוך שובך,",
+  "lookBack": {
+    "blocked": "את/ה צופה ביום קודם. אי אפשר לשנות דבר.",
+    "blockedShort": "לא זמין בזמן מבט לאחור",
+    "bar": "מבט לאחור אל {date}.",
+    "barSub": "הנתונים כפי שהיו באותו ערב. אי אפשר לשנות כאן דבר.",
+    "today": "חזרה להיום",
+    "title": "הצגת נתונים נכון ל",
+    "quickToday": "היום",
+    "endMonth": "סוף החודש הקודם",
+    "endQuarter": "סוף הרבעון הקודם",
+    "endYear": "סוף השנה הקודמת",
+    "footDesk": "הנתונים נכונים לסוף היום שנבחר. אי אפשר לבחור תאריכים מאוחרים יותר.",
+    "footPhone": "אי אפשר לבחור תאריכים מאוחרים יותר: אין עדיין נתונים.",
+    "prevMonth": "החודש הקודם",
+    "nextMonth": "החודש הבא",
+    "calendar": "לוח שנה"
+  },
+  "errors": {
+    "network": "כדאי לבדוק את החיבור ולנסות שוב.",
+    "server": "משהו השתבש אצלנו. כדאי לנסות שוב בעוד דקה.",
+    "actionFailed": "הפעולה לא הושלמה",
+    "somethingWrong": "משהו השתבש",
+    "loadList": "לא ניתן היה לטעון את הרשימה",
+    "loadPage": "לא ניתן היה לטעון את הדף",
+    "loadSub": "כדאי לבדוק את החיבור ולנסות שוב. שום דבר לא השתנה.",
+    "loadServer": "משהו השתבש אצלנו. כדאי לנסות שוב בעוד דקה. שום דבר לא השתנה.",
+    "conflict": "מישהו שינה את זה",
+    "accessTitle": "אין לך גישה לדף הזה",
+    "accessText": "התפקיד שלך לא מאפשר לפתוח את הדף הזה. אפשר לבקש גישה ממנהל.",
+    "accessArea": {
+      "deal_profit": "רווחיות עסקה זמינה למנהלים ולכספים בלבד. אפשר לבקש גישה ממנהל."
+    },
+    "backHome": "חזרה לסקירה הכללית",
+    "notFoundTitle": "לא מצאנו את הדף הזה",
+    "notFoundText": "ייתכן שהוא נמחק, או שהקישור כבר לא בתוקף.",
+    "offlineTitle": "אין חיבור לאינטרנט.",
+    "offlineText": "ייתכן שהמידע לא מעודכן, ושינויים לא יישמרו עד שהחיבור יחזור.",
+    "backOnline": "חזרת לרשת",
+    "updateTitle": "ANANDA עודכנה.",
+    "updateText": "יש לרענן כדי לקבל את הגרסה העדכנית. שום דבר ממה שהוזן לא יאבד.",
+    "signedOutTitle": "התנתקת מהמערכת",
+    "signedOutText": "מטעמי אבטחה, זה קורה אחרי זמן מה. השינויים שלך נשמרו.",
+    "signIn": "התחברות",
+    "signedInAgain": "התחברת מחדש"
+  },
+  "unsaved": {
+    "title": "לבטל את השינויים?",
+    "text": "מה שהקלדת כאן יאבד.",
+    "keep": "המשך עריכה"
+  },
+  "columns": {
+    "label": "עמודות",
+    "hidden": "{n, plural, one {# מוסתרת} other {# מוסתרות}}",
+    "title": "עמודות מוצגות",
+    "always": "מוצגת תמיד",
+    "full": "הטבלה מלאה. כבו עמודה אחת כדי להוסיף אחרת."
+  },
+  "notifications": {
+    "title": "התראות",
+    "all": "הכול",
+    "unread": "לא נקראו",
+    "markAll": "סימון הכול כנקרא",
+    "today": "היום",
+    "yesterday": "אתמול",
+    "earlier": "קודם",
+    "emptyTitle": "עדיין אין התראות",
+    "emptyAdmin": "אישורים, העלאות, תשלומים באיחור והתראות מלאי מופיעים כאן.",
+    "emptyAgent": "כאן תקבל/י עדכון כשלקוח מאושר, משלם או מקבל את המשלוח.",
+    "caughtUp": "הכול מעודכן",
+    "caughtUpText": "אין התראות שלא נקראו. הישנות נמצאות תחת הכול.",
+    "settings": "הגדרות התראות",
+    "unreadCount": "{n, plural, one {# שלא נקראה} other {# שלא נקראו}}",
+    "allRead": "הכול נקרא",
+    "unreadDot": "לא נקראה"
+  },
+  "theme": {
+    "label": "ערכת נושא",
+    "system": "מערכת",
+    "light": "בהיר",
+    "dark": "כהה",
+    "toLight": "מעבר למצב בהיר",
+    "toDark": "מעבר למצב כהה"
+  },
+  "me": {
+    "admin": "ניהול",
+    "twoStep": "אימות דו-שלבי",
+    "on": "פעיל",
+    "off": "כבוי",
+    "account": "חשבון"
+  },
+  "moreSub": "מקובץ כמו בסרגל הצד במחשב.",
+  "searchNone": "אין תוצאות עבור “{q}”",
+  "notify": {
+    "customer_approval": {
+      "title": "{agent} רוצה להוסיף את {customer}",
+      "body": "לקוח חדש"
+    },
+    "special_price": {
+      "title": "{agent} מבקש/ת מחיר מיוחד",
+      "body": "{order} · {customer}"
+    },
+    "correction": {
+      "title": "{agent} מבקש/ת תיקון",
+      "body": "{order} · {customer}"
+    },
+    "agent_upload": {
+      "title": "{agent} העלה/תה מסמך",
+      "body": "{doc} · {order} · {customer}"
+    },
+    "agent_signed": {
+      "title": "{agent} חתם/ה על הסכם הסוכן",
+      "body": "פרטי החברה והבנק הוזנו. יש לחתום גם כדי להשלים את ההגדרה."
+    },
+    "delivered": {
+      "title": "{order} נמסרה",
+      "body": "המחסן העלה את תעודת המשלוח החתומה."
+    },
+    "purchase_late": {
+      "title": "{purchase} באיחור של {days} ימים",
+      "body": "{supplier}"
+    },
+    "payment_confirmed": {
+      "title": "התשלום עבור {order} אושר",
+      "body": "{customer} · {amount}"
+    },
+    "payment_late": {
+      "title": "{customer} באיחור של {days} ימים",
+      "body": "{amount} חוב על {order}"
+    },
+    "upload_opened": {
+      "title": "המנהל פתח את הקובץ שהעלית",
+      "body": "{doc} · {order} · {customer}"
+    },
+    "commission_paid": {
+      "title": "עמלה שולמה: {amount}",
+      "body": "{order} · {customer}. בדרך לחשבון הבנק שלך."
+    },
+    "sent_for_approval": {
+      "title": "{customer} נשלח לאישור",
+      "body": "מנהל יבדוק. העדכון יגיע לכאן."
+    },
+    "commission_sent": {
+      "title": "העמלה נשלחה לתשלום: {amount}",
+      "body": "אצל רואה החשבון. היא תסומן כשולמה כשתצא מהבנק."
+    },
+    "agent_setup_done": {
+      "title": "ההגדרה שלך הושלמה",
+      "body": "{admin} חתם/ה גם על הסכם הסוכן שלך."
+    },
+    "event": {
+      "title": "הוזמנת אל {event}",
+      "body": "{startsOn} – {endsOn}, {place}"
+    }
+  },
+  "systemRole": {
+    "system_admin": "מנהל מערכת",
+    "admin": "מנהל",
+    "agent": "סוכן",
+    "warehouse": "מחסן",
+    "finance": "כספים"
   }
 }
