@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
+import { useUndoOwner } from '@/app/(app)/customers/useUndoOwner';
 import { useFmt, iso } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { ActionError, Button, Check, Clock, Icon, MagnifyingGlass, Pill, Sheet, ShieldCheck, TextField, Warning } from '@/components/ui';
@@ -171,8 +172,10 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
       },
     },
   );
-  const claim = useAction((id: string) => api.post(`/customers/${id}/claim`), {
+  const undoClaim = useUndoOwner('claim');
+  const claim = useAction((id: string) => api.post(`/customers/${id}/claim`).then(() => id), {
     success: t('claimed'),
+    successAction: (id) => ({ label: tc('undo'), onClick: () => undoClaim.mutate(id) }),
     onDone: () => {
       const id = existing?.id;
       close();

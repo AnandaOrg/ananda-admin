@@ -33,6 +33,8 @@
     }
   },
   "claim": "Claim",
+  "claimUndone": "Claim undone",
+  "brokerChangeUndone": "Move undone",
   "claimed": "Customer claimed",
   "freeText": "Ownership of this customer has ended. Any broker may claim it and keep it for {n} months from each order.",
   "noBroker": "No broker",

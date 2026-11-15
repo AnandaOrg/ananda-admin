@@ -3,7 +3,7 @@ import { and, desc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { FLAVOURS, PRICE_TIERS, UNITS_PER_CARTON, addMonths, calculateOrder, isoDate, tierFor, type CartonsByFlavour, type Flavour } from '@ananda/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { approvalRequests, customers, orderLines, orders, users } from '../db/schema';
-import { AuditService } from '../core/audit.service';
+import { AuditService, UNDO_MINUTES } from '../core/audit.service';
 import { NotifyService } from '../core/notify.service';
 import { MailService } from '../core/mail.service';
 import { SettingsService } from '../core/settings.service';
@@ -15,7 +15,7 @@ import type { AuthContext } from '../common/context';
 type Req = typeof approvalRequests.$inferSelect;
 
 /** How long an Admin can take a decision back from Overview (the row shows Undo meanwhile). */
-export const UNDO_MINUTES = 30;
+export { UNDO_MINUTES };
 
 /** Reasons offered when declining, per kind of request; stored as the key, sent to the broker in words. */
 export const DECLINE_REASONS: Record<Req['type'], Record<string, string>> = {

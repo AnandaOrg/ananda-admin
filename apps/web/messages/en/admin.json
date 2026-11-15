@@ -683,6 +683,7 @@
       "upload": "Upload a logo (SVG or PNG)",
       "remove": "Remove",
       "logoUploaded": "Logo uploaded",
+      "logoRestored": "Logo restored",
       "logoRemoved": "Logo removed",
       "footer": "Footer on every document",
       "companyTitle": "Company on documents",

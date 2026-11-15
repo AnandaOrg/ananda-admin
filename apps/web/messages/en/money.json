@@ -187,6 +187,7 @@
       "paid": "Paid",
       "unpaid": "Unpaid",
       "markPaid": "Mark as paid",
+      "markedUnpaid": "Marked unpaid",
       "markedPaid": "Marked as paid",
       "viewReceipt": "View receipt",
       "vatLine": "VAT {rate}%",

@@ -1,10 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { isoDate, type BusinessRules, type DocumentSettings, type SystemRole } from '@ananda/shared';
 import { InjectDb, type Db, type Tx } from '../db/db.module';
 import { auditLog, customers, orders, roles, settings as settingsTable, users } from '../db/schema';
-import { AuditService, diff } from '../core/audit.service';
+import { AuditService, UNDO_MINUTES, diff } from '../core/audit.service';
 import { NumberingService, PREFIXED, SEQUENCES, type SequenceKey } from '../core/numbering.service';
 import { SETTING_DEFAULTS, SettingsService, type SettingKey, type SettingsShape } from '../core/settings.service';
 import { FilesService } from '../core/files.service';
@@ -296,6 +296,19 @@ export class AdminSettingsService {
 
   async removeLogo(auth: AuthContext) {
     return this.db.transaction(async (tx) => ({ ok: true, changed: await this.writeSetting(auth, tx, 'documents', { logo: null, logoUrl: null }) }));
+  }
+
+  /** The toast's Undo for Remove: the file is still stored, so the logo comes back. Only while the removal is the last change to these settings. */
+  async undoRemoveLogo(auth: AuthContext) {
+    return this.db.transaction(async (tx) => {
+      const docs = await this.lock(tx, 'documents');
+      const last = await this.audit.latest('setting', 'documents', tx);
+      const ch = last?.changes as { logo?: { from: DocumentSettings['logo']; to: unknown }; logoUrl?: { from: string | null } } | null | undefined;
+      if (docs.logo || !last || last.action !== 'setting_changed' || !ch?.logo?.from || ch.logo.to !== null) throw new ConflictException({ message: 'The logo changed since, so it cannot be undone' });
+      if (Date.now() - last.at.getTime() > UNDO_MINUTES * 60_000) throw new ConflictException({ message: `This can be undone for ${UNDO_MINUTES} minutes` });
+      await this.writeSetting(auth, tx, 'documents', { logo: ch.logo.from, ...(ch.logoUrl ? { logoUrl: ch.logoUrl.from } : {}) });
+      return { ok: true };
+    });
   }
 
   async logo() {

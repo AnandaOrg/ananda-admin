@@ -4,7 +4,7 @@ import { FLAVOURS, isoDate, type ExpenseInput, type Flavour } from '@ananda/shar
 import { InjectDb, type Db } from '../db/db.module';
 import { bankBalances, customers, documents, expenses, orderLines, orders, users } from '../db/schema';
 import { FiguresService, periodOf, type Period } from '../core/figures.service';
-import { AuditService } from '../core/audit.service';
+import { AuditService, UNDO_MINUTES } from '../core/audit.service';
 import { FilesService } from '../core/files.service';
 import { SettingsService } from '../core/settings.service';
 import type { AuthContext } from '../common/context';
@@ -454,6 +454,20 @@ export class MoneyService {
       if (row.paid) throw new ConflictException({ message: 'This expense is already paid' });
       await tx.update(expenses).set({ paid: true }).where(eq(expenses.id, id));
       await this.audit.log(auth, { category: 'expenses', action: 'expense_paid', recordType: 'expense', recordId: id, recordLabel: row.description, money: true, changes: { paid: { from: false, to: true } }, meta: { totalCents: row.totalCents } }, tx);
+      return { ok: true };
+    });
+  }
+
+  /** Undo for the Mark as paid toast: only while that tap is the last thing that happened to the expense. */
+  async undoMarkPaid(auth: AuthContext, id: string) {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx.select().from(expenses).where(eq(expenses.id, id)).for('update');
+      if (!row) throw new NotFoundException({ message: 'Expense not found' });
+      const last = await this.audit.latest('expense', id, tx);
+      if (!row.paid || last?.action !== 'expense_paid') throw new ConflictException({ message: 'This expense changed since, so it cannot be undone' });
+      if (Date.now() - last.at.getTime() > UNDO_MINUTES * 60_000) throw new ConflictException({ message: `This can be undone for ${UNDO_MINUTES} minutes` });
+      await tx.update(expenses).set({ paid: false }).where(eq(expenses.id, id));
+      await this.audit.log(auth, { category: 'expenses', action: 'expense_paid_undone', recordType: 'expense', recordId: id, recordLabel: row.description, money: true, changes: { paid: { from: true, to: false } }, meta: { totalCents: row.totalCents } }, tx);
       return { ok: true };
     });
   }

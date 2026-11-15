@@ -8,6 +8,7 @@ import { api, qs } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { useAction, useMedia } from '@/lib/hooks';
+import { useUndoOwner } from '@/app/(app)/customers/useUndoOwner';
 import { Button, CaretRight, Card, Chips, EmptyState, Icon, ListCard, ListCards, PageHeader, Phone, Pill, Plus, Search, Sheet, Table, Users, searchFilter, type Column } from '@/components/ui';
 import { AddCustomerSheet } from './AddCustomerSheet';
 import { ChangeBrokerSheet } from './ChangeBrokerSheet';
@@ -52,7 +53,8 @@ export default function CustomersPage() {
   const [moving, setMoving] = useState<CustomerRow | null>(null);
   const query = qs({ filter });
   const list = useQuery({ queryKey: ['customers', query], queryFn: () => api.get<{ items: CustomerRow[]; counts: Record<Filter, number>; ownershipMonths: number }>(`/customers${query}`) });
-  const claim = useAction((id: string) => api.post(`/customers/${id}/claim`), { success: t('claimed'), errorToast: true });
+  const undoClaim = useUndoOwner('claim');
+  const claim = useAction((id: string) => api.post(`/customers/${id}/claim`).then(() => id), { success: t('claimed'), successAction: (id) => ({ label: tc('undo'), onClick: () => undoClaim.mutate(id) }), errorToast: true });
 
   const counts = list.data?.counts;
   const months = list.data?.ownershipMonths ?? 6;

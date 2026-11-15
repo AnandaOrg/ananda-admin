@@ -87,6 +87,7 @@
     "noEmail": "Add the accountant's e-mail in Settings before sending.",
     "paidTitle": "Mark {name}'s commission as paid",
     "paidText": "Mark as paid once the money has left the bank. {name} sees it straight away.",
+    "paidUndone": "Payment undone",
     "paid": "Marked as paid",
     "entries": "{n, plural, one {# order} other {# orders}}",
     "offset": "Credit note offset",

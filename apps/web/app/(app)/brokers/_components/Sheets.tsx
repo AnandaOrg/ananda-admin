@@ -101,8 +101,10 @@ export function MarkPaidSheet({ broker, onClose }: { broker: BrokerRow | null; o
   const [code, setCode] = useState('');
   useEffect(() => setCode(''), [broker?.id]);
   const detail = useQuery({ queryKey: ['brokers', 'earnings', broker?.id], queryFn: () => api.get<Earnings>(`/brokers/${broker!.id}/earnings`), enabled: !!broker });
-  const act = useAction(() => api.post<{ amountCents: number }>(`/brokers/${broker!.id}/mark-paid`, {}, { code }), {
+  const undo = useAction((v: { brokerId: string; entryIds: string[] }) => api.post(`/brokers/${v.brokerId}/mark-paid/undo`, { entryIds: v.entryIds }), { success: t('pay.paidUndone'), errorToast: true });
+  const act = useAction(() => api.post<{ amountCents: number; entryIds: string[] }>(`/brokers/${broker!.id}/mark-paid`, {}, { code }).then((r) => ({ ...r, brokerId: broker!.id })), {
     success: (r) => t('pay.paid', { name: iso(broker?.name ?? ''), amount: iso(money(r.amountCents)) }),
+    successAction: (r) => ({ label: tc('undo'), onClick: () => undo.mutate({ brokerId: r.brokerId, entryIds: r.entryIds }) }),
     onDone: onClose,
   });
   if (!broker) return null;
