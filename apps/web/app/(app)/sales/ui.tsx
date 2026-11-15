@@ -3,14 +3,21 @@
 import { useId, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { FLAVOURS, UNITS_PER_CARTON, type CartonsByFlavour, type Flavour, type OrderStatus } from '@ananda/shared';
-import { CaretDown, Check, FLAVOUR_VAR, Icon, OrderStatusPill, Pill, Stepper } from '@/components/ui';
+import { CaretDown, Check, FLAVOUR_VAR, Icon, OrderStatusPill, Pill, Stepper, statusShowsPart } from '@/components/ui';
 import './sales.css';
 
 /** Order status (shared `OrderStatusPill`: prototype tones, an overdue order shows only "N days late"); a cancelled order is red on its own page. */
-export function SalesStatus({ status, daysLate, page }: { status: OrderStatus; daysLate?: number; page?: boolean }) {
+export function SalesStatus({ status, daysLate, page, part }: { status: OrderStatus; daysLate?: number; page?: boolean; part?: boolean }) {
   const tc = useTranslations('common');
+  const ts = useTranslations('sales');
   if (status === 'cancelled' && page) return <Pill tone="bad">{tc('orderStatus.cancelled')}</Pill>;
-  return <OrderStatusPill status={status} daysLate={daysLate} />;
+  // `part`: the server says some cartons went out and the rest will still ship. Say so unless the status pill already does.
+  return (
+    <>
+      <OrderStatusPill status={status} daysLate={daysLate} />
+      {part && !statusShowsPart(status, daysLate) && <Pill tone="warn">{ts('order.partDelivered')}</Pill>}
+    </>
+  );
 }
 
 /** Flavour rows with − n + steppers, each with its own line under the name (units, "was 20 cartons"…). */

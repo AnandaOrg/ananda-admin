@@ -118,6 +118,10 @@
     "termsDays": "{n, plural, =0 {Плащане преди доставка} one {# ден} other {# дни}}"
   },
   "order": {
+    "deliveredOf": "Доставени <n>{done}</n> от <n>{total}</n> кашона",
+    "deliveredOfLine": "<n>{done}</n> от <n>{total}</n>",
+    "stillToShip": "{n, plural, =0 {Всичко е доставено} other {# за изпращане}}",
+    "partDelivered": "Частично доставена",
     "kicker": "{number} · създадена {date} · брокер",
     "kickerPhone": "{number} · {date} · брокер {broker}",
     "kickerHouse": "{number} · създадена {date} · продажба на фирмата",

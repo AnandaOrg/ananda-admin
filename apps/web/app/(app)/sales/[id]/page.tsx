@@ -104,6 +104,7 @@ export interface OrderDetail {
     paymentTerms?: 'before_shipping' | 'half_before_shipping' | 'after_delivery_30';
   };
   lines: { id: string; flavour: Flavour; cartons: number; units: number; unitPriceCents: number; lineNetCents: number; deliveredCartons: number | null; creditedCartons: number; remainingCartons: number }[];
+  delivery: { deliveredCartons: number; totalCartons: number; part: boolean };
   tier: { minCartons: number; maxCartons: number; unitPriceCents: number } | null;
   customer: {
     id: string;
@@ -477,7 +478,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         title={
           <span className="sales-title">
             {customerName}
-            <SalesStatus status={o.status} daysLate={o.daysLate} page />
+            <SalesStatus status={o.status} daysLate={o.daysLate} page part={d.delivery.part} />
           </span>
         }
         actions={
@@ -527,6 +528,24 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
             {flow}
           </Card>
           <Card className="o3" title={t('order.lines')}>
+            {d.delivery.part && (
+              <div className="sales-deliv stack tight">
+                <div className="sales-tot">
+                  <span className="sales-deliv-head">
+                    {t.rich('order.deliveredOf', { done: num(d.delivery.deliveredCartons), total: num(d.delivery.totalCartons), n: (c) => <bdi>{c}</bdi> })}
+                  </span>
+                </div>
+                {linesByFlavour.map((l) => (
+                  <div key={l.id} className="an-flav">
+                    <i className="dot" style={{ background: FLAVOUR_VAR[l.flavour] }} aria-hidden />
+                    <span className="nm">{l.flavour.toUpperCase()}</span>
+                    <span className="q">{t.rich('order.deliveredOfLine', { done: num(l.deliveredCartons ?? 0), total: num(l.cartons), n: (c) => <bdi>{c}</bdi> })}</span>
+                    <span className="u">{t('order.stillToShip', { n: l.remainingCartons })}</span>
+                  </div>
+                ))}
+                <hr className="sales-rule" />
+              </div>
+            )}
             <div className="only-wide">
               <Table
                 rowKey={(l) => l.id}

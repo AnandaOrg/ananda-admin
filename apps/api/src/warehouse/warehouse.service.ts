@@ -291,9 +291,7 @@ export class WarehouseService {
         createdById: auth.user.id,
       });
       await this.audit.log(auth, { category: 'orders', action: 'part_delivered', recordType: 'order', recordId: id, recordLabel: order.number, meta: { cartons: byFlavour, stays } }, tx);
-      const title = `${order.number} part delivered · ${stays} cartons still to ship`;
-      await this.notify.toRoles(['system_admin', 'admin'], { type: 'delivered', title, link: `/sales/${id}` }, tx);
-      await this.notify.toUsers([order.brokerId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
+      await this.notify.send('part_delivered', { roles: ['system_admin', 'admin'], users: [order.brokerId] }, { order: order.number, stays }, `/sales/${id}`, tx);
       return { status: order.status, deliveredCartons: done, stayCartons: stays };
     });
   }
@@ -310,7 +308,7 @@ export class WarehouseService {
       const [count] = await tx.insert(stockCounts).values({ countedById: auth.user.id, cartons: counted, expectedCartons: expected }).returning({ id: stockCounts.id, createdAt: stockCounts.createdAt });
       await this.audit.log(auth, { category: 'stock', action: 'stock_count_sent', recordType: 'stock_count', recordId: count.id, meta: { cartons: counted } }, tx);
       const total = FLAVOURS.reduce((s, f) => s + counted[f], 0);
-      await this.notify.toRoles(['system_admin', 'admin'], { type: 'stock_count', title: `Stock count from ${auth.user.name}`, body: `${total} full cartons counted`, link: '/inventory?tab=counts' }, tx);
+      await this.notify.send('stock_count', { roles: ['system_admin', 'admin'] }, { name: auth.user.name, total }, '/inventory?tab=counts', tx);
       return count;
     });
     return { id: row.id, at: row.createdAt.toISOString() };

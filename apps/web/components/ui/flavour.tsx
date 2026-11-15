@@ -106,10 +106,13 @@ export function FlavourRows({ cartons, unitsLabel = true }: { cartons: CartonsBy
   );
 }
 
-/** One plain status per order (PRD §1.2), with the "N days late" overlay. */
+const showsLate = (status: OrderStatus, daysLate?: number) => !!daysLate && daysLate > 0 && status !== 'draft' && status !== 'cancelled';
+/** True when the status pill reads "delivered in part" (an overdue order reads "N days late" instead). One rule for the pill and for whoever adds a part-delivered pill beside it. */
+export const statusShowsPart = (status: OrderStatus, daysLate?: number) => status === 'delivered_part' && !showsLate(status, daysLate);
+
 /** One plain status per order (prototype): an overdue open order shows only "N days late". */
 export function OrderStatusPill({ status, daysLate }: { status: OrderStatus; daysLate?: number }) {
   const t = useTranslations('common');
-  if (daysLate && daysLate > 0 && status !== 'draft' && status !== 'cancelled') return <Pill tone="bad">{t('daysLate', { n: daysLate })}</Pill>;
+  if (showsLate(status, daysLate)) return <Pill tone="bad">{t('daysLate', { n: daysLate ?? 0 })}</Pill>;
   return <Pill tone={ORDER_STATUS_TONE[status]}>{t(`orderStatus.${status}`)}</Pill>;
 }

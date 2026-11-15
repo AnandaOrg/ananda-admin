@@ -212,7 +212,7 @@ export class ApprovalsService {
         label = corrected.order.number;
       }
       await tx.update(approvalRequests).set({ status: 'approved', decidedById: auth.user.id, decidedAt: new Date() }).where(eq(approvalRequests.id, id));
-      await this.notify.toUsers([r.requestedById], { type: 'approved', title: `Approved: ${label}`, body: approvedLine(r), link: r.orderId ? `/sales/${r.orderId}` : `/customers/${r.customerId}` }, tx);
+      await this.notify.send('approved', { users: [r.requestedById] }, { label, kind: r.type }, r.orderId ? `/sales/${r.orderId}` : `/customers/${r.customerId}`, tx);
     });
     if (corrected) {
       const c = corrected as Awaited<ReturnType<OrdersService['applyCorrection']>>;
@@ -242,7 +242,7 @@ export class ApprovalsService {
         label = o.number;
         await this.audit.log(auth, { category: 'orders', action: `${r.type}_declined`, recordType: 'order', recordId: o.id, recordLabel: o.number, meta: { reason, message } }, tx);
       }
-      await this.notify.toUsers([r.requestedById], { type: 'declined', title: `Declined: ${label}`, body: [why, message].filter(Boolean).join(' · '), link: r.orderId ? `/sales/${r.orderId}` : `/customers/${r.customerId}` }, tx);
+      await this.notify.send('declined', { users: [r.requestedById] }, { label, kind: r.type, reason, why, message: message ?? '', hasMessage: message ? 'yes' : 'no' }, r.orderId ? `/sales/${r.orderId}` : `/customers/${r.customerId}`, tx);
     });
     await this.mailBroker(r, `Declined: ${label}`, [`Reason: ${why}`, message].filter(Boolean).join('\n\n'));
     return { ok: true, label };
@@ -290,7 +290,7 @@ export class ApprovalsService {
         }
       }
       await tx.update(approvalRequests).set({ status: 'pending', decidedById: null, decidedAt: null, declineReason: null, declineMessage: null }).where(eq(approvalRequests.id, id));
-      await this.notify.toUsers([r.requestedById], { type: 'approval', title: `Waiting again: ${label}`, body: 'The Admin took the decision back. You will hear again soon.', link: r.orderId ? `/sales/${r.orderId}` : `/customers/${r.customerId}` }, tx);
+      await this.notify.send('waiting_again', { users: [r.requestedById] }, { label }, r.orderId ? `/sales/${r.orderId}` : `/customers/${r.customerId}`, tx);
     });
     if (reversed) {
       const c = reversed as Awaited<ReturnType<OrdersService['applyCorrection']>>;

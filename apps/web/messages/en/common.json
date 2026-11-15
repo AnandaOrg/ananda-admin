@@ -16,6 +16,7 @@
   "retry": "Try again",
   "close": "Close",
   "undo": "Undo",
+  "reorder": "Reorder",
   "save": "Save",
   "saveDraft": "Save draft",
   "cancel": "Cancel",
@@ -306,39 +307,64 @@
   "notify": {
     "customer_approval": {
       "title": "{broker} wants to add {customer}",
-      "body": "New customer"
+      "body": "{vatValid, select, yes {New customer · VAT valid} other {New customer}}"
     },
-    "special_price": {
-      "title": "{broker} asks for a special price",
-      "body": "{order} · {customer}"
+    "special_price_request": {
+      "title": "Special price for {order}",
+      "body": "{reason}"
     },
-    "correction": {
-      "title": "{broker} asks for a correction",
-      "body": "{order} · {customer}"
+    "correction_request": {
+      "title": "Correction for {order}",
+      "body": "{reason}"
     },
     "broker_upload": {
-      "title": "{broker} uploaded a document",
-      "body": "{doc} · {order} · {customer}"
+      "title": "{broker} uploaded {docPhrase}",
+      "body": "{order} · {customer}"
     },
     "broker_signed": {
       "title": "{broker} signed the broker agreement",
       "body": "Company and bank details are in. Countersign to finish their set-up."
     },
     "delivered": {
-      "title": "{order} delivered",
-      "body": "The warehouse uploaded the signed note."
+      "title": "{order} delivered"
+    },
+    "delivered_back": {
+      "title": "{order} delivered in part · {returned, plural, one {# carton} other {# cartons}} back"
+    },
+    "part_delivered": {
+      "title": "{order} part delivered · {stays, plural, one {# carton} other {# cartons}} still to ship"
     },
     "purchase_late": {
       "title": "{purchase} is {days, plural, one {{days} day} other {{days} days}} late",
-      "body": "{supplier}"
+      "body": "{waiting, plural, =0 {{supplier}} one {{supplier} · # order waiting for this stock} other {{supplier} · # orders waiting for this stock}}"
+    },
+    "stock_arrived": {
+      "title": "{purchase} received · {count, plural, one {# order} other {# orders}} can be allocated",
+      "body": "{orders}"
+    },
+    "stock_count": {
+      "title": "Stock count from {name}",
+      "body": "{total, plural, one {# full carton counted} other {# full cartons counted}}"
+    },
+    "iban_changed": {
+      "title": "{admin} changed the IBAN on proformas",
+      "body": "{hasIban, select, yes {New IBAN …{last4}} other {The IBAN was removed}}"
     },
     "payment_confirmed": {
       "title": "Payment confirmed for {order}",
       "body": "{customer} · {amount}"
     },
+    "payment": {
+      "title": "{order} is paid",
+      "body": "{next, select, waiting {Waiting for stock} ready {Ready to send} other {Paid in full}}"
+    },
     "payment_late": {
       "title": "{customer} is {days, plural, one {{days} day} other {{days} days}} late",
       "body": "{amount} owed on {order}"
+    },
+    "part_delivery_unpaid": {
+      "title": "{order} is part delivered and not paid",
+      "body": "{customer} · {amount} owed · {delivered} of {total, plural, one {# carton} other {# cartons}} delivered"
     },
     "upload_opened": {
       "title": "The Admin opened your upload",
@@ -347,6 +373,10 @@
     "commission_paid": {
       "title": "Commission paid: {amount}",
       "body": "{order} · {customer}. It's on its way to your bank."
+    },
+    "commission_paid_undone": {
+      "title": "Commission marked paid by mistake",
+      "body": "It is not paid yet. You will see it as paid once it leaves the bank."
     },
     "sent_for_approval": {
       "title": "{customer} sent for approval",
@@ -363,6 +393,111 @@
     "event": {
       "title": "You are invited to {event}",
       "body": "{startsOn} – {endsOn}, {place}"
+    },
+    "customer_assigned": {
+      "title": "{customer} is now yours",
+      "body": "Added by an Admin. You can start a sale."
+    },
+    "customer_assigned_until": {
+      "title": "{customer} is now yours",
+      "body": "Yours until {until}, and longer with each order."
+    },
+    "customer_moved": {
+      "title": "{customer} moved to {hasBroker, select, yes {{broker}} other {no broker}}",
+      "body": "Open orders stay with you."
+    },
+    "customer_moved_undone": {
+      "title": "{customer} is no longer yours",
+      "body": "The move was undone."
+    },
+    "customer_assigned_undone": {
+      "title": "{customer} is yours again",
+      "body": "The move was undone."
+    },
+    "ownership_expiring": {
+      "title": "{days, plural, one {# day} other {# days}} left with {customer}",
+      "body": "{hasLastOrder, select, yes {No order since {lastOrderOn}. } other {}}If {customer} doesn't order by {until}, it becomes free for any broker to claim."
+    },
+    "broker_changed": {
+      "title": "{order} for {customer} went to {hasBroker, select, yes {{broker}} other {another broker}}",
+      "body": "The commission on this order goes to them."
+    },
+    "order_corrected": {
+      "title": "{order} was corrected",
+      "body": "{reason}"
+    },
+    "cancelled": {
+      "title": "{order} was cancelled",
+      "body": "{reason}"
+    },
+    "cancelled_warehouse": {
+      "title": "{order} was cancelled",
+      "body": "Nothing to ship for this order."
+    },
+    "cancel_undone": {
+      "title": "{order} is open again",
+      "body": "The cancel was undone."
+    },
+    "allocated": {
+      "title": "{order} has stock",
+      "body": "Paid · ready to send"
+    },
+    "hold_released": {
+      "title": "Stock hold on {order} released",
+      "body": "The payment did not arrive in time. The order stays open."
+    },
+    "proforma_expired": {
+      "title": "Proforma for {order} expired",
+      "body": "Follow up with the customer."
+    },
+    "to_ship": {
+      "title": "{order} to ship"
+    },
+    "to_ship_again": {
+      "title": "{order} to deliver again"
+    },
+    "approved": {
+      "title": "Approved: {label}",
+      "body": "{kind, select, new_customer {You can start a sale.} special_price {The proforma will use the approved price.} other {The customer received the corrected proforma.}}"
+    },
+    "declined": {
+      "title": "Declined: {label}",
+      "body": "{why}{hasMessage, select, yes { · {message}} other {}}"
+    },
+    "waiting_again": {
+      "title": "Waiting again: {label}",
+      "body": "The Admin took the decision back. You will hear again soon."
+    },
+    "docs": {
+      "purchase_order": "Customer's purchase order",
+      "signed_order": "Signed order or agreement",
+      "payment_proof": "Proof of payment",
+      "delivery": "Delivery photo or signed note",
+      "other": "Something else"
+    },
+    "docsA": {
+      "purchase_order": "a purchase order",
+      "signed_order": "a signed order",
+      "payment_proof": "a proof of payment",
+      "delivery": "a delivery photo",
+      "other": "a document"
+    },
+    "why": {
+      "new_customer": {
+        "already_customer": "Already a customer",
+        "wrong_details": "VAT or details wrong",
+        "not_a_fit": "Not a fit for ANANDA"
+      },
+      "special_price": {
+        "discount_too_big": "Discount too big",
+        "smaller_discount": "Offer a smaller discount",
+        "not_for_customer": "Not for this customer"
+      },
+      "correction": {
+        "stock_picked": "Stock already picked",
+        "customer_confirm": "Customer must confirm first",
+        "wrong_quantities": "Wrong quantities"
+      }
     }
   },
   "systemRole": {

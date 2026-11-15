@@ -274,7 +274,7 @@ export class AdminSettingsService {
       }
       if (ibanChanged) {
         const admins = (await this.notify.userIdsWithRoles(['system_admin', 'admin'], tx)).filter((id) => id !== auth.user.id);
-        await this.notify.toUsers(admins, { type: 'iban_changed', title: `${auth.user.name} changed the IBAN on proformas`, body: v.iban ? `New IBAN …${v.iban.slice(-4)}` : 'The IBAN was removed', link: '/settings' }, tx);
+        await this.notify.send('iban_changed', { users: admins }, { admin: auth.user.name, last4: v.iban ? v.iban.slice(-4) : '', hasIban: v.iban ? 'yes' : 'no' }, '/settings', tx);
       }
       return { ok: true, changed };
     });

@@ -118,6 +118,10 @@
     "termsDays": "{n, plural, =0 {תשלום לפני אספקה} one {# יום} two {# ימים} other {# ימים}}"
   },
   "order": {
+    "deliveredOf": "נמסרו <n>{done}</n> מתוך <n>{total}</n> קרטונים",
+    "deliveredOfLine": "<n>{done}</n> מתוך <n>{total}</n>",
+    "stillToShip": "{n, plural, =0 {הכול נמסר} other {# למשלוח}}",
+    "partDelivered": "נמסר חלקית",
     "kicker": "{number} · נוצרה {date} · ברוקר",
     "kickerPhone": "{number} · {date} · ברוקר {broker}",
     "kickerHouse": "{number} · נוצרה {date} · מכירה של החברה",

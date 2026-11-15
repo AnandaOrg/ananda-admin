@@ -16,6 +16,7 @@
   "retry": "Опитай пак",
   "close": "Затвори",
   "undo": "Отмени",
+  "reorder": "Дозареди",
   "save": "Запази",
   "saveDraft": "Запази чернова",
   "cancel": "Откажи",
@@ -306,39 +307,64 @@
   "notify": {
     "customer_approval": {
       "title": "{broker} иска да добави {customer}",
-      "body": "Нов клиент"
+      "body": "{vatValid, select, yes {Нов клиент · ДДС номерът е валиден} other {Нов клиент}}"
     },
-    "special_price": {
-      "title": "{broker} иска специална цена",
-      "body": "{order} · {customer}"
+    "special_price_request": {
+      "title": "Специална цена за {order}",
+      "body": "{reason}"
     },
-    "correction": {
-      "title": "{broker} иска корекция",
-      "body": "{order} · {customer}"
+    "correction_request": {
+      "title": "Корекция за {order}",
+      "body": "{reason}"
     },
     "broker_upload": {
-      "title": "{broker} качи документ",
-      "body": "{doc} · {order} · {customer}"
+      "title": "{broker} качи {docPhrase}",
+      "body": "{order} · {customer}"
     },
     "broker_signed": {
       "title": "{broker} подписа договора за брокер",
       "body": "Данните за фирмата и банката са попълнени. Подпишете и вие, за да завършите настройката."
     },
     "delivered": {
-      "title": "{order} е доставена",
-      "body": "Складът качи подписаната бележка."
+      "title": "{order} е доставена"
+    },
+    "delivered_back": {
+      "title": "{order} е доставена частично · {returned, plural, one {# кашон} other {# кашона}} се върнаха"
+    },
+    "part_delivered": {
+      "title": "{order} е частично доставена · {stays, plural, one {остава # кашон} other {остават # кашона}} за изпращане"
     },
     "purchase_late": {
       "title": "{purchase} закъснява с {days, plural, one {{days} ден} other {{days} дни}}",
-      "body": "{supplier}"
+      "body": "{waiting, plural, =0 {{supplier}} one {{supplier} · # поръчка чака тази стока} other {{supplier} · # поръчки чакат тази стока}}"
+    },
+    "stock_arrived": {
+      "title": "{purchase} е получена · {count, plural, one {# поръчка може} other {# поръчки могат}} да получат стока",
+      "body": "{orders}"
+    },
+    "stock_count": {
+      "title": "Преброяване на склада от {name}",
+      "body": "{total, plural, one {# цял кашон е преброен} other {# цели кашона са преброени}}"
+    },
+    "iban_changed": {
+      "title": "{admin} промени IBAN в проформите",
+      "body": "{hasIban, select, yes {Нов IBAN …{last4}} other {IBAN е премахнат}}"
     },
     "payment_confirmed": {
       "title": "Плащането за {order} е потвърдено",
       "body": "{customer} · {amount}"
     },
+    "payment": {
+      "title": "{order} е платена",
+      "body": "{next, select, waiting {Чака стока} ready {Готова за изпращане} other {Платена изцяло}}"
+    },
     "payment_late": {
       "title": "{customer} закъснява с {days, plural, one {{days} ден} other {{days} дни}}",
       "body": "{amount} дължими по {order}"
+    },
+    "part_delivery_unpaid": {
+      "title": "{order} е частично доставена и неплатена",
+      "body": "{customer} · {amount} дължими · доставени {delivered} от {total, plural, one {# кашон} other {# кашона}}"
     },
     "upload_opened": {
       "title": "Администраторът отвори вашия документ",
@@ -347,6 +373,10 @@
     "commission_paid": {
       "title": "Изплатена комисиона: {amount}",
       "body": "{order} · {customer}. Пътува към банката ви."
+    },
+    "commission_paid_undone": {
+      "title": "Комисионата беше отбелязана като платена по грешка",
+      "body": "Още не е платена. Ще я видите като платена, щом излезе от банката."
     },
     "sent_for_approval": {
       "title": "{customer} е изпратен за одобрение",
@@ -363,6 +393,111 @@
     "event": {
       "title": "Поканени сте на {event}",
       "body": "{startsOn} – {endsOn}, {place}"
+    },
+    "customer_assigned": {
+      "title": "{customer} вече е ваш",
+      "body": "Добавен от администратор. Можете да започнете продажба."
+    },
+    "customer_assigned_until": {
+      "title": "{customer} вече е ваш",
+      "body": "Ваш е до {until}, и за по-дълго с всяка поръчка."
+    },
+    "customer_moved": {
+      "title": "{customer} премина към {hasBroker, select, yes {{broker}} other {никой брокер}}",
+      "body": "Отворените поръчки остават при вас."
+    },
+    "customer_moved_undone": {
+      "title": "{customer} вече не е ваш",
+      "body": "Преместването беше отменено."
+    },
+    "customer_assigned_undone": {
+      "title": "{customer} пак е ваш",
+      "body": "Преместването беше отменено."
+    },
+    "ownership_expiring": {
+      "title": "{days, plural, one {остава # ден} other {остават # дни}} с {customer}",
+      "body": "{hasLastOrder, select, yes {Няма поръчка от {lastOrderOn}. } other {}}Ако {customer} не поръча до {until}, клиентът става свободен за всеки брокер."
+    },
+    "broker_changed": {
+      "title": "{order} за {customer} премина към {hasBroker, select, yes {{broker}} other {друг брокер}}",
+      "body": "Комисионата по тази поръчка е за него."
+    },
+    "order_corrected": {
+      "title": "{order} е коригирана",
+      "body": "{reason}"
+    },
+    "cancelled": {
+      "title": "{order} е анулирана",
+      "body": "{reason}"
+    },
+    "cancelled_warehouse": {
+      "title": "{order} е анулирана",
+      "body": "Няма какво да се изпраща по тази поръчка."
+    },
+    "cancel_undone": {
+      "title": "{order} отново е отворена",
+      "body": "Анулирането беше отменено."
+    },
+    "allocated": {
+      "title": "{order} вече има стока",
+      "body": "Платена · готова за изпращане"
+    },
+    "hold_released": {
+      "title": "Резервацията на стока за {order} е освободена",
+      "body": "Плащането не пристигна навреме. Поръчката остава отворена."
+    },
+    "proforma_expired": {
+      "title": "Проформата за {order} изтече",
+      "body": "Свържете се с клиента."
+    },
+    "to_ship": {
+      "title": "{order} за изпращане"
+    },
+    "to_ship_again": {
+      "title": "{order} за повторна доставка"
+    },
+    "approved": {
+      "title": "Одобрено: {label}",
+      "body": "{kind, select, new_customer {Можете да започнете продажба.} special_price {Проформата ще използва одобрената цена.} other {Клиентът получи коригираната проформа.}}"
+    },
+    "declined": {
+      "title": "Отказано: {label}",
+      "body": "{why}{hasMessage, select, yes { · {message}} other {}}"
+    },
+    "waiting_again": {
+      "title": "Отново чака: {label}",
+      "body": "Администраторът върна решението. Ще получите отговор скоро."
+    },
+    "docs": {
+      "purchase_order": "Поръчка от клиента",
+      "signed_order": "Подписана поръчка или договор",
+      "payment_proof": "Доказателство за плащане",
+      "delivery": "Снимка от доставката или подписана разписка",
+      "other": "Друго"
+    },
+    "docsA": {
+      "purchase_order": "поръчка от клиента",
+      "signed_order": "подписана поръчка",
+      "payment_proof": "доказателство за плащане",
+      "delivery": "снимка от доставката",
+      "other": "документ"
+    },
+    "why": {
+      "new_customer": {
+        "already_customer": "Вече е клиент",
+        "wrong_details": "Грешен ДДС номер или данни",
+        "not_a_fit": "Не е подходящ за ANANDA"
+      },
+      "special_price": {
+        "discount_too_big": "Твърде голяма отстъпка",
+        "smaller_discount": "Предложете по-малка отстъпка",
+        "not_for_customer": "Не за този клиент"
+      },
+      "correction": {
+        "stock_picked": "Стоката вече е събрана",
+        "customer_confirm": "Клиентът трябва първо да потвърди",
+        "wrong_quantities": "Грешни количества"
+      }
     }
   },
   "systemRole": {

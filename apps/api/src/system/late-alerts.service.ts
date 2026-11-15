@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { and, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { isoDate } from '@ananda/shared';
 import { InjectDb, type Db } from '../db/db.module';
-import { customers, notifications, orders, purchases, suppliers } from '../db/schema';
+import { customers, notifications, orderLines, orders, purchases, suppliers } from '../db/schema';
 import { NotifyService } from '../core/notify.service';
+import { PART_DELIVERY_STATUSES, deliveryProgress } from '../orders/delivery-progress';
 import { OWED_STATUSES, outstandingSql } from '../core/figures.service';
 
 const days = (d: string) => Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 86_400_000));
@@ -67,6 +68,23 @@ export class LateAlertsService {
       const link = `/sales/${o.id}`;
       if (!o.dueOn || (await this.recentlySent('payment_late', link))) continue;
       await this.notify.send('payment_late', { users: [o.brokerId] }, { customer: o.customer, days: days(o.dueOn), order: o.number, amountCents: Number(o.cents) }, link);
+      sent++;
+    }
+    // Delivered in part and still unpaid: to their broker. Orders already past their due date get the
+    // payment_late alert above for the same money, so they are left out here (no double alert).
+    // The "part delivered" rule is deliveryProgress() (same as the order page), applied to the candidates in code.
+    const candidates = await this.db
+      .select({ id: orders.id, number: orders.number, status: orders.status, outcome: orders.partDeliveryOutcome, brokerId: orders.brokerId, customer: customers.companyName, total: orders.totalCartons, cents: sql<number>`${outstandingSql}::int` })
+      .from(orders)
+      .innerJoin(customers, eq(customers.id, orders.customerId))
+      .where(and(inArray(orders.status, PART_DELIVERY_STATUSES), sql`${outstandingSql} > 0`, or(isNull(orders.paymentDueOn), gte(orders.paymentDueOn, today))));
+    const lines = candidates.length ? await this.db.select({ orderId: orderLines.orderId, deliveredCartons: orderLines.deliveredCartons }).from(orderLines).where(inArray(orderLines.orderId, candidates.map((c) => c.id))) : [];
+    for (const o of candidates) {
+      const progress = deliveryProgress(o.status, o.total, lines.filter((l) => l.orderId === o.id), o.outcome);
+      if (!progress.part) continue;
+      const link = `/sales/${o.id}`;
+      if (await this.recentlySent('part_delivery_unpaid', link)) continue;
+      await this.notify.send('part_delivery_unpaid', { users: [o.brokerId] }, { order: o.number, customer: o.customer, amountCents: Number(o.cents), delivered: progress.deliveredCartons, total: o.total }, link);
       sent++;
     }
     return { sent };

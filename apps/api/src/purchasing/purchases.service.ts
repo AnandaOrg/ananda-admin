@@ -531,12 +531,7 @@ export class PurchasesService {
     // Waiting orders can now be allocated (FR-PUR-7, FR-INV-3).
     const waiting = (await this.orders.waitingForStock()).filter((o) => o.lines.some((l) => result.flavours.includes(l.flavour)));
     if (waiting.length) {
-      await this.notify.toRoles(['system_admin', 'admin'], {
-        type: 'stock_arrived',
-        title: `${result.number} received · ${waiting.length} ${waiting.length === 1 ? 'order' : 'orders'} can be allocated`,
-        body: waiting.map((o) => o.number).join(', '),
-        link: '/inventory?allocate=1',
-      });
+      await this.notify.send('stock_arrived', { roles: ['system_admin', 'admin'] }, { purchase: result.number, count: waiting.length, orders: waiting.map((o) => o.number).join(', ') }, '/inventory?allocate=1');
     }
     return { ...result, waitingOrders: waiting.length };
   }
