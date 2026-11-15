@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { asc, eq, sql } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import { FLAVOURS, type Flavour } from '@ananda/shared';
 import { InjectDb, type Db, type Tx } from '../db/db.module';
-import { purchases, suppliers } from '../db/schema';
+import { documents, purchases, suppliers, users } from '../db/schema';
+import { FilesService } from '../core/files.service';
 import { AuditService, diff } from '../core/audit.service';
 import type { AuthContext } from '../common/context';
-import type { SupplierBody } from './purchasing.schemas';
+import type { SupplierBody, UploadedFile } from './purchasing.schemas';
 
 type SupplierRow = typeof suppliers.$inferSelect;
 
@@ -17,6 +18,7 @@ export class SuppliersService {
   constructor(
     @InjectDb() private readonly db: Db,
     private readonly audit: AuditService,
+    private readonly files: FilesService,
   ) {}
 
   async list() {
@@ -26,11 +28,12 @@ export class SuppliersService {
       .select({
         s: suppliers,
         lastPurchaseOn: sql<string | null>`(select max(${purchases.orderedOn})::text from ${purchases} where ${purchases.supplierId} = ${outer})`,
+        lastPurchaseNumber: sql<string | null>`(select ${purchases.number} from ${purchases} where ${purchases.supplierId} = ${outer} order by ${purchases.orderedOn} desc, ${purchases.number} desc limit 1)`,
         purchaseCount: sql<number>`(select count(*)::int from ${purchases} where ${purchases.supplierId} = ${outer})`,
       })
       .from(suppliers)
       .orderBy(asc(suppliers.company));
-    const items = rows.map((r) => ({ ...r.s, lastPurchaseOn: r.lastPurchaseOn, purchaseCount: Number(r.purchaseCount) }));
+    const items = rows.map((r) => ({ ...r.s, lastPurchaseOn: r.lastPurchaseOn, lastPurchaseNumber: r.lastPurchaseNumber, purchaseCount: Number(r.purchaseCount) }));
     const defaults = Object.fromEntries(FLAVOURS.map((f) => [f, items.find((s) => s.status === 'approved' && s.defaultFlavours.includes(f))?.id ?? null])) as Record<Flavour, string | null>;
     return { items, defaults };
   }
@@ -38,7 +41,27 @@ export class SuppliersService {
   async get(id: string) {
     const [s] = await this.db.select().from(suppliers).where(eq(suppliers.id, id));
     if (!s) throw new NotFoundException({ message: 'Supplier not found' });
-    return s;
+    const docs = await this.db
+      .select({ d: documents, by: users.name })
+      .from(documents)
+      .leftJoin(users, eq(users.id, documents.createdById))
+      .where(eq(documents.supplierId, id))
+      .orderBy(desc(documents.createdAt));
+    return { ...s, documents: docs.map((r) => ({ id: r.d.id, label: r.d.label ?? r.d.fileName, fileName: r.d.fileName, createdAt: r.d.createdAt, by: r.by })) };
+  }
+
+  /** Contracts and price lists kept on the supplier. */
+  async upload(auth: AuthContext, id: string, file: UploadedFile | undefined, label?: string) {
+    if (!file) throw new BadRequestException({ message: 'Choose a file to upload' });
+    if (!this.files.isAllowed(file.mimetype)) throw new BadRequestException({ message: 'Upload a photo (JPG, PNG, HEIC) or a PDF' });
+    const saved = await this.files.save(file);
+    return this.db.transaction(async (tx) => {
+      const [s] = await tx.select().from(suppliers).where(eq(suppliers.id, id)).for('update');
+      if (!s) throw new NotFoundException({ message: 'Supplier not found' });
+      const [d] = await tx.insert(documents).values({ type: 'upload', supplierId: id, label: label || saved.name, filePath: saved.path, fileName: saved.name, mimeType: saved.mime, createdById: auth.user.id }).returning();
+      await this.audit.log(auth, { category: 'documents', action: 'uploaded', recordType: 'supplier', recordId: id, recordLabel: s.company, meta: { documentId: d.id, label: label || saved.name } }, tx);
+      return { id: d.id };
+    });
   }
 
   async create(auth: AuthContext, input: SupplierBody) {

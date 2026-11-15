@@ -1,11 +1,12 @@
 // Request bodies owned by the Admin module (FR-ADM-1, FR-ADM-3).
 import { z } from 'zod';
+import { roleSchema } from '@ananda/shared';
 
 const text = (max = 200) => z.string().trim().max(max);
 const email = z.string().trim().toLowerCase().email('Enter a valid e-mail');
 const emailOrEmpty = z.union([email, z.literal('')]);
 
-/** Invite a member. Exactly one of roleId / roleKey (the "Invite new agent" panel sends roleKey 'agent'). */
+/** Invite a member. Exactly one of roleId / roleKey (the "Invite new broker" panel sends roleKey 'broker'). */
 export const inviteMemberSchema = z
   .object({
     name: z.string().trim().min(1, 'Enter a name').max(200),
@@ -14,16 +15,23 @@ export const inviteMemberSchema = z
     message: text(5000).optional(),
     roleId: z.string().uuid().optional(),
     roleKey: z.string().trim().min(1).max(80).optional(),
+    /** Users & roles › Add member: the whole invitation e-mail as written (and maybe polished); the sign-up link is added below it. */
+    subject: text(200).optional(),
+    letter: text(10_000).optional(),
   })
   .refine((v) => !!v.roleId !== !!v.roleKey, { message: 'Pick a role', path: ['roleId'] });
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+
+/** Custom role changes: area access, sensitive actions and which records (FR-ADM-1). */
+export const roleUpdateSchema = roleSchema.extend({ scope: z.enum(['all', 'own', 'shipping']).optional() });
+export type RoleUpdateInput = z.infer<typeof roleUpdateSchema>;
 
 export const ruleSchemas = {
   ownership: z.object({
     months: z.number().int().min(1, 'At least 1 month').max(60, 'At most 60 months'),
     countedFrom: z.enum(['each_order', 'first_order']),
     warningDays: z.number().int().min(0).max(180, 'At most 180 days'),
-    atEnd: z.enum(['free_to_claim', 'stay_with_agent']),
+    atEnd: z.enum(['free_to_claim', 'stay_with_broker']),
   }),
   minOrderCartons: z.number().int().min(1, 'At least 1 carton').max(10_000),
   stockHoldDays: z.number().int().min(1, 'At least 1 day').max(60, 'At most 60 days'),
@@ -65,7 +73,7 @@ export const settingSchemas = {
     accounting: emailOrEmpty,
     sender: text(200),
     replyTo: emailOrEmpty,
-    copyAgent: z.boolean(),
+    copyBroker: z.boolean(),
   }),
   documents: z.object({
     languages: z.array(z.enum(['en', 'bg'])).min(1, 'Pick at least one language'),

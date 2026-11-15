@@ -18,7 +18,12 @@ export interface Supplier {
   unitPriceCents: number;
   status: 'approved' | 'pending' | 'inactive';
   lastPurchaseOn: string | null;
+  lastPurchaseNumber: string | null;
   purchaseCount: number;
+}
+
+export interface SupplierDetail extends Omit<Supplier, 'lastPurchaseOn' | 'lastPurchaseNumber' | 'purchaseCount'> {
+  documents: { id: string; label: string | null; fileName: string | null; createdAt: string; by: string | null }[];
 }
 
 export interface SupplierList {
@@ -39,6 +44,7 @@ export interface PurchaseRow {
   totalUnits: number;
   unitsReceived: number | null;
   supplierInvoiceReceived: boolean;
+  payableCents: number;
   stillToPayCents: number;
   daysLate: number;
 }
@@ -48,7 +54,9 @@ export type PurchaseFilter = 'all' | 'open' | 'late' | 'received';
 export interface PurchaseList {
   items: PurchaseRow[];
   counts: Record<PurchaseFilter, number>;
-  tiles: { onTheWayUnits: number; onTheWayCartons: number; toPaySuppliersCents: number; notInvoicedCents: number; late: number; oldestLateDays: number };
+  tiles: { onTheWayUnits: number; onTheWayCartons: number; toPaySuppliersCents: number; notInvoicedCents: number; toPayNumbers: string[]; late: number; oldestLateDays: number; oldestLateNumber: string | null; oldestLateId: string | null };
+  approvedSuppliers: number;
+  nextNumber: string;
 }
 
 export interface PayablePayment {
@@ -77,6 +85,8 @@ export interface Payable {
   stillToPayCents: number;
   documentId: string | null;
   overdue?: boolean;
+  paidToday?: boolean;
+  arrivedOn?: string | null;
   payments?: PayablePayment[];
 }
 
@@ -89,6 +99,18 @@ export interface Shipment {
   departOn: string | null;
   arriveOn: string | null;
   status: 'booked' | 'in_transit' | 'arrived';
+}
+
+export interface PurchaseFile {
+  kind: 'purchase_order' | 'supplier_invoice' | 'carrier_invoice' | 'received_note' | 'payment' | 'upload';
+  on: string | null;
+  number?: string | null;
+  label?: string | null;
+  amountCents?: number | null;
+  units?: number | null;
+  part?: boolean;
+  by?: string | null;
+  href: string | null;
 }
 
 export interface PurchaseDetail {
@@ -110,7 +132,7 @@ export interface PurchaseDetail {
     note: string | null;
     daysLate: number;
   };
-  supplier: Omit<Supplier, 'lastPurchaseOn' | 'purchaseCount'>;
+  supplier: Omit<Supplier, 'lastPurchaseOn' | 'lastPurchaseNumber' | 'purchaseCount'>;
   lines: { id: string; flavour: Flavour; cartons: number; units: number; unitPriceCents: number; unitsReceived: number | null; lineCents: number }[];
   figures: {
     goodsCents: number;
@@ -131,7 +153,8 @@ export interface PurchaseDetail {
   shipments: Shipment[];
   documents: { id: string; type: string; number: string | null; label: string | null; fileName: string | null; hasFile: boolean; totalCents: number | null; createdAt: string; by: string | null }[];
   messages: { id: string; topic: string; to: string; subject: string; body: string; followUpOn: string | null; resolvedAt: string | null; createdAt: string; by: string | null }[];
-  waiting: { id: string; number: string; paidAt: string | null; customerName: string | null; units: number; lines: { flavour: Flavour; cartons: number; units: number }[] }[];
+  waiting: { id: string; number: string; paidAt: string | null; since: string | null; brokerName: string | null; customerName: string | null; cartons: number; units: number; lines: { flavour: Flavour; cartons: number; units: number }[] }[];
+  files: PurchaseFile[];
   steps: Record<'ordered' | 'on_the_way' | 'supplier_invoice' | 'paid_supplier' | 'landed_cost', { done: boolean; on: string | null; number?: string | null }>;
   actions: string[];
   followUpDays: number;

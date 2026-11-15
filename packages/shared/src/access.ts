@@ -8,7 +8,7 @@ export const AREAS = [
   'purchasing',
   'inventory',
   'warehouse',
-  'agents',
+  'brokers',
   'events',
   'deal_profit',
   'pnl',
@@ -22,10 +22,10 @@ export type Area = (typeof AREAS)[number];
 export type AccessLevel = 'hidden' | 'view' | 'edit';
 export type AreaMatrix = Record<Area, AccessLevel>;
 
-export const SYSTEM_ROLES = ['system_admin', 'admin', 'agent', 'warehouse', 'finance'] as const;
+export const SYSTEM_ROLES = ['system_admin', 'admin', 'broker', 'warehouse', 'finance'] as const;
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 
-/** own = own customers and orders (agents); shipping = orders to ship only (warehouse). */
+/** own = own customers and orders (brokers); shipping = orders to ship only (warehouse). */
 export type RecordScope = 'all' | 'own' | 'shipping';
 
 export const SENSITIVE_ACTIONS = [
@@ -59,7 +59,7 @@ export interface RoleDefinition {
 }
 
 // Order of columns: home, sales, customers, collections, purchasing, inventory, warehouse,
-// agents, events, deal_profit, pnl, expenses, users, settings, audit (PRD §3.1).
+// brokers, events, deal_profit, pnl, expenses, users, settings, audit (PRD §3.1).
 export const ROLE_DEFAULTS: Record<SystemRole, RoleDefinition> = {
   system_admin: {
     key: 'system_admin',
@@ -75,8 +75,8 @@ export const ROLE_DEFAULTS: Record<SystemRole, RoleDefinition> = {
     areas: matrix([E, E, E, E, E, E, E, E, E, E, E, E, V, V, V]),
     sensitive: ['see_prices', 'approve', 'confirm_payment', 'issue_invoices', 'pay_commission', 'record_supplier_payment'],
   },
-  agent: {
-    key: 'agent',
+  broker: {
+    key: 'broker',
     scope: 'own',
     twoStepRequired: false,
     areas: matrix([V, E, E, V, H, H, H, V, V, H, H, H, H, H, H]),

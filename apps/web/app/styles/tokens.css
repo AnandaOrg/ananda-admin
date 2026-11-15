@@ -1,6 +1,7 @@
-/* ANANDA — generated from tokens.json */
+/* ANANDA tokens. Generated from the design system tokens.json (version 1). Do not edit by hand: change tokens.json and regenerate. */
 @font-face { font-family: "Rubik"; src: url("/fonts/Rubik-Variable.woff2") format("woff2"); font-weight: 300 900; font-style: normal; font-display: swap; }
 :root, [data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0A0A0B;
   --surface-1: #131314;
   --surface-2: #19191B;
@@ -32,6 +33,19 @@
   --flavour-santorini: #6E7BFF;
   --flavour-kyoto: #E879A8;
   --scrim: rgba(0,0,0,0.6);
+  --accent-edge: rgba(0,0,0,0);
+  --nav-selected: #212123;
+  --on-nav-selected: #F2F2F0;
+  --line-soft: #222224;
+  --secondary-on-tint: #19191B;
+  --icon-box: #0A0A0B;
+  --bad-strong: #F2685E;
+  --warn-pill: #2A2312;
+  --warn-pill-ink: #F0B429;
+  --count-accent: #22240F;
+  --count-accent-ink: #E4F04E;
+  --count-bad: #2B1715;
+  --count-bad-ink: #F2685E;
   --paper-bg: #F6F5F0;
   --paper-ink: #1D1D1B;
   --paper-muted: #6B6A64;
@@ -43,6 +57,55 @@
   --shadow-panel: -30px 0 60px -20px rgba(0,0,0,0.6);
   --shadow-paper: 0 10px 30px -12px rgba(0,0,0,0.6);
 }
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F8F8F8;
+  --surface-1: #FFFFFF;
+  --surface-2: #F6F6F6;
+  --surface-3: #EDEDED;
+  --line: #E3E3E3;
+  --text: #171717;
+  --text-muted: #5F5F5F;
+  --text-subtle: #6A6A6A;
+  --accent: #EBF740;
+  --on-accent: #2A2A28;
+  --accent-hover: #E0EE30;
+  --accent-pressed: #CFDC22;
+  --accent-soft: #F7FAD6;
+  --accent-line: #DDE48E;
+  --good: #12813C;
+  --good-soft: #EBF8EF;
+  --warn: #C07C00;
+  --warn-soft: #FEF3D6;
+  --bad: #C8261A;
+  --bad-soft: #FDE3E0;
+  --bad-line: #EFC0BA;
+  --on-bad: #FFFFFF;
+  --info: #136C7B;
+  --info-soft: #DDF0F3;
+  --blue: #4752C4;
+  --blue-soft: #E6E8FA;
+  --flavour-aloha: #D69610;
+  --flavour-gaia: #1F9F5D;
+  --flavour-santorini: #5361E8;
+  --flavour-kyoto: #D4528B;
+  --scrim: rgba(24,24,20,0.32);
+  --accent-edge: rgba(23,23,23,0.045);
+  --nav-selected: #EDEDED;
+  --on-nav-selected: #171717;
+  --line-soft: #ECECEC;
+  --secondary-on-tint: #FFFFFF;
+  --icon-box: rgba(255,255,255,0.8);
+  --bad-strong: #D92D20;
+  --warn-pill: #FCE7A6;
+  --warn-pill-ink: #2A2A28;
+  --count-accent: #EEF76E;
+  --count-accent-ink: #2A2A28;
+  --count-bad: #F5CBC6;
+  --count-bad-ink: #9E1F18;
+}
+/* The side panel opens from the left in Hebrew: its shadow mirrors. */
+[dir="rtl"] { --shadow-panel: 30px 0 60px -20px rgba(0,0,0,0.6); }
 :root {
   --space-1: 4px;
   --space-2: 8px;
@@ -52,11 +115,11 @@
   --space-6: 24px;
   --space-8: 32px;
   --page-margin: 20px;
-  --page-margin-phone: 16px;
   --layout-gap: 20px;
   --section-gap: 16px;
   --row-gap: 12px;
   --card-padding: 20px;
+  --page-margin-phone: 16px;
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -70,18 +133,20 @@
   --icon-lg: 24px;
   --focus-ring: 2px;
   --panel-width: 460px;
-  --sidebar-width: 257px;
-  --rail-width: 72px;
-  --nav-row: 45px;
-  /* Breakpoints: for reference; use the values directly in media queries */
-  --bp-tablet: 768px;
-  --bp-laptop: 1024px;
-  --bp-desktop: 1280px;
   --avatar-sm: 36px;
   --avatar-lg: 44px;
   --popover-width: 300px;
+  --sidebar-width: 257px;
+  --rail-width: 72px;
+  --nav-row: 45px;
+  --bp-tablet: 768px;
+  --bp-laptop: 1024px;
+  --bp-desktop: 1280px;
   --font-sans: "Rubik", system-ui, sans-serif;
 }
+/* The danger button (Discard) is bad-strong with a white label, 4.8:1, in BOTH themes (README: Toasts and errors); dark bad-strong is lighter, so it uses the light value. */
+.an-btn.danger, .an-btn.primary.danger { background: #D92D20; }
+/* Type styles */
 .display { font-family: var(--font-sans); font-size: 34px; line-height: 40px; font-weight: 300; }
 .title-1 { font-family: var(--font-sans); font-size: 28px; line-height: 34px; font-weight: 300; }
 .title-2 { font-family: var(--font-sans); font-size: 22px; line-height: 28px; font-weight: 400; }
@@ -91,4 +156,8 @@
 .body-strong { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
 .body-sm { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
 .caption { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; }
-.overline { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; }
+.overline { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+/* Hebrew has no upper case: no letter-spacing, no transform */
+[lang="he"] .overline { letter-spacing: 0; text-transform: none; }
+/* Every figure uses tabular numbers */
+body, .num, .tnum { font-variant-numeric: tabular-nums; }

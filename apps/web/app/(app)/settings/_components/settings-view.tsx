@@ -1,385 +1,466 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { isoDate, type BankSettings, type BusinessRules, type CompanyProfile, type DocumentSettings, type EmailSettings, type SecuritySettings } from '@ananda/shared';
+import { PRICE_TIERS, type BankSettings, type BusinessRules, type CompanyProfile, type EmailSettings } from '@ananda/shared';
 import { api, ApiError } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import {
-  Bank,
-  Banner,
-  Briefcase,
-  Button,
-  Card,
-  Clock,
-  EnvelopeOpen,
-  ErrorState,
-  FileText,
-  HourglassMedium,
-  IconButton,
-  KeyValue,
-  Lock,
-  Money,
-  Package,
-  PageHeader,
-  PageSkeleton,
-  Plus,
-  Segmented,
-  Sheet,
-  ShieldCheck,
-  Truck,
-  TextField,
-  TwoStepField,
-  Users,
-  X,
-  MoneyField,
-} from '@/components/ui';
-import { SettingsItem } from './settings-item';
+import { ActionError, Banner, Button, Chips, FileUpload, Card, Clock, Icon, IconButton, MoneyField, PageHeader, PageState, Plus, Select, Sheet, TextField, TwoStepField, UploadSimple, X } from '@/components/ui';
+import { ProfileDevices } from '../../profile/_components/profile-devices';
+import { SettingsTabs, type SettingsTab } from './settings-tabs';
 import css from '../settings.module.css';
 
-export const RULE_KEYS = ['ownership', 'minOrderCartons', 'stockHoldDays', 'proformaValidityDays', 'commissionPerUnitCents', 'supplierFollowUpDays'] as const;
-export const SECTION_KEYS = ['company', 'bank', 'email', 'documents', 'security'] as const;
-type RuleKey = (typeof RULE_KEYS)[number];
-type SectionKey = (typeof SECTION_KEYS)[number];
-type Open = { kind: 'rule'; key: RuleKey } | { kind: 'section'; key: SectionKey } | null;
+/** The seven business rules, in the order the app explains them. */
+export const RULES = ['ownership', 'payment', 'stockHold', 'priceList', 'commission', 'approvals', 'corrections'] as const;
+type Rule = (typeof RULES)[number];
+/** Rules that are part of how orders work; they're shown, not edited. */
+const FIXED: Rule[] = ['payment', 'approvals', 'corrections'];
+export const CARDS = ['docs', 'mail', 'bank'] as const;
+type CardKey = (typeof CARDS)[number];
+type Open = { kind: 'rule'; key: Rule } | { kind: 'card'; key: CardKey } | null;
+
+type ProformaLanguage = 'per_customer' | 'en' | 'bg';
+type TwoStepPolicy = 'admins_finance' | 'everyone' | 'optional' | 'custom';
+type SignOut = 'short' | 'standard' | 'never' | 'custom';
 
 interface SettingsData {
   rules: BusinessRules;
   company: CompanyProfile;
   bank: BankSettings;
   email: EmailSettings;
-  documents: DocumentSettings;
-  security: SecuritySettings;
+  documents: {
+    proformaLanguage: ProformaLanguage;
+    proformaValidityDays: number;
+    logo: { name: string; mime: string } | null;
+    footer: string;
+    prefixes: { order: string; invoice: string; credit_note: string };
+    nextInvoice: number;
+  };
+  security: { desktopSessionHours: number; phoneSessionDays: number; twoStep: TwoStepPolicy; signOut: SignOut };
   nextNumbers: Record<string, string>;
   lastChanged: Record<string, { at: string; by: string | null }>;
+  ownershipExample: { customerName: string; ownedUntil: string; lastOrderAt: string | null } | null;
 }
 
-const RULE_ICONS = { ownership: Users, minOrderCartons: Package, stockHoldDays: HourglassMedium, proformaValidityDays: FileText, commissionPerUnitCents: Money, supplierFollowUpDays: Truck } as const;
-const SECTION_ICONS = { company: Briefcase, bank: Bank, email: EnvelopeOpen, documents: FileText, security: ShieldCheck } as const;
-
+/** Deep links (/settings/company, /settings/bank, /settings/ownership …) open the matching panel. */
 export function openFromSection(section?: string): Open {
-  if (!section) return null;
-  if ((RULE_KEYS as readonly string[]).includes(section)) return { kind: 'rule', key: section as RuleKey };
-  if ((SECTION_KEYS as readonly string[]).includes(section)) return { kind: 'section', key: section as SectionKey };
-  return null;
+  switch (section) {
+    case 'company':
+    case 'documents':
+    case 'docs':
+    case 'proformaValidityDays':
+      return { kind: 'card', key: 'docs' };
+    case 'email':
+    case 'mail':
+      return { kind: 'card', key: 'mail' };
+    case 'bank':
+    case 'security':
+      return { kind: 'card', key: 'bank' };
+    case 'minOrderCartons':
+      return { kind: 'rule', key: 'priceList' };
+    case 'stockHoldDays':
+      return { kind: 'rule', key: 'stockHold' };
+    case 'commissionPerUnitCents':
+      return { kind: 'rule', key: 'commission' };
+    default:
+      return (RULES as readonly string[]).includes(section ?? '') ? { kind: 'rule', key: section as Rule } : null;
+  }
 }
 
-/** FR-ADM-3: business rules in plain words, documents, e-mail, bank, company and security. */
+/** Plain-words text and short value of each rule, from the live settings. */
+function useRuleWords() {
+  const t = useTranslations('admin');
+  const { money, num } = useFmt();
+  return (rule: Rule, r: BusinessRules) => {
+    switch (rule) {
+      case 'ownership':
+        return {
+          text: t('settings.rule.ownership.text', { months: r.ownership.months, days: r.ownership.warningDays, from: r.ownership.countedFrom, end: r.ownership.atEnd }),
+          value: t('settings.rule.ownership.value', { months: r.ownership.months, days: r.ownership.warningDays, from: r.ownership.countedFrom }),
+        };
+      case 'payment':
+        return { text: t('settings.rule.payment.text', { n: r.paymentBeforeShippingPercent }), value: t('settings.rule.payment.value', { n: r.paymentBeforeShippingPercent }) };
+      case 'stockHold':
+        return { text: t('settings.rule.stockHold.text', { n: r.stockHoldDays }), value: t('settings.rule.stockHold.value', { n: r.stockHoldDays }) };
+      case 'priceList': {
+        const tiers = PRICE_TIERS.map((x) => `${num(x.minCartons)}–${num(x.maxCartons)} ${money(x.unitPriceCents)}`).join(' · ');
+        const advance = PRICE_TIERS.find((x) => x.requiresAdvanceOrCommitment)?.minCartons ?? 0;
+        return {
+          text: t('settings.rule.priceList.text', { tiers, min: num(r.minOrderCartons), advance: num(advance) }),
+          value: t('settings.rule.priceList.value', { high: money(PRICE_TIERS[0].unitPriceCents), low: money(PRICE_TIERS[PRICE_TIERS.length - 1].unitPriceCents), min: num(r.minOrderCartons) }),
+        };
+      }
+      case 'commission':
+        return { text: t('settings.rule.commission.text', { amount: money(r.commissionPerUnitCents) }), value: t('settings.rule.commission.value', { amount: money(r.commissionPerUnitCents) }) };
+      default:
+        return { text: t(`settings.rule.${rule}.text`), value: t(`settings.rule.${rule}.value`) };
+    }
+  };
+}
+
+/** FR-ADM-3 and FR-ADM-4: Business & company (rules, documents, e-mail, bank and sign-in) and Profile & devices. */
 export function SettingsView({ initial }: { initial?: string }) {
   const t = useTranslations('admin');
   const tc = useTranslations('common');
   const router = useRouter();
-  const { canEdit, readOnly, can } = useSession();
-  const { money, dateShort } = useFmt();
-  const q = useQuery({ queryKey: ['settings'], queryFn: () => api.get<SettingsData>('/settings') });
+  const params = useSearchParams();
+  const { me, canEdit, readOnly } = useSession();
+  const words = useRuleWords();
+  const tab: SettingsTab = params.get('tab') === 'me' ? 'me' : 'rules';
+  const q = useQuery({ queryKey: ['settings'], queryFn: () => api.get<SettingsData>('/settings'), enabled: tab === 'rules' });
   const [open, setOpen] = useState<Open>(openFromSection(initial));
   useEffect(() => setOpen(openFromSection(initial)), [initial]);
   const editable = canEdit('settings') && !readOnly;
-  const rulesEditable = editable && can('change_rules');
   const close = () => {
     setOpen(null);
     if (initial) router.replace('/settings');
   };
+  const setTab = (v: SettingsTab) => router.replace(v === 'me' ? '/settings?tab=me' : '/settings');
 
-  if (q.isLoading) return <PageSkeleton />;
-  if (q.error || !q.data) return <div className="page"><ErrorState error={q.error} retry={() => q.refetch()} /></div>;
+  if (tab === 'me') {
+    return (
+      <div className="page">
+        <PageHeader crumbs={[{ label: tc('nav.settings'), href: '/settings' }, { label: t('profile.title') }]} kicker={t('profile.kicker', { name: me.user.name, role: me.user.roleName })} title={tc('nav.settings')} />
+        <SettingsTabs value="me" onChange={setTab} />
+        <ProfileDevices />
+      </div>
+    );
+  }
+
+  if (!q.data) return <PageState query={q} />;
   const d = q.data;
-  const r = d.rules;
-  const ruleValue = (k: RuleKey): string => {
-    switch (k) {
-      case 'ownership':
-        return t('settings.rules.ownership.value', { months: r.ownership.months, days: r.ownership.warningDays });
-      case 'commissionPerUnitCents':
-        return t('settings.rules.commissionPerUnitCents.value', { amount: money(r.commissionPerUnitCents) });
-      default:
-        return t(`settings.rules.${k}.value`, { n: r[k] });
-    }
-  };
-  const sectionValue = (k: SectionKey): string => {
-    switch (k) {
-      case 'company':
-        return d.company.legalName || d.company.name || t('settings.notSet');
-      case 'bank':
-        return d.bank.iban ? `${d.bank.bank} · …${d.bank.iban.slice(-4)}` : t('settings.notSet');
-      case 'email':
-        return d.email.sender || t('settings.notSet');
-      case 'documents':
-        return d.documents.languages.map((l) => l.toUpperCase()).join(' · ');
-      case 'security':
-        return t('settings.sections.security.value', { h: d.security.desktopSessionHours, d: d.security.phoneSessionDays });
-    }
-  };
-  const changed = (key: string) => {
-    const c = d.lastChanged[key];
-    return c ? t('settings.lastChanged', { date: dateShort(c.at), by: c.by ?? t('audit.system') }) : null;
-  };
 
   return (
     <div className="page">
-      <PageHeader crumbs={[{ label: tc('nav.settings') }]} kicker={t('settings.kicker')} title={tc('nav.settings')} />
+      <PageHeader crumbs={[{ label: t('settings.title') }]} kicker={t('settings.kicker', { name: d.company.name || d.company.legalName })} title={t('settings.title')} />
+      <SettingsTabs value="rules" onChange={setTab} />
       {!editable && !readOnly && <Banner>{t('settings.viewOnly')}</Banner>}
-      <div className="cols even">
-        <Card title={t('settings.rulesTitle')}>
-          <p className="muted body-sm">{rulesEditable ? t('settings.rulesHelp') : t('settings.rulesHelpView')}</p>
-          <div className={css.items}>
-            {RULE_KEYS.map((k) => (
-              <SettingsItem key={k} icon={RULE_ICONS[k]} label={t(`settings.rules.${k}.title`)} value={ruleValue(k)} onClick={() => setOpen({ kind: 'rule', key: k })} />
-            ))}
-            <div className="an-sitem" style={{ cursor: 'default' }}>
-              <Lock className="an-ic" aria-hidden />
-              <span className="grow">{t('settings.rules.paymentBeforeShipping.title')}</span>
-              <span className="val">
-                <bdi>{t('settings.rules.paymentBeforeShipping.value', { n: r.paymentBeforeShippingPercent })}</bdi>
-              </span>
-            </div>
+      <div className={`cols even ${css.grid}`}>
+        <Card className={css.rulesCard} title={t('settings.rulesTitle')}>
+          <p className={css.cardSub}>{t('settings.rulesSub')}</p>
+          <div className={css.rules}>
+            {RULES.map((k) => {
+              const w = words(k, d.rules);
+              const can = editable && !FIXED.includes(k);
+              return (
+                <div key={k} className={css.rule}>
+                  <span className={css.ruleHead}>
+                    <span className={css.ruleTitle}>{t(`settings.rule.${k}.title`)}</span>
+                    {can && (
+                      <button type="button" className={css.edit} onClick={() => setOpen({ kind: 'rule', key: k })}>
+                        {t('settings.edit')}
+                      </button>
+                    )}
+                  </span>
+                  <span className={css.ruleText}>{w.text}</span>
+                </div>
+              );
+            })}
           </div>
         </Card>
-        <div className="stack loose">
-          <Card title={t('settings.companyTitle')}>
-            <div className={css.items}>
-              {(['company', 'bank', 'email', 'documents'] as SectionKey[]).map((k) => (
-                <SettingsItem key={k} icon={SECTION_ICONS[k]} label={t(`settings.sections.${k}.title`)} value={sectionValue(k)} onClick={() => setOpen({ kind: 'section', key: k })} />
-              ))}
-            </div>
-          </Card>
-          <Card title={t('settings.securityTitle')}>
-            <div className={css.items}>
-              <SettingsItem icon={SECTION_ICONS.security} label={t('settings.sections.security.title')} value={sectionValue('security')} onClick={() => setOpen({ kind: 'section', key: 'security' })} />
-            </div>
-          </Card>
+        <div className={css.cards}>
+          {CARDS.map((k) => (
+            <Card
+              key={k}
+              className={css.cfgCard}
+              title={t(`settings.cards.${k}.title`)}
+              action={
+                editable ? (
+                  <button type="button" className={css.edit} onClick={() => setOpen({ kind: 'card', key: k })}>
+                    {t('settings.edit')}
+                  </button>
+                ) : undefined
+              }
+            >
+              <dl className={css.kv}>
+                {cardRows(k, d, t).map(([a, b]) => (
+                  <div key={a} className={css.kvRow}>
+                    <dt>{a}</dt>
+                    <dd>
+                      <bdi>{b}</bdi>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </Card>
+          ))}
         </div>
       </div>
 
-      {open?.kind === 'rule' && <RuleSheet rule={open.key} rules={r} editable={rulesEditable} lastChanged={changed(`rule:${open.key}`)} onClose={close} />}
-      {open?.kind === 'section' && <SectionSheet section={open.key} data={d} editable={editable} lastChanged={changed(`setting:${open.key}`)} onClose={close} onOpenRule={(k) => setOpen({ kind: 'rule', key: k })} />}
+      {open?.kind === 'rule' && <RuleSheet rule={open.key} data={d} editable={editable && !FIXED.includes(open.key)} onClose={close} />}
+      {open?.kind === 'card' && <CardSheet card={open.key} data={d} editable={editable} onClose={close} />}
     </div>
   );
 }
 
-// ---------- Business rules ----------
+type T = ReturnType<typeof useTranslations<'admin'>>;
 
-function NumberField({ label, value, onChange, help, error, disabled, min = 0 }: { label: string; value: number; onChange: (n: number) => void; help?: ReactNode; error?: string; disabled?: boolean; min?: number }) {
-  return <TextField label={label} type="number" inputMode="numeric" min={min} value={Number.isFinite(value) ? String(value) : ''} onChange={(e) => onChange(e.target.value === '' ? NaN : Math.floor(Number(e.target.value)))} help={help} error={error} disabled={disabled} />;
+function cardRows(k: CardKey, d: SettingsData, t: T): [string, string][] {
+  const or = (v: string) => v || t('settings.notSet');
+  if (k === 'docs')
+    return [
+      [t('settings.cards.docs.proformaLanguage'), t(`settings.lang.${d.documents.proformaLanguage}`)],
+      [t('settings.cards.docs.validFor'), t('settings.days', { n: d.documents.proformaValidityDays })],
+      [t('settings.cards.docs.numbering'), `${d.documents.prefixes.order}…, ${d.documents.prefixes.invoice}…, ${d.documents.prefixes.credit_note}…`],
+      [t('settings.cards.docs.nextInvoice'), d.nextNumbers.invoice],
+      [t('settings.cards.docs.logo'), d.documents.logo ? t('settings.cards.docs.logoSet') : t('settings.cards.docs.logoNone')],
+    ];
+  if (k === 'mail')
+    return [
+      [t('settings.cards.mail.warehouse'), or(d.email.warehouse)],
+      [t('settings.cards.mail.accounting'), or(d.email.accounting)],
+      [t('settings.cards.mail.sender'), or(d.email.sender)],
+      [t('settings.cards.mail.replyTo'), or(d.email.replyTo)],
+      [t('settings.cards.mail.brokerCopied'), d.email.copyBroker ? t('settings.yes') : t('settings.no')],
+    ];
+  return [
+    [t('settings.cards.bank.bank'), or(d.bank.bank)],
+    [t('settings.cards.bank.iban'), or(d.bank.iban)],
+    [t('settings.cards.bank.bic'), or(d.bank.bic)],
+    [t('settings.cards.bank.twoStep'), t(`settings.twoStep.${d.security.twoStep}`)],
+    [t('settings.cards.bank.signOut'), signOutLabel(d.security, t)],
+  ];
 }
 
-function RuleSheet({ rule, rules, editable, lastChanged, onClose }: { rule: RuleKey; rules: BusinessRules; editable: boolean; lastChanged: string | null; onClose: () => void }) {
+function signOutLabel(s: SettingsData['security'], t: T) {
+  return s.signOut === 'custom' ? t('settings.signOut.custom', { h: s.desktopSessionHours, d: s.phoneSessionDays }) : t(`settings.signOut.${s.signOut}`);
+}
+
+// ---------- Business rules ----------
+
+function NumberField({ label, value, onChange, error, disabled, min = 1, help }: { label: string; value: number; onChange: (n: number) => void; error?: string; disabled?: boolean; min?: number; help?: ReactNode }) {
+  return <TextField label={label} type="number" inputMode="numeric" min={min} value={Number.isFinite(value) ? String(value) : ''} onChange={(e) => onChange(e.target.value === '' ? NaN : Math.floor(Number(e.target.value)))} error={error} disabled={disabled} help={help} />;
+}
+
+const WARN_DAYS = [14, 30, 45, 60];
+
+function RuleSheet({ rule, data, editable, onClose }: { rule: Rule; data: SettingsData; editable: boolean; onClose: () => void }) {
   const t = useTranslations('admin');
   const tc = useTranslations('common');
-  const { money, date } = useFmt();
-  const [value, setValue] = useState<BusinessRules[RuleKey]>(rules[rule]);
+  const { dateShort, date, money, num } = useFmt();
+  const words = useRuleWords();
+  const r = data.rules;
+  const [draft, setDraft] = useState<BusinessRules>(r);
   const [code, setCode] = useState('');
-  const [moneyKey, setMoneyKey] = useState(0);
   useEffect(() => {
-    setValue(rules[rule]);
+    setDraft(r);
     setCode('');
-    setMoneyKey((k) => k + 1);
-  }, [rule, rules]);
-  const save = useAction((v: { value: unknown; code: string }) => api.patch(`/settings/rules/${rule}`, { value: v.value }, { code: v.code }), { success: t('settings.ruleSaved'), onDone: onClose });
-  const before = rules[rule];
-  const dirty = JSON.stringify(before) !== JSON.stringify(value);
+  }, [rule]); // eslint-disable-line react-hooks/exhaustive-deps
+  const key = { ownership: 'ownership', stockHold: 'stockHoldDays', priceList: 'minOrderCartons', commission: 'commissionPerUnitCents' }[rule as 'ownership'] as keyof BusinessRules | undefined;
+  const save = useAction((v: { value: unknown; code: string }) => api.patch(`/settings/rules/${key}`, { value: v.value }, { code: v.code }), { success: t('settings.rulePanel.saved'), onDone: onClose });
+  const dirty = !!key && JSON.stringify(r[key]) !== JSON.stringify(draft[key]);
   const err = save.error instanceof ApiError ? save.error : null;
   const codeError = err?.code?.startsWith('step_up') ? err.message : undefined;
-  const f = save.fields;
-  const fieldError = (k?: string) => f[k ? `value.${k}` : 'value'];
-
-  const plain = (v: BusinessRules[RuleKey]): string => {
-    if (rule === 'ownership') {
-      const o = v as BusinessRules['ownership'];
-      return t('settings.rules.ownership.preview', {
-        months: o.months,
-        from: t(`settings.rules.ownership.from.${o.countedFrom}`),
-        days: o.warningDays,
-        end: t(`settings.rules.ownership.end.${o.atEnd}`),
-      });
-    }
-    if (rule === 'commissionPerUnitCents') return t('settings.rules.commissionPerUnitCents.preview', { amount: money(v as number), carton: money((v as number) * 24) });
-    return t(`settings.rules.${rule}.preview`, { n: v as number });
-  };
-  const short = (v: BusinessRules[RuleKey]): string => {
-    if (rule === 'ownership') {
-      const o = v as BusinessRules['ownership'];
-      return t('settings.rules.ownership.value', { months: o.months, days: o.warningDays });
-    }
-    if (rule === 'commissionPerUnitCents') return money(v as number);
-    return t(`settings.rules.${rule}.value`, { n: v as number });
-  };
-  const valid = rule === 'ownership' ? Number.isFinite((value as BusinessRules['ownership']).months) && Number.isFinite((value as BusinessRules['ownership']).warningDays) : Number.isFinite(value as number);
+  const fe = (k?: string) => save.fields[k ? `value.${k}` : 'value'];
+  const valid = rule === 'ownership' ? Number.isFinite(draft.ownership.months) : key ? Number.isFinite(draft[key] as number) : true;
+  const w = words(rule, valid ? draft : r);
+  const ex = data.ownershipExample;
+  const set = <K extends keyof BusinessRules>(k: K, v: BusinessRules[K]) => setDraft((x) => ({ ...x, [k]: v }));
 
   return (
     <Sheet
       open
       onClose={onClose}
       dirty={dirty}
-      title={t(`settings.rules.${rule}.title`)}
-      sub={t(`settings.rules.${rule}.sub`)}
+      title={t(`settings.rule.${rule}.title`)}
+      sub={w.text}
       footer={
         editable ? (
-          <>
-            <Button onClick={onClose}>{tc('cancel')}</Button>
-            <Button variant="primary" busy={save.isPending} disabled={!dirty || !valid || code.length !== 6} onClick={() => save.mutate({ value, code })}>
-              {t('settings.saveRule')}
-            </Button>
-          </>
+          <Button variant="primary" block busy={save.isPending} disabled={!dirty || !valid || code.length !== 6} onClick={() => key && save.mutate({ value: draft[key], code })}>
+            {t('settings.rulePanel.save')}
+          </Button>
         ) : (
-          <Button onClick={onClose}>{tc('close')}</Button>
+          <Button block onClick={onClose}>
+            {tc('close')}
+          </Button>
         )
       }
     >
-      {save.errorText && !codeError && !Object.keys(f).length && <Banner tone="bad">{save.errorText}</Banner>}
       {rule === 'ownership' ? (
-        <OwnershipEditor value={value as BusinessRules['ownership']} onChange={setValue} editable={editable} errors={{ months: fieldError('months'), warningDays: fieldError('warningDays') }} />
-      ) : rule === 'commissionPerUnitCents' ? (
-        <MoneyField key={moneyKey} label={t('settings.rules.commissionPerUnitCents.field')} cents={value as number} onCents={(c) => setValue(c ?? NaN)} disabled={!editable} help={t('settings.rules.commissionPerUnitCents.help')} error={fieldError()} />
+        <NumberField label={t('settings.rulePanel.months')} value={draft.ownership.months} onChange={(n) => set('ownership', { ...draft.ownership, months: n })} disabled={!editable} error={fe('months')} />
+      ) : rule === 'stockHold' ? (
+        <NumberField label={t('settings.rulePanel.holdDays')} value={draft.stockHoldDays} onChange={(n) => set('stockHoldDays', n)} disabled={!editable} error={fe()} />
+      ) : rule === 'priceList' ? (
+        <>
+          <dl className={css.kv}>
+            {PRICE_TIERS.map((x) => (
+              <div key={x.minCartons} className={css.kvRow}>
+                <dt>{t('settings.rulePanel.tier', { from: num(x.minCartons), to: num(x.maxCartons) })}</dt>
+                <dd>
+                  <bdi>{money(x.unitPriceCents)}</bdi>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <NumberField label={t('settings.rulePanel.minOrder')} value={draft.minOrderCartons} onChange={(n) => set('minOrderCartons', n)} disabled={!editable} error={fe()} help={t('settings.rulePanel.tiersFixed')} />
+        </>
+      ) : rule === 'commission' ? (
+        <MoneyField label={t('settings.rulePanel.commission')} cents={draft.commissionPerUnitCents} onCents={(c) => set('commissionPerUnitCents', c ?? NaN)} disabled={!editable} error={fe()} />
       ) : (
-        <NumberField label={t(`settings.rules.${rule}.field`)} value={value as number} onChange={setValue} disabled={!editable} min={1} help={t(`settings.rules.${rule}.help`)} error={fieldError()} />
+        <TextField label={t('settings.rulePanel.value')} value={w.value} readOnly disabled />
       )}
-      <div className={css.preview} aria-live="polite">
-        <span className="overline">{t('settings.inPlainWords')}</span>
-        <span>{valid ? plain(value) : t('settings.fillIn')}</span>
-      </div>
-      {editable && dirty && valid && (
-        <KeyValue
-          items={[
-            [t('settings.now'), short(before)],
-            [t('settings.new'), <span key="n" className="strong">{short(value)}</span>],
-            [t('settings.appliesFrom'), date(isoDate())],
-          ]}
-        />
+      <p className="muted body-sm">{FIXED.includes(rule) ? t('settings.rulePanel.fixedNote') : t('settings.rulePanel.appliesNote')}</p>
+
+      {rule === 'ownership' && (
+        <>
+          <span className="overline">{t('settings.rulePanel.warnTitle')}</span>
+          <Chips
+            label={t('settings.rulePanel.warnTitle')}
+            value={String(draft.ownership.warningDays)}
+            onChange={(v) => editable && set('ownership', { ...draft.ownership, warningDays: Number(v) })}
+            options={[...new Set([...WARN_DAYS, r.ownership.warningDays])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: t('settings.rulePanel.warnChip', { n }) }))}
+          />
+          <p className="muted body-sm">{t('settings.rulePanel.warnNote')}</p>
+          <span className="overline">{t('settings.rulePanel.getsTitle')}</span>
+          <div className={css.example}>
+            <span className={css.exIco} aria-hidden>
+              <Icon as={Clock} />
+            </span>
+            <span>
+              <b className={css.exTitle}>{t('settings.rulePanel.getsLine', { n: draft.ownership.warningDays, customer: ex?.customerName ?? t('settings.rulePanel.aCustomer') })}</b>
+              <span className={css.exText}>
+                {ex
+                  ? `${ex.lastOrderAt ? `${t('settings.rulePanel.noOrderSince', { date: dateShort(ex.lastOrderAt) })} ` : ''}${t('settings.rulePanel.getsText', { customer: ex.customerName, date: date(ex.ownedUntil), end: draft.ownership.atEnd })}`
+                  : t('settings.rulePanel.getsTextNone', { end: draft.ownership.atEnd })}
+              </span>
+            </span>
+          </div>
+        </>
       )}
-      <p className="muted body-sm">{t('settings.appliesNote')}</p>
-      {lastChanged && <p className="muted body-sm">{lastChanged}</p>}
       {editable && <TwoStepField value={code} onChange={setCode} error={codeError} />}
+      {!codeError && !Object.keys(save.fields).length && <ActionError action={save} />}
     </Sheet>
   );
 }
 
-/** Customer ownership editor: duration, counted from, warning period, what happens at the end (PRD FR-ADM-3 pattern). */
-function OwnershipEditor({ value, onChange, editable, errors }: { value: BusinessRules['ownership']; onChange: (v: BusinessRules['ownership']) => void; editable: boolean; errors: { months?: string; warningDays?: string } }) {
-  const t = useTranslations('admin');
-  return (
-    <>
-      <NumberField label={t('settings.rules.ownership.months')} value={value.months} min={1} onChange={(n) => onChange({ ...value, months: n })} disabled={!editable} error={errors.months} help={t('settings.rules.ownership.monthsHelp')} />
-      <div className="an-field">
-        <label>{t('settings.rules.ownership.countedFrom')}</label>
-        <Segmented fill disabled={!editable} label={t('settings.rules.ownership.countedFrom')} value={value.countedFrom} onChange={(v) => onChange({ ...value, countedFrom: v })} options={(['each_order', 'first_order'] as const).map((o) => ({ value: o, label: t(`settings.rules.ownership.fromOption.${o}`) }))} />
-      </div>
-      <NumberField label={t('settings.rules.ownership.warningDays')} value={value.warningDays} onChange={(n) => onChange({ ...value, warningDays: n })} disabled={!editable} error={errors.warningDays} help={t('settings.rules.ownership.warningHelp')} />
-      <div className="an-field">
-        <label>{t('settings.rules.ownership.atEnd')}</label>
-        <Segmented fill disabled={!editable} label={t('settings.rules.ownership.atEnd')} value={value.atEnd} onChange={(v) => onChange({ ...value, atEnd: v })} options={(['free_to_claim', 'stay_with_agent'] as const).map((o) => ({ value: o, label: t(`settings.rules.ownership.endOption.${o}`) }))} />
-      </div>
-    </>
-  );
+// ---------- Documents, E-mail, Bank and sign-in ----------
+
+type DocsDraft = { proformaLanguage: ProformaLanguage; proformaValidityDays: number; prefixes: SettingsData['documents']['prefixes']; nextInvoice: string; footer: string; company: CompanyProfile };
+type BankDraft = { bank: string; iban: string; bic: string; accounts: string[]; twoStep: TwoStepPolicy; signOut: SignOut };
+
+function initialDraft(card: CardKey, d: SettingsData): DocsDraft | EmailSettings | BankDraft {
+  if (card === 'docs') return { proformaLanguage: d.documents.proformaLanguage, proformaValidityDays: d.documents.proformaValidityDays, prefixes: d.documents.prefixes, nextInvoice: d.nextNumbers.invoice, footer: d.documents.footer, company: d.company };
+  if (card === 'mail') return { ...d.email };
+  return { bank: d.bank.bank, iban: d.bank.iban, bic: d.bank.bic, accounts: d.bank.accounts, twoStep: d.security.twoStep, signOut: d.security.signOut };
 }
 
-// ---------- Company, bank, e-mail, documents, security ----------
-
-function SectionSheet({ section, data, editable, lastChanged, onClose, onOpenRule }: { section: SectionKey; data: SettingsData; editable: boolean; lastChanged: string | null; onClose: () => void; onOpenRule: (k: RuleKey) => void }) {
+function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: SettingsData; editable: boolean; onClose: () => void }) {
   const t = useTranslations('admin');
   const tc = useTranslations('common');
-  const initial = section === 'documents' ? { languages: data.documents.languages, logoUrl: data.documents.logoUrl ?? '' } : (data[section] as unknown as Record<string, unknown>);
-  const [v, setV] = useState<Record<string, unknown>>(initial);
-  useEffect(() => setV(initial), [section, data]); // eslint-disable-line react-hooks/exhaustive-deps
-  const save = useAction((value: Record<string, unknown>) => api.patch(`/settings/${section}`, { value }), { success: t('settings.saved'), onDone: onClose });
+  const init = initialDraft(card, data);
+  const [v, setV] = useState<Record<string, unknown>>(init as unknown as Record<string, unknown>);
+  const [code, setCode] = useState('');
+  useEffect(() => {
+    setV(initialDraft(card, data) as unknown as Record<string, unknown>);
+    setCode('');
+  }, [card]); // eslint-disable-line react-hooks/exhaustive-deps -- a refetch (e.g. after a logo upload) keeps what was typed
+  const title = t(`settings.cards.${card}.title`);
+  const save = useAction((x: { value: unknown; code?: string }) => api.patch(`/settings/cards/${card}`, { value: x.value }, { code: x.code }), { success: t('settings.cardPanel.saved', { card: title }), onDone: onClose });
   const f = save.fields;
-  const dirty = JSON.stringify(v) !== JSON.stringify(initial);
-  const set = (k: string) => (e: { target: { value: string } }) => setV((x) => ({ ...x, [k]: e.target.value }));
-  const text = (k: string, extra: Partial<Parameters<typeof TextField>[0]> = {}) => (
-    <TextField key={k} label={t(`settings.fields.${k}`)} value={String(v[k] ?? '')} onChange={set(k)} disabled={!editable} error={f[`value.${k}`]} {...extra} />
+  const err = save.error instanceof ApiError ? save.error : null;
+  const codeError = err?.code?.startsWith('step_up') ? err.message : undefined;
+  const dirty = JSON.stringify(v) !== JSON.stringify(init);
+  const needsCode = card === 'docs' ? Number(v.proformaValidityDays) !== data.documents.proformaValidityDays : card === 'bank' ? String(v.iban ?? '').replace(/\s+/g, '').toUpperCase() !== data.bank.iban : false;
+  const set = (k: string, val: unknown) => setV((x) => ({ ...x, [k]: val }));
+  const text = (k: string, label: string, extra: Partial<Parameters<typeof TextField>[0]> = {}) => (
+    <TextField key={k} label={label} value={String(v[k] ?? '')} onChange={(e) => set(k, e.target.value)} disabled={!editable} error={f[`value.${k}`]} {...extra} />
   );
-  const num = (k: string, help?: string) => <NumberField key={k} label={t(`settings.fields.${k}`)} value={Number(v[k])} onChange={(n) => setV((x) => ({ ...x, [k]: n }))} disabled={!editable} help={help} error={f[`value.${k}`]} min={1} />;
+
+  const submit = () => {
+    let value: unknown = v;
+    if (card === 'docs') {
+      const digits = String(v.nextInvoice ?? '').match(/(\d+)\s*$/);
+      value = { ...v, nextInvoice: digits ? Number(digits[1]) : NaN };
+    }
+    if (card === 'bank') value = { ...v, accounts: ((v.accounts as string[]) ?? []).map((a) => a.trim()).filter(Boolean) };
+    save.mutate({ value, code: needsCode ? code : undefined });
+  };
 
   let body: ReactNode = null;
-  if (section === 'company') {
+  if (card === 'docs') {
+    const p = v.prefixes as DocsDraft['prefixes'];
+    const c = v.company as CompanyProfile;
+    const setP = (k: keyof DocsDraft['prefixes']) => (e: { target: { value: string } }) => set('prefixes', { ...p, [k]: e.target.value });
+    const setC = (k: keyof CompanyProfile) => (e: { target: { value: string } }) => set('company', { ...c, [k]: e.target.value });
+    const cf = (k: keyof CompanyProfile, extra: Partial<Parameters<typeof TextField>[0]> = {}) => <TextField key={k} label={t(`settings.fields.${k}`)} value={c[k] ?? ''} onChange={setC(k)} disabled={!editable} error={f[`value.company.${k}`]} {...extra} />;
     body = (
       <>
-        {text('name')}
-        {text('legalName')}
+        <Select label={t('settings.cardPanel.proformaLanguage')} value={String(v.proformaLanguage)} onChange={(e) => set('proformaLanguage', e.target.value)} disabled={!editable} options={(['per_customer', 'en', 'bg'] as const).map((o) => ({ value: o, label: t(`settings.lang.${o}`) }))} />
+        <NumberField label={t('settings.cardPanel.validDays')} value={Number(v.proformaValidityDays)} onChange={(n) => set('proformaValidityDays', n)} disabled={!editable} error={f['value.proformaValidityDays']} />
+        <TextField label={t('settings.cardPanel.orderPrefix')} value={p.order} onChange={setP('order')} disabled={!editable} error={f['value.prefixes.order']} />
+        <TextField label={t('settings.cardPanel.invoicePrefix')} value={p.invoice} onChange={setP('invoice')} disabled={!editable} error={f['value.prefixes.invoice']} />
+        <TextField label={t('settings.cardPanel.creditPrefix')} value={p.credit_note} onChange={setP('credit_note')} disabled={!editable} error={f['value.prefixes.credit_note']} />
+        {text('nextInvoice', t('settings.cardPanel.nextInvoice'))}
+        <LogoField logo={data.documents.logo} editable={editable} />
+        {text('footer', t('settings.cardPanel.footer'))}
+        <span className="overline">{t('settings.cardPanel.companyTitle')}</span>
+        {cf('name')}
+        {cf('legalName')}
         <div className="form-grid">
-          {text('vatNumber')}
-          {text('country', { maxLength: 2 })}
+          {cf('vatNumber')}
+          {cf('country', { maxLength: 2 })}
         </div>
-        {text('address')}
-        {text('city')}
+        {cf('address')}
+        {cf('city')}
         <div className="form-grid">
-          {text('email', { type: 'email' })}
-          {text('phone', { type: 'tel' })}
+          {cf('email', { type: 'email' })}
+          {cf('phone', { type: 'tel' })}
         </div>
       </>
     );
-  } else if (section === 'bank') {
-    const accounts = (v.accounts as string[]) ?? [];
+  } else if (card === 'mail') {
     body = (
       <>
-        {text('bank')}
-        {text('iban', { help: t('settings.fields.ibanHelp') })}
-        {text('bic')}
+        {text('warehouse', t('settings.cards.mail.warehouse'), { type: 'email' })}
+        {text('accounting', t('settings.cards.mail.accounting'), { type: 'email' })}
+        {text('sender', t('settings.cards.mail.sender'))}
+        {text('replyTo', t('settings.cards.mail.replyTo'), { type: 'email' })}
+        <Select label={t('settings.cardPanel.copyBroker')} value={v.copyBroker ? 'yes' : 'no'} onChange={(e) => set('copyBroker', e.target.value === 'yes')} disabled={!editable} options={[{ value: 'yes', label: t('settings.yes') }, { value: 'no', label: t('settings.no') }]} />
+      </>
+    );
+  } else {
+    const accounts = (v.accounts as string[]) ?? [];
+    const sec = data.security;
+    body = (
+      <>
+        {text('bank', t('settings.cards.bank.bank'))}
+        {text('iban', t('settings.cards.bank.iban'))}
+        {text('bic', t('settings.cardPanel.bic'))}
+        <Select
+          label={t('settings.cards.bank.twoStep')}
+          value={String(v.twoStep)}
+          onChange={(e) => set('twoStep', e.target.value)}
+          disabled={!editable}
+          options={[...(sec.twoStep === 'custom' ? (['custom'] as const) : []), ...(['admins_finance', 'everyone', 'optional'] as const)].map((o) => ({ value: o, label: t(`settings.twoStep.${o}`) }))}
+        />
+        <Select
+          label={t('settings.cards.bank.signOut')}
+          value={String(v.signOut)}
+          onChange={(e) => set('signOut', e.target.value)}
+          disabled={!editable}
+          options={[...(sec.signOut === 'custom' ? (['custom'] as const) : []), ...(['short', 'standard', 'never'] as const)].map((o) => ({ value: o, label: o === 'custom' ? signOutLabel(sec, t) : t(`settings.signOut.${o}`) }))}
+        />
         <div className="an-field">
-          <label>{t('settings.fields.accounts')}</label>
+          <label>{t('settings.cardPanel.accounts')}</label>
           <span className="an-help" style={{ marginTop: 0 }}>
-            {t('settings.fields.accountsHelp')}
+            {t('settings.cardPanel.accountsHelp')}
           </span>
         </div>
         {accounts.map((a, i) => (
           <div key={i} className={css.listRow}>
-            <TextField label={t('settings.fields.accountN', { n: i + 1 })} value={a} disabled={!editable} onChange={(e) => setV((x) => ({ ...x, accounts: accounts.map((y, j) => (j === i ? e.target.value : y)) }))} error={f[`value.accounts.${i}`]} />
-            {editable && <IconButton icon={X} label={t('settings.fields.removeAccount')} onClick={() => setV((x) => ({ ...x, accounts: accounts.filter((_, j) => j !== i) }))} />}
+            <TextField label={t('settings.cardPanel.accountN', { n: i + 1 })} value={a} disabled={!editable} onChange={(e) => set('accounts', accounts.map((y, j) => (j === i ? e.target.value : y)))} error={f[`value.accounts.${i}`]} />
+            {editable && <IconButton icon={X} label={t('settings.cardPanel.removeAccount')} onClick={() => set('accounts', accounts.filter((_, j) => j !== i))} />}
           </div>
         ))}
         {editable && (
-          <Button size="sm" icon={Plus} onClick={() => setV((x) => ({ ...x, accounts: [...accounts, ''] }))}>
-            {t('settings.fields.addAccount')}
+          <Button size="sm" icon={Plus} onClick={() => set('accounts', [...accounts, ''])}>
+            {t('settings.cardPanel.addAccount')}
           </Button>
         )}
-      </>
-    );
-  } else if (section === 'email') {
-    body = (
-      <>
-        {text('warehouse', { type: 'email', help: t('settings.fields.warehouseHelp') })}
-        {text('accounting', { type: 'email', help: t('settings.fields.accountingHelp') })}
-        {text('sender', { help: t('settings.fields.senderHelp') })}
-        {text('replyTo', { type: 'email', help: t('settings.fields.replyToHelp') })}
-        <div className="an-field">
-          <label>{t('settings.fields.copyAgent')}</label>
-          <Segmented fill disabled={!editable} label={t('settings.fields.copyAgent')} value={v.copyAgent ? 'yes' : 'no'} onChange={(x) => setV((y) => ({ ...y, copyAgent: x === 'yes' }))} options={[{ value: 'yes', label: tc('yes') }, { value: 'no', label: tc('no') }]} />
-        </div>
-      </>
-    );
-  } else if (section === 'documents') {
-    const langs = (v.languages as string[]) ?? [];
-    const langValue = langs.length === 2 ? 'both' : langs[0] ?? 'both';
-    body = (
-      <>
-        <div className="an-field">
-          <label>{t('settings.fields.languages')}</label>
-          <Segmented fill disabled={!editable} label={t('settings.fields.languages')} value={langValue} onChange={(x) => setV((y) => ({ ...y, languages: x === 'both' ? ['en', 'bg'] : [x] }))} options={[{ value: 'both', label: t('settings.fields.bothLanguages') }, { value: 'en', label: t('languages.en') }, { value: 'bg', label: t('languages.bg') }]} />
-          <span className="an-help">{t('settings.fields.languagesHelp')}</span>
-        </div>
-        <KeyValue
-          items={[
-            [t('settings.fields.validity'), <button key="v" type="button" className="link" onClick={() => onOpenRule('proformaValidityDays')}>{t('settings.rules.proformaValidityDays.value', { n: data.rules.proformaValidityDays })}</button>],
-            ...(['order', 'proforma', 'invoice', 'credit_note', 'purchase'] as const).map((k) => [t(`settings.fields.next.${k}`), <bdi key={k}>{data.nextNumbers[k]}</bdi>] as [string, ReactNode]),
-          ]}
-        />
-        <p className="muted body-sm">{t('settings.fields.numbersHelp')}</p>
-        {text('logoUrl', { type: 'url', placeholder: 'https://', help: t('settings.fields.logoHelp') })}
-      </>
-    );
-  } else if (section === 'security') {
-    body = (
-      <>
-        <div className="form-grid">
-          {num('desktopSessionHours')}
-          {num('phoneSessionDays')}
-        </div>
-        {num('inviteValidityDays', t('settings.fields.inviteHelp'))}
-        {num('passwordMinLength', t('settings.fields.passwordHelp'))}
-        <KeyValue items={[[t('settings.fields.twoStep'), t('settings.fields.twoStepValue')]]} />
       </>
     );
   }
@@ -389,28 +470,77 @@ function SectionSheet({ section, data, editable, lastChanged, onClose, onOpenRul
       open
       onClose={onClose}
       dirty={dirty}
-      title={t(`settings.sections.${section}.title`)}
-      sub={t(`settings.sections.${section}.sub`)}
+      title={title}
       footer={
         editable ? (
           <>
             <Button onClick={onClose}>{tc('cancel')}</Button>
-            <Button variant="primary" busy={save.isPending} disabled={!dirty} onClick={() => save.mutate(section === 'bank' ? { ...v, accounts: ((v.accounts as string[]) ?? []).map((a) => a.trim()).filter(Boolean) } : v)}>
+            <Button variant="primary" busy={save.isPending} disabled={!dirty || (needsCode && code.length !== 6)} onClick={submit}>
               {tc('save')}
             </Button>
           </>
         ) : (
-          <Button onClick={onClose}>{tc('close')}</Button>
+          <Button block onClick={onClose}>
+            {tc('close')}
+          </Button>
         )
       }
     >
-      {save.errorText && <Banner tone="bad">{save.errorText}</Banner>}
       {body}
-      {lastChanged && (
-        <p className="muted body-sm">
-          <Clock className="an-ic sm" aria-hidden /> {lastChanged}
-        </p>
-      )}
+      <p className="muted body-sm">
+        {t(`settings.cardPanel.note.${card}`)} {t('settings.cardPanel.logged')}
+      </p>
+      {editable && needsCode && <TwoStepField value={code} onChange={setCode} error={codeError} />}
+      {!codeError && !Object.keys(f).length && <ActionError action={save} />}
     </Sheet>
+  );
+}
+
+/** Logo on documents: the shared FileUpload (images only, saved straight away); a stored logo shows as a ready row with Remove. */
+function LogoField({ logo, editable }: { logo: SettingsData['documents']['logo']; editable: boolean }) {
+  const t = useTranslations('admin');
+  const [stamp, setStamp] = useState(0);
+  const [sent, setSent] = useState<File | null>(null);
+  const upload = useAction(
+    (file: File) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return api.post('/settings/documents/logo', fd);
+    },
+    { success: t('settings.cardPanel.logoUploaded'), onDone: () => (setStamp(Date.now()), setSent(null)) },
+  );
+  const remove = useAction(() => api.del('/settings/documents/logo'), { success: t('settings.cardPanel.logoRemoved') });
+  const err = upload.fields.file ?? remove.errorText ?? undefined;
+  const failed = !!upload.error && !upload.fields.file;
+  return (
+    <div className="an-field">
+      <label>{t('settings.cardPanel.logo')}</label>
+      {logo && !sent ? (
+        <div className={css.logoRow}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className={css.logoImg} src={`/api/settings/documents/logo?v=${stamp}`} alt="" />
+          <span className={css.logoName}>
+            <bdi>{logo.name}</bdi>
+            <span className="sub">{t('settings.cardPanel.logoHelp')}</span>
+          </span>
+          {editable && (
+            <Button size="sm" writes busy={remove.isPending} onClick={() => remove.mutate(undefined)}>
+              {t('settings.cardPanel.remove')}
+            </Button>
+          )}
+        </div>
+      ) : editable ? (
+        <FileUpload
+          imageOnly
+          file={sent}
+          status={upload.isPending ? 'uploading' : failed ? 'error' : sent ? 'ready' : 'idle'}
+          error="stopped"
+          onPick={(f) => (setSent(f), upload.mutate(f))}
+          onRetry={() => sent && upload.mutate(sent)}
+          onRemove={() => setSent(null)}
+        />
+      ) : null}
+      {err && <span className="an-help error">{err}</span>}
+    </div>
   );
 }

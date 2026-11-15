@@ -27,7 +27,7 @@ export const SETTING_DEFAULTS: SettingsShape = {
   rules: DEFAULT_RULES,
   company: { name: 'ANANDA', legalName: '', vatNumber: '', address: '', city: '', country: 'BG', email: '', phone: '' },
   bank: { bank: '', iban: '', bic: '', accounts: [] },
-  email: { warehouse: '', accounting: '', sender: '', replyTo: '', copyAgent: true },
+  email: { warehouse: '', accounting: '', sender: '', replyTo: '', copyBroker: true },
   documents: { languages: ['en', 'bg'], proformaValidityDays: 7, logoUrl: null },
   security: DEFAULT_SECURITY,
   onboarding: { dismissed: false },

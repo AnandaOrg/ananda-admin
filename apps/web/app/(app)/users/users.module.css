@@ -1,0 +1,224 @@
+/* Users & roles: route-local layout; tokens only, logical properties. */
+
+.chev {
+  width: var(--control-sm);
+  text-align: end;
+}
+
+.foot {
+  padding: var(--space-3) var(--card-padding);
+  border-block-start: 1px solid var(--line-soft);
+  color: var(--text-muted);
+  font: 400 13px/18px var(--font-sans);
+}
+
+/* Role detail header: All roles · name · pill · actions at the end */
+.roleHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.roleName {
+  width: 280px;
+  max-width: 100%;
+  font-size: 18px;
+}
+
+.roleTitle {
+  font: 400 22px/28px var(--font-sans);
+}
+
+.roleActs {
+  margin-inline-start: auto;
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.lockNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font: 400 13px/18px var(--font-sans);
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--layout-gap);
+  align-items: start;
+}
+
+@media (max-width: 1023px) {
+  .roleGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.matrixCard :global(.an-seg) {
+  display: inline-flex;
+}
+
+.cardHead {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--card-padding) var(--card-padding) var(--space-2);
+}
+
+.cardHead h2 {
+  margin: 0;
+  font: 500 16px/22px var(--font-sans);
+}
+
+.switches {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.swRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.swRow :global(.sub) {
+  display: block;
+  color: var(--text-muted);
+  font: 400 12px/16px var(--font-sans);
+}
+
+/* The switch inside a row shows only the control; its label is the row text. */
+.swRow :global(.an-swrow) > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.tfa {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: 400 12px/16px var(--font-sans);
+}
+
+/* Add member: invitation e-mail */
+.letterHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.letterHead label {
+  margin-inline-end: auto;
+}
+
+.draft {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.draftOn {
+  border-color: var(--accent-line);
+}
+
+.draftText {
+  all: unset;
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  white-space: pre-wrap;
+  color: var(--text);
+  font: 400 14px/20px var(--font-sans);
+  field-sizing: content;
+}
+
+.tones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}
+
+/* Member panel */
+.box {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.box > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  font: 400 14px/20px var(--font-sans);
+}
+
+.box > div > :first-child {
+  color: var(--text-muted);
+}
+
+.box > div > :last-child {
+  text-align: end;
+}
+
+.sgrp {
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fixedRole {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.fixedRole :global(.sub) {
+  display: block;
+  color: var(--text-muted);
+  font: 400 12px/16px var(--font-sans);
+  margin-block-start: 2px;
+}
+
+.btns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-6);
+  color: var(--text-muted);
+}
+
+.wrapChips {
+  flex-wrap: wrap;
+}

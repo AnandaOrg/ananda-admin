@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
-import type { Me } from '@/lib/session';
-import { Banner, Button, Card, TextField } from '@/components/ui';
+import { nextPath, type Me } from '@/lib/session';
+import { ActionError, Button, Card, TextField } from '@/components/ui';
+import css from '../auth.module.css';
 
 export default function TwoStepPage() {
   const t = useTranslations('auth');
@@ -21,7 +22,7 @@ export default function TwoStepPage() {
 
   useEffect(() => {
     if (me.error) router.replace('/login');
-    if (me.data?.twoStepState === 'done') router.replace('/home');
+    if (me.data?.twoStepState === 'done') router.replace(nextPath('/home'));
   }, [me.data, me.error, router]);
 
   async function submit(e: React.FormEvent) {
@@ -31,7 +32,7 @@ export default function TwoStepPage() {
     try {
       await api.post('/auth/two-step/verify', { code });
       await qc.invalidateQueries({ queryKey: ['me'] });
-      router.replace(me.data?.perms.scope === 'shipping' ? '/warehouse' : '/home');
+      router.replace(nextPath(me.data?.perms.scope === 'shipping' ? '/warehouse' : '/home'));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('failed'));
       setBusy(false);
@@ -42,7 +43,7 @@ export default function TwoStepPage() {
     <Card title={setup ? t('setupTitle') : t('verifyTitle')}>
       <form className="stack" onSubmit={submit}>
         {setup ? (
-          <ol className="stack tight body-sm muted" style={{ margin: 0, paddingInlineStart: 'var(--space-5)' }}>
+          <ol className={`stack tight body-sm muted ${css.steps}`}>
             <li>{t('setupStep1')}</li>
             <li>{t('setupStep2')}</li>
             <li>{t('setupStep3')}</li>
@@ -54,12 +55,11 @@ export default function TwoStepPage() {
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="qr" src={qr.data.qr} alt={t('qrAlt')} />
-            <p className="caption muted" style={{ textAlign: 'center', wordBreak: 'break-all' }}>
+            <p className={`caption muted ${css.secret}`}>
               {t('secret')} <bdi>{qr.data.secret}</bdi>
             </p>
           </>
         )}
-        {error && <Banner tone="bad">{error}</Banner>}
         <TextField
           label={t('code')}
           value={code}
@@ -70,6 +70,7 @@ export default function TwoStepPage() {
           autoFocus
           required
         />
+        <ActionError error={error} message={error} />
         <Button variant="primary" type="submit" busy={busy} disabled={code.length !== 6} block size="lg">
           {setup ? t('confirmCode') : t('continue')}
         </Button>

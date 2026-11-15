@@ -1,382 +1,447 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { isoDate } from '@ananda/shared';
+import { ALCOHOL_BY_VOLUME, EXCISE_EUR_PER_HL_PURE, PACK_LITRES } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useAction } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import {
-  Banner,
+  Bank,
   Button,
   Card,
+  CaretRight,
+  Check,
   CheckCircle,
-  DocRow,
-  EmptyState,
-  FLAVOUR_VAR,
-  EnvelopeOpen,
-  ErrorState,
+  Count,
+  DownloadSimple,
+  EnvelopeSimple,
   Eye,
   FileText,
   FlavourName,
-  HourglassMedium,
-  KeyValue,
   KpiTile,
-  ListRow,
-  NotePencil,
+  ListCard,
+  Lock,
+  Package,
   PageHeader,
-  PageSkeleton,
-  ProgressSteps,
-  Receipt,
+  PageState,
+  Pill,
   Table,
-  Totals,
   Truck,
-  UploadSimple,
   type Column,
 } from '@/components/ui';
-import { PurchaseStatusPill, PayableStatusPill, useKindLabel } from '../_components/PurchaseStatus';
+import { PurchaseStatusPill } from '../_components/PurchaseStatus';
 import { RecordPaymentSheet } from '../_components/RecordPaymentSheet';
 import { PurchaseSheet, type SheetKey } from './PurchaseSheets';
-import type { Payable, PurchaseDetail } from '../_lib/types';
+import { formWith, type PurchaseDetail, type PurchaseFile } from '../_lib/types';
+import css from '../purchasing.module.css';
 
-const STEP_KEYS = ['ordered', 'on_the_way', 'supplier_invoice', 'paid_supplier', 'landed_cost'] as const;
+interface StepView {
+  label: string;
+  detail: ReactNode;
+  done: boolean;
+  action?: ReactNode;
+}
 
-/** FR-PUR-6: purchase page. */
+/** Ordered → On the way / Arrived → Supplier invoice → Paid supplier → Landed cost, later steps locked. */
+function Progress({ steps, horizontal }: { steps: StepView[]; horizontal?: boolean }) {
+  const now = steps.findIndex((s) => !s.done);
+  const mark = (s: StepView, i: number) => (s.done ? <Check className="an-ic sm" aria-hidden /> : i === now ? i + 1 : <Lock className="an-ic sm" aria-hidden />);
+  if (horizontal)
+    return (
+      <div className="an-hsteps" style={{ ['--n' as string]: steps.length }}>
+        {steps.map((s, i) => (
+          <div key={i} className={`an-hs ${s.done ? 'done' : i === now ? 'now' : ''}`}>
+            <span className="c">{mark(s, i)}</span>
+            <span className="t">{s.label}</span>
+            <span className="d">{s.detail}</span>
+            {i === now && s.action && <span className={css.stepAction}>{s.action}</span>}
+          </div>
+        ))}
+      </div>
+    );
+  return (
+    <ol className={`an-steps ${css.steps}`}>
+      {steps.map((s, i) => (
+        <li key={i} className={`an-ps ${s.done ? 'done' : i === now ? 'now' : ''}`} aria-current={i === now ? 'step' : undefined}>
+          <span className="c">{mark(s, i)}</span>
+          <span className="t">{s.label}</span>
+          <span className="d">{s.detail}</span>
+          {i === now && s.action && <span className={`d ${css.stepAction}`}>{s.action}</span>}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** FR-PUR-6: purchase page — every purchase, late or received. */
 export default function PurchasePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const t = useTranslations('purchasing');
   const tc = useTranslations('common');
   const { canEdit, can, readOnly } = useSession();
   const { money, unit, num, date, dateShort } = useFmt();
-  const kind = useKindLabel();
   const [sheet, setSheet] = useState<SheetKey | null>(null);
-  const [paying, setPaying] = useState<Payable | null>(null);
+  const [paying, setPaying] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const q = useQuery({ queryKey: ['purchases', id], queryFn: () => api.get<PurchaseDetail>(`/purchases/${id}`) });
-  const resolve = useAction((messageId: string) => api.post(`/purchases/${id}/messages/${messageId}/resolve`), { success: t('messages.resolved') });
+  const upload = useAction((file: File) => api.post(`/purchases/${id}/documents`, formWith({}, { file })), { success: t('docs.done') });
 
-  if (q.isLoading) return <PageSkeleton />;
-  if (q.error || !q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
+  if (!q.data) return <PageState query={q} notFound={{ title: t('detail.notFound'), back: { label: t('detail.back'), href: '/purchasing' } }} />;
   const d = q.data;
   const p = d.purchase;
   const fig = d.figures;
   const editable = canEdit('purchasing') && !readOnly;
   const has = (a: string) => editable && d.actions.includes(a);
-  const today = isoDate();
   const received = p.status === 'received';
+  const open = p.status === 'ordered' || p.status === 'on_the_way';
+  const invoice = d.payables.find((x) => x.kind === 'supplier_invoice');
+  const canPay = editable && can('record_supplier_payment') && !!invoice && invoice.stillToPayCents > 0;
 
-  const stepsDone = STEP_KEYS.map((k) => d.steps[k].done);
-  const current = stepsDone.findIndex((x) => !x);
-  const steps = STEP_KEYS.map((k) => ({
-    done: d.steps[k].done,
-    label: t(`steps.${k}`),
-    detail: d.steps[k].on ? dateShort(d.steps[k].on) : k === 'on_the_way' && p.status === 'ordered' ? t('steps.expected', { date: dateShort(p.expectedOn) }) : undefined,
-  }));
+  const exp = dateShort(p.expectedOn);
+  const steps: StepView[] = [
+    { label: t('steps.ordered'), detail: date(p.orderedOn), done: true },
+    {
+      label: received ? t('steps.arrived') : t('steps.on_the_way'),
+      detail: received ? t('steps.arrivedDetail', { date: date(p.arrivedOn), expected: date(p.expectedOn) }) : p.daysLate > 0 ? t('steps.dueLate', { date: exp }) : t('steps.due', { date: exp }),
+      done: received,
+      action: has('on_the_way') ? (
+        <Button size="sm" writes icon={Truck} onClick={() => setSheet('on_the_way')}>
+          {t('onTheWay.title')}
+        </Button>
+      ) : undefined,
+    },
+    {
+      label: t('steps.supplier_invoice'),
+      detail: p.supplierInvoiceReceived ? t('steps.invoiceDetail', { number: d.steps.supplier_invoice.number ?? '—', date: date(d.steps.supplier_invoice.on) }) : received ? t('steps.notUploaded') : t('steps.withGoods'),
+      done: p.supplierInvoiceReceived,
+      action: received && has('invoice') ? (
+        <Button size="sm" variant="primary" icon={DownloadSimple} onClick={() => setSheet('invoice')}>
+          {t('invoice.upload')}
+        </Button>
+      ) : undefined,
+    },
+    {
+      label: t('steps.paid_supplier'),
+      detail: fig.stillToPayCents > 0 ? t('steps.toPay', { amount: money(fig.stillToPayCents, true) }) : t('steps.paidInFull'),
+      done: d.steps.paid_supplier.done,
+      action: canPay ? (
+        <Button size="sm" variant="primary" icon={Bank} onClick={() => setPaying(true)}>
+          {t('pay.title')}
+        </Button>
+      ) : undefined,
+    },
+    { label: t('steps.landed_cost'), detail: received ? t('steps.aUnit', { amount: unit(fig.landedUnitCostCents) }) : t('steps.onArrival'), done: d.steps.landed_cost.done },
+  ];
 
   const lineCols: Column<PurchaseDetail['lines'][number]>[] = [
     { key: 'flavour', header: tc('flavour'), render: (l) => <FlavourName flavour={l.flavour} /> },
-    { key: 'cartons', header: tc('cartons'), type: 'count', render: (l) => num(l.cartons) },
-    { key: 'units', header: t('lines.ordered'), type: 'count', render: (l) => num(l.units) },
-    { key: 'received', header: t('lines.received'), type: 'count', render: (l) => (l.unitsReceived == null ? <span className="subtle">—</span> : <span className={l.unitsReceived !== l.units ? 'warn' : ''}>{num(l.unitsReceived)}</span>) },
-    { key: 'price', header: tc('unitPrice'), type: 'amount', render: (l) => <bdi>{unit(l.unitPriceCents, 4)}</bdi> },
-    { key: 'amount', header: tc('amount'), type: 'amount', render: (l) => <bdi>{money(l.lineCents)}</bdi> },
+    { key: 'cartons', header: tc('cartons'), type: 'count', render: (l) => <bdi>{num(l.cartons)}</bdi> },
+    { key: 'units', header: tc('units'), type: 'count', render: (l) => <bdi>{num(l.unitsReceived ?? l.units)}</bdi> },
+  ];
+  const exciseRule = t('costs.exciseRule', { rate: unit(EXCISE_EUR_PER_HL_PURE * 100), litres: num(PACK_LITRES, 2), abv: Math.round(ALCOHOL_BY_VOLUME * 100) });
+  type CostRow = { key: string; label: ReactNode; sub?: string; amount: string; strong?: boolean };
+  const costRows: CostRow[] = [
+    { key: 'goods', label: t('costs.goods'), amount: money(fig.goodsCents) },
+    {
+      key: 'freight',
+      label: (
+        <span className="row">
+          {t('costs.freight')}
+          {has('freight') && (
+            <Button size="sm" writes onClick={() => setSheet('freight')}>
+              {tc('edit')}
+            </Button>
+          )}
+        </span>
+      ),
+      amount: money(fig.freightCents),
+    },
+    { key: 'excise', label: t('costs.exciseAuto'), sub: exciseRule, amount: money(fig.exciseCents) },
+    { key: 'inventory', label: <b className="strong">{t('costs.inventory')}</b>, sub: t('costs.vatOnTop', { rate: Math.round(fig.supplierVatRate * 100) || 20 }), amount: money(fig.inventoryCostCents), strong: true },
+  ];
+  const costCols: Column<CostRow>[] = [
+    {
+      key: 'cost',
+      header: t('costs.cost'),
+      render: (r) => (
+        <>
+          {r.label}
+          {r.sub && <span className="sb">{r.sub}</span>}
+        </>
+      ),
+    },
+    { key: 'amount', header: t('costs.beforeVat'), type: 'amount', render: (r) => (r.strong ? <b className="strong">{r.amount}</b> : r.amount) },
   ];
 
-  const openMessages = d.messages.filter((m) => !m.resolvedAt);
+  const waitingCols: Column<PurchaseDetail['waiting'][number]>[] = [
+    {
+      key: 'order',
+      header: t('waiting.order'),
+      render: (o) => (
+        <>
+          <span className="nm">
+            <bdi>{o.customerName ?? o.number}</bdi>
+          </span>
+          <span className="sb">
+            <bdi>{o.number}</bdi>
+          </span>
+        </>
+      ),
+    },
+    { key: 'broker', header: t('waiting.broker'), render: (o) => <bdi>{o.brokerName ?? '—'}</bdi> },
+    { key: 'cartons', header: tc('cartons'), type: 'count', render: (o) => <bdi>{num(o.cartons)}</bdi> },
+    { key: 'status', header: tc('status'), type: 'status', render: (o) => <Pill tone="mute">{o.since ? t('waiting.since', { date: dateShort(o.since) }) : t('waiting.waiting')}</Pill> },
+    { key: 'go', header: <span className="sr-only" />, type: 'amount', render: () => <CaretRight className="an-ic sm subtle" aria-hidden /> },
+  ];
+
+  const fileIcon: Record<PurchaseFile['kind'], typeof FileText> = { purchase_order: FileText, supplier_invoice: FileText, carrier_invoice: Truck, received_note: CheckCircle, payment: Bank, upload: DownloadSimple };
+  const fileTitle = (f: PurchaseFile) =>
+    f.kind === 'purchase_order' ? t('files.po', { number: f.number ?? p.number }) : f.kind === 'supplier_invoice' ? t('files.invoice', { number: f.number ?? '' }) : f.kind === 'carrier_invoice' ? t('files.carrier') : f.kind === 'received_note' ? t('files.grn') : f.kind === 'payment' ? t('files.payment') : (f.label ?? '');
+  const fileSub = (f: PurchaseFile, phone?: boolean) => {
+    switch (f.kind) {
+      case 'purchase_order':
+        return phone ? date(f.on) : t('files.poSub', { date: date(f.on), supplier: d.supplier.company });
+      case 'supplier_invoice':
+        return `${date(f.on)} · ${money(f.amountCents)}`;
+      case 'carrier_invoice':
+        return money(f.amountCents);
+      case 'received_note':
+        return t('files.grnSub', { date: date(f.on), n: num(f.units) });
+      case 'payment':
+        return f.part ? t('files.partPayment', { amount: money(f.amountCents) }) : t('files.paymentSub', { amount: money(f.amountCents), date: date(f.on) });
+      default:
+        return t('docs.uploadedBy', { date: date(f.on), by: f.by ?? '' });
+    }
+  };
+  const documents = (phone?: boolean) => (
+    <>
+      {d.files.map((f, i) => {
+        const Ic = fileIcon[f.kind];
+        return (
+          <div key={i} className="an-doc">
+            <span className="ico">
+              <Ic className="an-ic" aria-hidden />
+            </span>
+            <span className={css.fileText}>
+              <span className={`t ${css.fileTitle}`}>
+                <bdi>{fileTitle(f)}</bdi>
+              </span>
+              <span className="sub">
+                <bdi>{fileSub(f, phone)}</bdi>
+              </span>
+            </span>
+            {f.href ? (
+              <a href={f.href} target="_blank" rel="noreferrer" className="an-iconbtn" aria-label={`${tc('view')} ${fileTitle(f)}`}>
+                <Eye className="an-ic" aria-hidden />
+              </a>
+            ) : (
+              <span />
+            )}
+          </div>
+        );
+      })}
+      {has('upload') && (
+        <>
+          <input
+            ref={fileInput}
+            type="file"
+            className="sr-only"
+            accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) upload.mutate(f);
+              e.target.value = '';
+            }}
+          />
+          <Button block writes icon={DownloadSimple} busy={upload.isPending} onClick={() => fileInput.current?.click()}>
+            {t('docs.uploadDocument')}
+          </Button>
+        </>
+      )}
+    </>
+  );
+
+  const headActions = open && editable && (
+    <>
+      {has('ask') && (
+        <Button size="sm" writes icon={EnvelopeSimple} onClick={() => setSheet('ask')}>
+          {t('ask.title')}
+        </Button>
+      )}
+      {has('receive') && (
+        <Button size="sm" variant="primary" icon={Package} onClick={() => setSheet('receive')}>
+          {t('receive.title')}
+        </Button>
+      )}
+    </>
+  );
+  const pending = !received && p.status !== 'cancelled';
+  const waitingNote = pending && d.waiting.length > 0 ? t('waiting.note', { number: p.number }) : null;
 
   return (
     <div className="page">
       <PageHeader
         crumbs={[{ label: tc('nav.purchasing'), href: '/purchasing' }, { label: p.number }]}
-        kicker={<bdi>{d.supplier.company}</bdi>}
-        title={<bdi>{p.number}</bdi>}
-        actions={
-          <>
-            <a className="an-btn secondary sm" href={`/api/purchases/${p.id}/order`} target="_blank" rel="noreferrer">
-              <FileText className="an-ic sm" aria-hidden />
-              {t('detail.purchaseOrder')}
-            </a>
+        kicker={
+          <span className={`row between wrap ${css.kicker}`}>
+            <span>
+              <bdi>{d.supplier.company}</bdi> · {t('detail.orderedOn', { date: date(p.orderedOn) })}
+            </span>
+            <span className={`only-phone ${css.startEnd}`}>
+              <PurchaseStatusPill p={{ ...p, stillToPayCents: fig.stillToPayCents }} />
+            </span>
+          </span>
+        }
+        title={
+          <span className={`row ${css.titleRow}`}>
+            <bdi>{p.number}</bdi>
+            <span className={`only-wide ${css.titleStatus}`}>
+              <PurchaseStatusPill p={{ ...p, stillToPayCents: fig.stillToPayCents }} />
+            </span>
+          </span>
+        }
+        actions={<span className="only-wide row">{headActions}</span>}
+      />
+
+      {/* ---------- Phone ---------- */}
+      <div className="only-phone stack">
+        {open && editable && (
+          <div className="row">
             {has('ask') && (
-              <Button size="sm" icon={EnvelopeOpen} onClick={() => setSheet('ask')}>
+              <Button writes icon={EnvelopeSimple} onClick={() => setSheet('ask')} className="grow">
                 {t('ask.title')}
               </Button>
             )}
-            {has('on_the_way') && (
-              <Button size="sm" icon={Truck} onClick={() => setSheet('on_the_way')}>
-                {t('onTheWay.title')}
-              </Button>
-            )}
             {has('receive') && (
-              <Button size="sm" variant="primary" icon={CheckCircle} onClick={() => setSheet('receive')}>
-                {t('receive.title')}
+              <Button variant="primary" icon={Package} onClick={() => setSheet('receive')} className="grow">
+                {t('receive.short')}
               </Button>
             )}
-          </>
-        }
-      />
-
-      <div className="row wrap">
-        <PurchaseStatusPill status={p.status} daysLate={p.daysLate} invoiceMissing={!p.supplierInvoiceReceived} />
-        <span className="body-sm muted">
-          {received ? t('detail.arrivedOn', { date: date(p.arrivedOn) }) : t('detail.expectedOn', { date: date(p.expectedOn) })} · {t('detail.orderedOn', { date: date(p.orderedOn) })}
-        </span>
-      </div>
-
-      {p.daysLate > 0 && openMessages.length === 0 && has('ask') && (
-        <Banner tone="bad" action={{ label: t('ask.title'), onClick: () => setSheet('ask') }}>
-          {t('detail.lateBanner', { n: p.daysLate })}
-        </Banner>
-      )}
-      {received && !p.supplierInvoiceReceived && has('invoice') && (
-        <Banner action={{ label: t('invoice.title'), onClick: () => setSheet('invoice') }}>{t('detail.invoiceMissing')}</Banner>
-      )}
-
-      <div className="kpis">
-        <KpiTile label={t('tiles.landed')} value={unit(fig.landedUnitCostCents, 4)} sub={fig.landedEstimated ? t('tiles.estimate') : t('tiles.onArrival', { date: dateShort(p.arrivedOn) })} />
-        <KpiTile label={t('tiles.inventoryCost')} value={money(fig.inventoryCostCents, true)} sub={t('tiles.forUnits', { n: num(fig.units) })} />
-        <KpiTile label={t('tiles.payable')} value={money(fig.payableCents, true)} sub={fig.notInvoicedCents > 0 ? t('tiles.notInvoiced', { amount: money(fig.notInvoicedCents, true) }) : undefined} />
-        <KpiTile label={t('tiles.stillToPay')} value={money(fig.stillToPayCents, true)} valueTone={fig.stillToPayCents === 0 && fig.payableCents > 0 ? 'good' : undefined} sub={t('tiles.paidSoFar', { amount: money(fig.paidCents, true) })} />
-      </div>
-
-      <Card title={t('detail.progress')}>
-        <div className="only-wide">
-          <ProgressSteps horizontal steps={steps} current={current === -1 ? steps.length : current} />
+          </div>
+        )}
+        <div className="kpis">
+          <KpiTile label={t('tiles.landed')} value={received ? unit(fig.landedUnitCostCents) : t('tiles.onArrival')} sub={received ? t('tiles.landedPhoneSub') : t('steps.onArrival')} />
+          <KpiTile label={t('tiles.stillToPay')} value={<span className={fig.stillToPayCents > 0 ? 'warn' : 'good'}>{money(fig.stillToPayCents, true)}</span>} sub={fig.stillToPayCents > 0 ? t('tiles.paid', { amount: money(fig.paidCents) }) : t('steps.paidInFull')} />
         </div>
-        <div className="only-phone">
-          <ProgressSteps steps={steps} current={current === -1 ? steps.length : current} />
-        </div>
-      </Card>
-
-      <div className="cols">
-        <div className="stack loose">
-          <Card flush title={t('detail.lines')}>
-            <div className="only-wide">
-              <Table columns={lineCols} rows={d.lines} rowKey={(l) => l.id} />
+        <Card title={<span className="overline">{t('detail.progress')}</span>}>
+          <Progress steps={steps} />
+        </Card>
+        <Card title={<span className="overline">{t('detail.costsBeforeVat')}</span>}>
+          <div className="stack tight">
+            {costRows.slice(0, 3).map((r) => (
+              <div key={r.key} className="row between body-sm">
+                <span className="muted">{r.label}</span>
+                <bdi>{r.amount}</bdi>
+              </div>
+            ))}
+            <div className={`row between ${css.total}`}>
+              <span>{t('costs.inventory')}</span>
+              <b className="strong">
+                <bdi>{money(fig.inventoryCostCents)}</bdi>
+              </b>
             </div>
-            <div className="only-phone" style={{ padding: 'var(--card-padding)', paddingTop: 0 }}>
-              <div className="stack tight">
-                {d.lines.map((l) => (
-                  <div key={l.id} className="an-flav">
-                    <i className="dot" style={{ background: FLAVOUR_VAR[l.flavour] }} aria-hidden />
-                    <span className="nm">{l.flavour.toUpperCase()}</span>
-                    <span className="q">
-                      <bdi>{num(l.unitsReceived ?? l.units)}</bdi>
-                    </span>
-                    <span className="u">{l.unitsReceived == null ? tc('cartonsUnits', { c: num(l.cartons), u: num(l.units) }) : t('lines.receivedOf', { n: num(l.unitsReceived), of: num(l.units) })}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="row between body-sm">
+              <span className="muted">{fig.supplierVatRate > 0 ? t('costs.payableInclVat', { rate: Math.round(fig.supplierVatRate * 100) }) : t('tiles.payable')}</span>
+              <bdi>{money(fig.payableCents)}</bdi>
             </div>
-          </Card>
-
-          <Card
-            title={t('detail.costs')}
-            action={
-              has('freight') ? (
-                <Button size="sm" icon={NotePencil} onClick={() => setSheet('freight')}>
-                  {t('freight.edit')}
-                </Button>
-              ) : undefined
-            }
-          >
-            <Totals
-              lines={[
-                [t('costs.goods'), money(fig.goodsCents)],
-                [fig.freightCents ? t('costs.freight') : t('costs.freightNone'), money(fig.freightCents)],
-                [fig.exciseEstimated ? t('costs.exciseEstimate') : t('costs.excise'), money(fig.exciseCents)],
-              ]}
-              big={[t('costs.inventory'), money(fig.inventoryCostCents)]}
-            />
-            <p className="body-sm muted">{fig.landedEstimated ? t('costs.landedHelpEstimate', { amount: unit(fig.landedUnitCostCents, 4), n: num(fig.units) }) : t('costs.landedHelp', { amount: unit(fig.landedUnitCostCents, 4), n: num(fig.units) })}</p>
-          </Card>
-
-          <Card title={t('detail.payables')}>
-            {d.payables.length === 0 ? (
-              <p className="body-sm muted">{t('detail.noPayables')}</p>
-            ) : (
-              <div className="lrows">
-                {d.payables.map((x) => (
-                  <ListRow
-                    key={x.id}
-                    icon={Receipt}
-                    iconTone={x.paidCents < x.amountCents && x.dueOn < today ? 'bad' : undefined}
-                    title={
-                      <>
-                        {kind(x.kind)} · <bdi>{x.party}</bdi>
-                      </>
-                    }
-                    sub={
-                      <span className="row wrap" style={{ gap: 6 }}>
-                        <span>
-                          {money(x.amountCents)} · {t('payables.dueOn', { date: dateShort(x.dueOn) })}
-                          {x.invoiceNumber && (
-                            <>
-                              {' · '}
-                              <bdi>{x.invoiceNumber}</bdi>
-                            </>
-                          )}
-                        </span>
-                        <PayableStatusPill p={x} today={today} />
-                      </span>
-                    }
-                    wrapActions
-                    actions={
-                      editable && can('record_supplier_payment') && x.stillToPayCents > 0 ? (
-                        <Button size="sm" onClick={() => setPaying(x)}>
-                          {t('pay.title')}
-                        </Button>
-                      ) : (
-                        <bdi>{x.stillToPayCents > 0 ? money(x.stillToPayCents) : tc('none')}</bdi>
-                      )
-                    }
-                  />
-                ))}
+          </div>
+        </Card>
+        <Card title={<span className="overline">{t('detail.lines')}</span>}>
+          <div className="stack tight">
+            {d.lines.map((l) => (
+              <div key={l.id} className="row between body-sm">
+                <FlavourName flavour={l.flavour} />
+                <span>
+                  {t('lines.cartons', { n: num(l.cartons) })} <span className="muted">· {t('unitsShort', { n: num(l.unitsReceived ?? l.units) })}</span>
+                </span>
               </div>
-            )}
-          </Card>
-        </div>
-
-        <div className="stack loose">
-          <Card title={t('detail.waiting')} action={d.waiting.length > 0 && received && canEdit('inventory') ? <Link href="/inventory?allocate=1" className="an-btn secondary sm">{t('detail.allocate')}</Link> : undefined}>
-            {d.waiting.length === 0 ? (
-              <p className="body-sm muted">{t('detail.noWaiting')}</p>
-            ) : (
-              <div className="lrows">
-                {d.waiting.map((o) => (
-                  <ListRow
-                    key={o.id}
-                    icon={HourglassMedium}
-                    iconTone="warn"
-                    href={`/sales/${o.id}`}
-                    title={<bdi>{o.customerName ?? o.number}</bdi>}
-                    sub={
-                      <>
-                        <bdi>{o.number}</bdi> · {o.paidAt ? t('detail.paidOn', { date: dateShort(o.paidAt) }) : null}
-                      </>
-                    }
-                    value={t('unitsShort', { n: num(o.units) })}
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card
-            title={t('detail.documents')}
-            action={
-              has('upload') ? (
-                <Button size="sm" icon={UploadSimple} onClick={() => setSheet('upload')}>
-                  {t('docs.upload')}
-                </Button>
-              ) : undefined
-            }
-          >
-            {d.documents.length === 0 ? (
-              <EmptyState icon={FileText} title={t('docs.emptyTitle')} />
-            ) : (
-              <div>
-                {d.documents.map((doc) => (
-                  <DocRow
-                    key={doc.id}
-                    icon={doc.type === 'purchase_order' ? FileText : Receipt}
-                    title={doc.type === 'purchase_order' ? <>{tc('docType.purchase_order')} <bdi>{doc.number}</bdi></> : <bdi>{doc.label ?? doc.fileName}</bdi>}
-                    sub={
-                      <>
-                        {date(doc.createdAt)}
-                        {doc.by && ` · ${doc.by}`}
-                        {doc.totalCents != null && (
-                          <>
-                            {' · '}
-                            <bdi>{money(doc.totalCents)}</bdi>
-                          </>
-                        )}
-                      </>
-                    }
-                    actions={
-                      doc.hasFile ? (
-                        <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" className="an-iconbtn" aria-label={`${tc('view')} ${doc.label ?? doc.fileName ?? ''}`}>
-                          <Eye className="an-ic" aria-hidden />
-                        </a>
-                      ) : doc.type === 'purchase_order' ? (
-                        <a href={`/api/purchases/${p.id}/order`} target="_blank" rel="noreferrer" className="an-iconbtn" aria-label={`${tc('view')} ${doc.number ?? ''}`}>
-                          <Eye className="an-ic" aria-hidden />
-                        </a>
-                      ) : null
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card title={t('messages.title')} action={has('ask') ? <Button size="sm" onClick={() => setSheet('ask')}>{t('ask.title')}</Button> : undefined}>
-            {d.messages.length === 0 ? (
-              <p className="body-sm muted">{t('messages.empty')}</p>
-            ) : (
-              <div className="lrows">
-                {d.messages.map((m) => {
-                  const due = !m.resolvedAt && m.followUpOn && m.followUpOn <= today;
-                  return (
-                    <ListRow
-                      key={m.id}
-                      icon={EnvelopeOpen}
-                      iconTone={due ? 'warn' : undefined}
-                      title={t(`ask.topics.${m.topic}`)}
-                      sub={
-                        m.resolvedAt
-                          ? t('messages.answered', { date: dateShort(m.createdAt), by: m.by ?? '' })
-                          : due
-                            ? t('messages.followUpDue', { date: dateShort(m.createdAt) })
-                            : t('messages.followUpOn', { date: dateShort(m.createdAt), followUp: dateShort(m.followUpOn) })
-                      }
-                      wrapActions
-                      actions={!m.resolvedAt && editable ? <Button size="sm" busy={resolve.isPending && resolve.variables === m.id} onClick={() => resolve.mutate(m.id)}>{t('messages.resolve')}</Button> : undefined}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-
-          <Card title={t('detail.supplier')} action={<Link href="/purchasing/suppliers" className="an-btn secondary sm">{t('tabs.suppliers')}</Link>}>
-            <KeyValue
-              items={[
-                [t('suppliers.cols.supplier'), <bdi key="c">{d.supplier.company}</bdi>],
-                [t('suppliers.form.contact'), d.supplier.contactName ?? '—'],
-                [t('suppliers.form.ordersEmail'), <bdi key="e">{d.supplier.ordersEmail}</bdi>],
-                [t('suppliers.cols.leadTime'), t('suppliers.days', { n: d.supplier.leadTimeDays })],
-                [t('suppliers.cols.terms'), t('suppliers.days', { n: d.supplier.paymentTermsDays })],
-              ]}
-            />
-            {d.shipments.length > 0 && (
-              <div className="stack tight">
-                <span className="overline">{t('tabs.shipments')}</span>
-                {d.shipments.map((s) => (
-                  <div key={s.id} className="row between body-sm">
-                    <span>
-                      <bdi>{s.carrier}</bdi> · {t(`shipments.modes.${s.mode}`)}
-                      {s.route && (
+            ))}
+          </div>
+        </Card>
+        {d.waiting.length > 0 && (
+          <>
+            <span className="overline">{t('waiting.titleCount', { n: d.waiting.length })}</span>
+            <div className="list-cards">
+              {d.waiting.map((o) => (
+                <ListCard
+                  key={o.id}
+                  href={`/sales/${o.id}`}
+                  title={<bdi>{o.customerName ?? o.number}</bdi>}
+                  amount={t('lines.cartons', { n: num(o.cartons) })}
+                  sub={
+                    <>
+                      <bdi>{o.number}</bdi>
+                      {o.since && <> · {t('waiting.sinceLower', { date: dateShort(o.since) })}</>}
+                      {o.brokerName && (
                         <>
                           {' · '}
-                          <bdi>{s.route}</bdi>
+                          <bdi>{o.brokerName}</bdi>
                         </>
                       )}
-                    </span>
-                    <span className="muted">{t(`shipments.status.${s.status}`)}</span>
+                    </>
+                  }
+                  status={<Pill tone={o.paidAt ? 'good' : 'mute'}>{o.paidAt ? t('waiting.paid') : t('waiting.notPaid')}</Pill>}
+                />
+              ))}
+            </div>
+          </>
+        )}
+        <Card title={<span className="overline">{t('detail.documents')}</span>}>{documents(true)}</Card>
+      </div>
+
+      {/* ---------- Desktop ---------- */}
+      <div className="only-wide stack loose">
+        <div className="kpis">
+          <KpiTile label={t('tiles.landed')} value={received ? unit(fig.landedUnitCostCents) : t('tiles.onArrival')} sub={received ? t('tiles.landedSub', { cost: money(fig.inventoryCostCents), n: num(fig.units) }) : t('tiles.landedHow')} />
+          <KpiTile label={t('tiles.inventoryCost')} value={money(fig.inventoryCostCents)} sub={t('costs.beforeVat')} />
+          <KpiTile label={t('tiles.payable')} value={money(fig.payableCents)} sub={t('tiles.inclVat')} />
+          <KpiTile label={t('tiles.stillToPay')} value={<span className={fig.stillToPayCents > 0 ? 'warn' : 'good'}>{money(fig.stillToPayCents)}</span>} sub={fig.stillToPayCents > 0 ? t('tiles.paid', { amount: money(fig.paidCents) }) : t('steps.paidInFull')} />
+        </div>
+        <div className="cols side">
+          <div className="stack loose">
+            <Card title={t('detail.progress')}>
+              <Progress horizontal steps={steps} />
+            </Card>
+            <div className="cols even">
+              <Card flush title={t('detail.lines')}>
+                <Table columns={lineCols} rows={d.lines} rowKey={(l) => l.id} />
+              </Card>
+              <Card flush title={t('detail.costs')}>
+                <Table columns={costCols} rows={costRows} rowKey={(r) => r.key} />
+              </Card>
+            </div>
+            {d.waiting.length > 0 && (
+              <Card flush title={<span className="row">{t('detail.waiting')}<Count n={d.waiting.length} tone="r" /></span>}>
+                <Table columns={waitingCols} rows={d.waiting} rowKey={(o) => o.id} onRow={(o) => router.push(`/sales/${o.id}`)} />
+                {waitingNote && (
+                  <div className={`body-sm muted ${css.cardPad}`}>
+                    {waitingNote}
                   </div>
-                ))}
-              </div>
+                )}
+                {received && canEdit('inventory') && (
+                  <div className={css.cardPad}>
+                    <Link href="/inventory?allocate=1" className="an-btn secondary sm">
+                      {t('detail.allocate')}
+                    </Link>
+                  </div>
+                )}
+              </Card>
             )}
-            {p.note && <p className="body-sm muted">{p.note}</p>}
+          </div>
+          <Card title={<span className={`row ${css.cardTitle}`}>{t('detail.documents')}<Count n={d.files.length} /></span>}>
+            <div>{documents()}</div>
           </Card>
         </div>
       </div>
 
       <PurchaseSheet sheet={sheet} detail={d} onClose={() => setSheet(null)} />
-      <RecordPaymentSheet payable={paying} onClose={() => setPaying(null)} />
+      {invoice && <RecordPaymentSheet payable={paying ? { ...invoice, purchaseNumber: p.number } : null} onClose={() => setPaying(false)} />}
     </div>
   );
 }

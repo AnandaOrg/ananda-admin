@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { z } from 'zod';
-import { partDeliverySchema, stockCountSchema } from '@ananda/shared';
+import { FLAVOURS, stockCountSchema } from '@ananda/shared';
 import { Access, Auth, type AuthContext } from '../common/context';
 import { ZodPipe } from '../common/zod.pipe';
 import { MAX_UPLOAD_BYTES } from '../core/files.service';
@@ -10,17 +10,20 @@ import { WarehouseService } from './warehouse.service';
 const uuid = new ParseUUIDPipe();
 const upload = FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } });
 
-/** Multipart fields arrive as text: `kept` is JSON ({ aloha: 10, … }). */
+/** Cartons delivered now, per flavour (the rest stays in To ship). */
+const partDeliveredSchema = z.object({ delivered: z.object(Object.fromEntries(FLAVOURS.map((f) => [f, z.number().int().min(0).max(100_000).optional()])) as Record<(typeof FLAVOURS)[number], z.ZodOptional<z.ZodNumber>>) });
+
+/** Multipart fields arrive as text: `delivered` is JSON ({ aloha: 10, … }). */
 function parsePart(body: Record<string, unknown>) {
-  let kept: unknown = body.kept;
-  if (typeof kept === 'string') {
+  let delivered: unknown = body.delivered;
+  if (typeof delivered === 'string') {
     try {
-      kept = JSON.parse(kept);
+      delivered = JSON.parse(delivered);
     } catch {
-      throw new BadRequestException({ message: 'Check the highlighted fields', fields: { kept: 'Enter the cartons the customer kept' } });
+      throw new BadRequestException({ message: 'Check the highlighted fields', fields: { delivered: 'Enter the cartons you delivered now' } });
     }
   }
-  return new ZodPipe(partDeliverySchema).transform({ kept, reason: body.reason, note: body.note || undefined });
+  return new ZodPipe(partDeliveredSchema).transform({ delivered });
 }
 
 /** Warehouse & shipments (PRD §5.7). Warehouse users edit within scope "shipping". */

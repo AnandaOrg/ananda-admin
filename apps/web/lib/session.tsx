@@ -36,9 +36,16 @@ export function useSession() {
     canView: (a: Area) => canView(perms.areas, a),
     canEdit: (a: Area) => canEdit(perms.areas, a),
     can: (s: SensitiveAction) => perms.sensitive.includes(s),
-    isAgent: perms.scope === 'own',
+    isBroker: perms.scope === 'own',
     isWarehouse: perms.scope === 'shipping',
     isAdmin: perms.scope === 'all' && perms.areas.sales === 'edit',
     readOnly: perms.previewing,
   };
+}
+
+/** Where to go after signing in: the page people were on (`?next=`, same-site paths only), or their start page. */
+export function nextPath(fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  const n = new URLSearchParams(window.location.search).get('next');
+  return n && n.startsWith('/') && !n.startsWith('//') && !/^\/(login|two-step|invite)/.test(n) ? n : fallback;
 }

@@ -1,0 +1,20 @@
+.tiles3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.tile { padding: var(--space-3); text-align: start; font: inherit; color: inherit; min-width: 0; }
+.tileV { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tileV.bad { color: var(--bad); }
+.tileBtn { text-align: start; font: inherit; color: inherit; }
+.draft { min-height: 0; }
+.draftRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; }
+.share { flex: 1 1 0; }
+.sent { color: var(--good); white-space: normal; display: block; max-inline-size: calc(var(--space-8) * 6); text-align: end; }
+.foot { padding: var(--space-4) var(--card-padding); border-block-start: 1px solid var(--line-soft); }
+.cardGap { gap: var(--space-1); }
+.cardActs { margin-block-start: var(--space-1); }
+.dd { min-height: var(--control-md); }
+.pickGrid { display: grid; }
+.brkSub { display: none; }
+@media (max-width: 1023px) {
+  .brk { display: none; }
+  .brkSub { display: inline; }
+}
+.sheetBtns { display: flex; gap: var(--space-2); }

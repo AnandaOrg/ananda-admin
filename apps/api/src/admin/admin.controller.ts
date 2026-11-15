@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { z } from 'zod';
-import { roleSchema, settingSchema, updateMemberSchema } from '@ananda/shared';
+import { settingSchema, updateMemberSchema } from '@ananda/shared';
 import { Access, Auth, Sensitive, type AuthContext } from '../common/context';
 import { ZodPipe } from '../common/zod.pipe';
 import { sendCsv } from '../common/csv';
@@ -9,7 +9,7 @@ import { UsersService } from './users.service';
 import { RolesService } from './roles.service';
 import { AuditLogService, type AuditQuery } from './audit-log.service';
 import { AdminSettingsService } from './admin-settings.service';
-import { inviteMemberSchema, type InviteMemberInput } from './admin.schemas';
+import { inviteMemberSchema, roleUpdateSchema, type InviteMemberInput, type RoleUpdateInput } from './admin.schemas';
 
 const uuid = new ParseUUIDPipe();
 
@@ -35,8 +35,8 @@ export class UsersController {
     return this.users.history();
   }
 
-  /** Also used by Agents › Invite new agent: without users:edit only the 'agent' role is allowed (checked in the service). */
-  @Access('edit', 'users', 'agents')
+  /** Also used by Brokers › Invite new broker: without users:edit only the 'broker' role is allowed (checked in the service). */
+  @Access('edit', 'users', 'brokers')
   @Post('invite')
   invite(@Auth() auth: AuthContext, @Body(new ZodPipe(inviteMemberSchema)) body: InviteMemberInput) {
     return this.users.invite(auth, body);
@@ -81,13 +81,13 @@ export class RolesController {
 
   @Access('edit', 'users')
   @Post(':id/duplicate')
-  duplicate(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
-    return this.roles.duplicate(auth, id);
+  duplicate(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(z.object({ name: z.string().max(80).optional(), description: z.string().max(500).optional() }).default({}))) body: { name?: string; description?: string }) {
+    return this.roles.duplicate(auth, id, body);
   }
 
   @Access('edit', 'users')
   @Patch(':id')
-  update(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(roleSchema)) body: z.infer<typeof roleSchema>) {
+  update(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(roleUpdateSchema)) body: RoleUpdateInput) {
     return this.roles.update(auth, id, body);
   }
 
@@ -105,7 +105,7 @@ export class AuditController {
   @Access('view', 'audit')
   @Get()
   async list(@Query() q: AuditQuery) {
-    const [page, counts] = await Promise.all([this.log.list(q), this.log.counts()]);
+    const [page, counts] = await Promise.all([this.log.list(q), this.log.counts(q)]);
     return { ...page, counts };
   }
 
@@ -123,14 +123,16 @@ export class AuditController {
     sendCsv(
       res,
       'audit-log.csv',
-      ['Time', 'Person', 'Category', 'Action', 'Record type', 'Record', 'Record ID', 'Money', 'Before → after', 'Details'],
+      ['Time', 'Person', 'Role', 'Category', 'Action', 'Record type', 'Record', 'Customer', 'Record ID', 'Money', 'Before → after', 'Details'],
       rows.map((r) => [
         r.at.toISOString(),
         r.actorName,
+        r.actorRole?.name ?? '',
         r.category,
         r.action,
         r.recordType,
         r.recordLabel,
+        r.customerName ?? '',
         r.recordId,
         r.money ? 'Yes' : 'No',
         r.changes ? Object.entries(r.changes).map(([k, c]) => `${k}: ${show(c.from)} → ${show(c.to)}`).join('; ') : '',

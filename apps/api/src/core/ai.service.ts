@@ -5,11 +5,13 @@ const TONES = {
   friendly: 'warm and friendly, still professional',
   neutral: 'clear, polite and neutral',
   firm: 'firm and direct, still courteous',
+  short: 'shorter: a few plain sentences, nothing left out that matters',
+  formal: 'formal and courteous, as in a business letter',
 } as const;
 const LANGUAGES = { en: 'English', bg: 'Bulgarian', he: 'Hebrew' } as const;
 
 /**
- * Optional "Polish with AI" for drafted e-mails (Ask supplier, Nudge, Invite agent).
+ * Optional "Polish with AI" for drafted e-mails (Ask supplier, Nudge, Invite broker).
  * Available only when ANTHROPIC_API_KEY (or another SDK credential) is configured.
  */
 @Injectable()

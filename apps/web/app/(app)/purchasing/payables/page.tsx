@@ -1,180 +1,161 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { isoDate } from '@ananda/shared';
-import { api, qs } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { Button, Card, Chips, DownloadSimple, EmptyState, ErrorState, KpiTile, ListCard, PageHeader, PageSkeleton, Receipt, SelectPill, SlidersHorizontal, Table, type Column } from '@/components/ui';
-import { PurchasingTabs } from '../_components/PurchasingTabs';
-import { PayableStatusPill, useKindLabel } from '../_components/PurchaseStatus';
+import { Bank, Button, Card, EmptyState, ErrorState, KpiTile, PageHeader, PageSkeleton, Pill, Plus, Receipt, Table, type Column } from '@/components/ui';
+import { PurchasingTabs, TableFoot, usePurchaseSummary } from '../_components/PurchasingTabs';
+import { NewPurchaseSheet } from '../_components/NewPurchaseSheet';
+import { useKindLabel, useMonthName } from '../_components/PurchaseStatus';
 import { RecordPaymentSheet } from '../_components/RecordPaymentSheet';
-import type { Payable, PayableKind } from '../_lib/types';
+import type { Payable } from '../_lib/types';
+import css from '../purchasing.module.css';
 
-type Filter = 'open' | 'due_soon' | 'overdue' | 'paid' | 'all';
 interface PayableList {
   items: Payable[];
-  tiles: { toPayCents: number; dueSoonCents: number; overdueCents: number };
-  counts: Record<Filter, number>;
+  tiles: { toPayCents: number; dueSoonCents: number; overdueCents: number; oldestDueOn: string | null };
+  counts: { open: number; due_soon: number; overdue: number; paid: number; all: number };
   accounts: string[];
 }
 
-/** FR-PUR-4: supplier invoices, freight and excise by due date, with Record payment. */
+/** FR-PUR-4: what ANANDA owes suppliers — purchase bills, freight and excise by due date, with Record payment. */
 export default function PayablesPage() {
   const t = useTranslations('purchasing');
   const tc = useTranslations('common');
-  const params = useSearchParams();
   const { canEdit, can, readOnly } = useSession();
   const { money, date, dateShort } = useFmt();
+  const monthName = useMonthName();
   const kindLabel = useKindLabel();
-  const initial = params.get('filter') as Filter | null;
-  const [filter, setFilter] = useState<Filter>(initial && ['open', 'due_soon', 'overdue', 'paid', 'all'].includes(initial) ? initial : 'open');
-  const [kind, setKind] = useState<PayableKind | null>(null);
   const [paying, setPaying] = useState<Payable | null>(null);
-  const query = qs({ filter, kind });
-  const list = useQuery({ queryKey: ['payables', query], queryFn: () => api.get<PayableList>(`/payables${query}`) });
+  const [creating, setCreating] = useState(false);
+  const list = useQuery({ queryKey: ['payables', 'board'], queryFn: () => api.get<PayableList>('/payables?filter=board') });
+  const sum = usePurchaseSummary();
   const canPay = canEdit('purchasing') && can('record_supplier_payment') && !readOnly;
-  const today = isoDate();
+  const editable = canEdit('purchasing') && !readOnly;
 
   if (list.isLoading) return <PageSkeleton />;
   const d = list.data;
   const rows = d?.items ?? [];
-  const chips = (['open', 'due_soon', 'overdue', 'paid', 'all'] as Filter[]).map((f) => ({ value: f, label: t(`payables.filters.${f}`), count: d?.counts[f] }));
+  const forLabel = (p: Payable) => kindLabel(p.kind, { paidCents: p.stillToPayCents > 0 ? p.paidCents : 0, month: p.kind === 'excise' && p.arrivedOn ? monthName(p.arrivedOn) : null });
+  const action = (p: Payable) =>
+    p.stillToPayCents > 0 ? (
+      canPay ? (
+        <Button
+          size="sm"
+          icon={Bank}
+          onClick={(e) => {
+            e.stopPropagation();
+            setPaying(p);
+          }}
+        >
+          {t('pay.title')}
+        </Button>
+      ) : null
+    ) : (
+      <Pill tone="good">{p.paidToday ? t('payables.paidToday') : t('payables.status.paid')}</Pill>
+    );
 
   const columns: Column<Payable>[] = [
-    { key: 'due', header: t('payables.cols.due'), render: (p) => <span className={`nowrap ${p.overdue ? 'bad' : ''}`}>{date(p.dueOn)}</span> },
     {
       key: 'party',
-      header: t('payables.cols.party'),
+      header: t('payables.cols.supplier'),
       render: (p) => (
         <>
           <span className="nm">
             <bdi>{p.party}</bdi>
           </span>
-          <span className="sb">
-            {kindLabel(p.kind)}
-            {p.invoiceNumber && (
-              <>
-                {' · '}
-                <bdi>{p.invoiceNumber}</bdi>
-              </>
-            )}
-          </span>
+          {p.purchaseNumber && p.purchaseId && (
+            <Link href={`/purchasing/${p.purchaseId}`} className="sb" onClick={(e) => e.stopPropagation()}>
+              <bdi>{p.purchaseNumber}</bdi>
+            </Link>
+          )}
         </>
       ),
     },
-    {
-      key: 'purchase',
-      header: t('cols.purchase'),
-      render: (p) =>
-        p.purchaseId ? (
-          <Link href={`/purchasing/${p.purchaseId}`} className="link" onClick={(e) => e.stopPropagation()}>
-            <bdi>{p.purchaseNumber}</bdi>
-          </Link>
-        ) : (
-          '—'
-        ),
-    },
-    { key: 'amount', header: t('payables.cols.amount'), type: 'amount', render: (p) => <bdi>{money(p.amountCents)}</bdi> },
-    { key: 'left', header: t('pay.stillToPay'), type: 'amount', render: (p) => <bdi>{money(p.stillToPayCents)}</bdi> },
-    { key: 'status', header: tc('status'), render: (p) => <PayableStatusPill p={p} today={today} /> },
-    ...(canPay
-      ? [
-          {
-            key: 'act',
-            header: <span className="sr-only">{t('pay.title')}</span>,
-            type: 'amount' as const,
-            render: (p: Payable) =>
-              p.stillToPayCents > 0 ? (
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPaying(p);
-                  }}
-                >
-                  {t('pay.title')}
-                </Button>
-              ) : null,
-          },
-        ]
-      : []),
+    { key: 'for', header: t('payables.cols.for'), render: forLabel },
+    { key: 'due', header: t('payables.cols.due'), type: 'date', render: (p) => (p.stillToPayCents > 0 ? <span className={p.overdue ? 'bad' : ''}>{date(p.dueOn)}</span> : t('payables.status.paid')) },
+    { key: 'amount', header: t('payables.cols.amount'), type: 'amount', render: (p) => <bdi>{money(p.stillToPayCents)}</bdi> },
+    { key: 'act', header: <span className="sr-only">{t('pay.title')}</span>, type: 'amount', render: action },
   ];
 
+  const oldest = d?.tiles.oldestDueOn;
   return (
     <div className="page">
       <PageHeader
         crumbs={[{ label: tc('nav.purchasing'), href: '/purchasing' }, { label: t('tabs.payables') }]}
-        kicker={t('payables.kicker', { n: d?.counts.open ?? 0 })}
-        title={t('tabs.payables')}
+        kicker={t('payables.kicker')}
+        title={tc('nav.purchasing')}
         actions={
-          <a className="an-btn secondary sm" href={`/api/payables/export.csv${query}`}>
-            <DownloadSimple className="an-ic sm" aria-hidden />
-            {tc('exportCsv')}
-          </a>
+          editable ? (
+            <span className="only-wide">
+              <Button variant="primary" size="sm" icon={Plus} onClick={() => setCreating(true)}>
+                {t('new.title')}
+              </Button>
+            </span>
+          ) : undefined
         }
       />
       <PurchasingTabs current="payables" />
       {d && (
-        <div className="kpis" style={{ ['--n' as string]: 3 }}>
-          <KpiTile label={t('payables.tiles.toPay')} value={money(d.tiles.toPayCents, true)} sub={t('payables.tiles.bills', { n: d.counts.open })} onClick={() => setFilter('open')} />
-          <KpiTile label={t('payables.tiles.dueSoon')} value={money(d.tiles.dueSoonCents, true)} sub={t('payables.tiles.bills', { n: d.counts.due_soon })} onClick={() => setFilter('due_soon')} />
-          <KpiTile label={t('payables.tiles.overdue')} value={money(d.tiles.overdueCents, true)} valueTone={d.tiles.overdueCents > 0 ? 'bad' : undefined} sub={t('payables.tiles.bills', { n: d.counts.overdue })} subTone={d.counts.overdue > 0 ? 'bad' : undefined} onClick={() => setFilter('overdue')} />
-        </div>
+        <>
+          <div className="kpis only-wide" style={{ ['--n' as string]: 3 }}>
+            <KpiTile label={t('payables.tiles.toPay')} value={money(d.tiles.toPayCents)} sub={t('payables.tiles.bills', { n: d.counts.open })} />
+            <KpiTile label={t('payables.tiles.dueSoon')} value={money(d.tiles.dueSoonCents)} sub={oldest ? t('payables.tiles.oldestDue', { date: dateShort(oldest) }) : t('payables.tiles.nothingDue')} />
+            <KpiTile label={t('payables.tiles.overdue')} value={money(d.tiles.overdueCents)} valueTone={d.tiles.overdueCents > 0 ? 'bad' : undefined} sub={d.counts.overdue ? t('payables.tiles.bills', { n: d.counts.overdue }) : t('payables.tiles.nothingLate')} subTone={d.counts.overdue ? 'bad' : undefined} />
+          </div>
+          <div className="kpis only-phone">
+            <KpiTile label={t('payables.tiles.toPay')} value={money(d.tiles.toPayCents)} sub={t('payables.tiles.bills', { n: d.counts.open })} />
+            <KpiTile label={t('payables.tiles.overdue')} value={money(d.tiles.overdueCents)} valueTone={d.tiles.overdueCents > 0 ? 'bad' : undefined} sub={d.counts.overdue ? t('payables.tiles.bills', { n: d.counts.overdue }) : t('payables.tiles.nothingLate')} />
+          </div>
+        </>
       )}
-      <Chips options={chips} value={filter} onChange={setFilter} label={tc('filters')} />
-      <div className="toolbar">
-        <SelectPill
-          icon={SlidersHorizontal}
-          label={t('payables.kindLabel')}
-          value={kind ? kindLabel(kind) : t('payables.anyKind')}
-          items={[
-            { key: 'any', label: t('payables.anyKind'), selected: !kind, onSelect: () => setKind(null) },
-            ...(['supplier_invoice', 'freight', 'excise'] as PayableKind[]).map((k) => ({ key: k, label: kindLabel(k), selected: k === kind, onSelect: () => setKind(k) })),
-          ]}
-        />
-      </div>
       {list.error ? (
         <ErrorState error={list.error} retry={() => list.refetch()} />
       ) : rows.length === 0 ? (
         <Card>
-          <EmptyState done={filter !== 'paid' && filter !== 'all'} icon={Receipt} title={t(`payables.empty.${filter === 'paid' || filter === 'all' ? 'none' : 'clear'}`)} text={filter !== 'paid' && filter !== 'all' ? t('payables.empty.text') : undefined} action={filter !== 'all' ? <Button onClick={() => setFilter('all')}>{t('payables.showAll')}</Button> : undefined} />
+          <EmptyState done={(sum.data?.counts.all ?? 0) > 0} icon={Receipt} title={t('payables.empty.clear')} text={t('payables.empty.text')} />
         </Card>
       ) : (
         <>
           <Card flush className="only-wide">
-            <Table columns={columns} rows={rows} rowKey={(p) => p.id} onRow={canPay ? (p) => p.stillToPayCents > 0 && setPaying(p) : undefined} rowClass={(p) => (p.stillToPayCents === 0 ? 'muted' : '')} />
+            <Table columns={columns} rows={rows} rowKey={(p) => p.id} picker={{ id: 'payables', locked: ['party', 'amount', 'act'], defaults: ['due'], priority: ['due', 'for'] }} />
+            <TableFoot>{t('payables.foot')}</TableFoot>
           </Card>
           <div className="list-cards only-phone">
             {rows.map((p) => (
-              <ListCard
-                key={p.id}
-                onClick={canPay && p.stillToPayCents > 0 ? () => setPaying(p) : undefined}
-                href={!canPay || p.stillToPayCents === 0 ? (p.purchaseId ? `/purchasing/${p.purchaseId}` : undefined) : undefined}
-                title={<bdi>{p.party}</bdi>}
-                amount={money(p.stillToPayCents > 0 ? p.stillToPayCents : p.amountCents)}
-                sub={
-                  <>
-                    {kindLabel(p.kind)} · {t('payables.dueOn', { date: dateShort(p.dueOn) })}
+              <div key={p.id} className={`an-card ${css.payCard}`}>
+                <div className="row between">
+                  <b className="strong">
+                    <bdi>{p.party}</bdi>
+                  </b>
+                  <b className="strong">
+                    <bdi>{money(p.stillToPayCents)}</bdi>
+                  </b>
+                </div>
+                <div className="row between body-sm">
+                  <span className="muted">
+                    {forLabel(p)}
                     {p.purchaseNumber && (
                       <>
                         {' · '}
                         <bdi>{p.purchaseNumber}</bdi>
                       </>
                     )}
-                  </>
-                }
-                status={<PayableStatusPill p={p} today={today} />}
-              />
+                  </span>
+                  <span className={p.overdue ? 'bad' : 'muted'}>{p.stillToPayCents > 0 ? t('payables.dueOn', { date: date(p.dueOn) }) : t('payables.status.paid')}</span>
+                </div>
+                {(p.stillToPayCents > 0 ? canPay : true) && <div className={css.payAction}>{action(p)}</div>}
+              </div>
             ))}
           </div>
         </>
       )}
       {canPay && <RecordPaymentSheet payable={paying} accounts={d?.accounts} onClose={() => setPaying(null)} />}
+      {editable && <NewPurchaseSheet open={creating} onClose={() => setCreating(false)} />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # ANANDA — operations & finance
 
-Web and phone app for selling four canned-cocktail flavours through commissioned agents:
+Web and phone app for selling four canned-cocktail flavours through commissioned brokers:
 approvals, payments, warehouse dispatch, purchasing, stock, collections, commissions and finance
 reporting. Built from `ANANDA_Functional_PRD_v1.docx` and the ANANDA design system.
 
@@ -53,7 +53,7 @@ The seed also prints a real authenticator secret.
 | maya@ananda.bg | Admin |
 | finance@ananda.bg | Finance |
 | warehouse@ananda.bg | Warehouse (phone app) |
-| ivan@ananda.bg, petya@ananda.bg, dimitar@ananda.bg | Sales agents |
+| ivan@ananda.bg, petya@ananda.bg, dimitar@ananda.bg | Sales brokers |
 
 ## Deploy to Vercel
 
@@ -65,7 +65,7 @@ first-party and the services need no bindings. What changes on Vercel:
 - **Files** go to a private Vercel Blob store (connect one to the project); without it they go to local disk.
 - **Scheduled jobs** run from Vercel Cron once a day (Hobby plan): `/api/cron/orders` at 04:00 UTC and
   `/api/cron/ownership` at 06:00 UTC, authorised with `CRON_SECRET`. Expired stock holds stop counting as
-  reserved the moment they expire; the daily job records the release and tells the agent.
+  reserved the moment they expire; the daily job records the release and tells the broker.
 - **Live updates** poll every 20 seconds instead of streaming, since requests can land on different instances.
 - **Photos** are scaled down in the browser before upload to stay under the 4.5 MB request limit.
 - **Database:** Neon from the Vercel Marketplace, with a separate database (branch) for preview
@@ -106,6 +106,6 @@ on drafted e-mails, using Claude Opus 5.5 with server-side refusal fallback).
 The defaults from PRD section 11 are implemented (A4 Send to pay e-mails the accountant, A5 credit
 after paid commission offsets the next payout, A6 admin decides part deliveries, A7 manual
 allocation with oldest preselected, A8 stock hold released after 7 unpaid days, A9 reason lists,
-A12 expired proforma reminds the agent, A14 two-step code for supplier payments, B2 "Sales this
+A12 expired proforma reminds the broker, A14 two-step code for supplier payments, B2 "Sales this
 year" = fully paid excl. VAT). VAT is rounded once per document until the accountant confirms;
 "late" uses each customer's payment terms.

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, desc, eq, gte, lt, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lt, lte, or, sql, type SQL } from 'drizzle-orm';
 import { addDays, formatMoney, isoDate } from '@ananda/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { documents, payablePayments, payables, purchases, shipments, suppliers, users } from '../db/schema';
@@ -32,6 +32,9 @@ export class PayablesService {
         return sql`${payables.paidCents} >= ${payables.amountCents}`;
       case 'all':
         return undefined;
+      case 'board':
+        // What the Payables tab lists: bills still open, plus those paid off today.
+        return or(openCond, sql`exists (select 1 from ${payablePayments} where ${payablePayments.payableId} = ${payables.id} and ${payablePayments.paidOn} = ${today})`);
       default:
         return openCond;
     }
@@ -43,7 +46,13 @@ export class PayablesService {
     const base: SQL[] = [];
     if (q.kind && ['supplier_invoice', 'freight', 'excise'].includes(q.kind)) base.push(eq(payables.kind, q.kind as 'supplier_invoice'));
     const rows = await this.db
-      .select({ p: payables, purchaseNumber: purchases.number, purchaseStatus: purchases.status })
+      .select({
+        p: payables,
+        purchaseNumber: purchases.number,
+        purchaseStatus: purchases.status,
+        arrivedOn: purchases.arrivedOn,
+        lastPaidOn: sql<string | null>`(select max(${payablePayments.paidOn})::text from ${payablePayments} where ${payablePayments.payableId} = ${payables.id})`,
+      })
       .from(payables)
       .leftJoin(purchases, eq(purchases.id, payables.purchaseId))
       .where(and(...base, this.filterCond(q.filter, today, soon)))
@@ -61,6 +70,7 @@ export class PayablesService {
         overdue: cnt(this.filterCond('overdue', today, soon)),
         paid: cnt(this.filterCond('paid', today, soon)),
         all: cnt(undefined),
+        oldestDueOn: sql<string | null>`min(${payables.dueOn}) filter (where ${openCond})::text`,
       })
       .from(payables)
       .where(and(...base));
@@ -72,8 +82,10 @@ export class PayablesService {
         stillToPayCents: Math.max(0, r.p.amountCents - r.p.paidCents),
         overdue: r.p.paidCents < r.p.amountCents && r.p.dueOn < today,
         purchaseNumber: r.purchaseNumber,
+        arrivedOn: r.arrivedOn,
+        paidToday: r.p.paidCents >= r.p.amountCents && r.lastPaidOn === today,
       })),
-      tiles: { toPayCents: Number(t.toPayCents), dueSoonCents: Number(t.dueSoonCents), overdueCents: Number(t.overdueCents) },
+      tiles: { toPayCents: Number(t.toPayCents), dueSoonCents: Number(t.dueSoonCents), overdueCents: Number(t.overdueCents), oldestDueOn: t.oldestDueOn },
       counts: { open: t.open, due_soon: t.due_soon, overdue: t.overdue, paid: t.paid, all: t.all },
       accounts: bank.accounts,
     };
@@ -159,7 +171,10 @@ export class PayablesService {
       .from(shipments);
     const today = isoDate();
     return {
-      items: rows.map((r) => ({ ...r.s, purchaseNumber: r.purchaseNumber, purchaseStatus: r.purchaseStatus, supplierName: r.supplierName, late: r.s.status !== 'arrived' && !!r.s.arriveOn && r.s.arriveOn < today })),
+      items: rows.map((r) => {
+        const expectedOn = r.s.arriveOn ?? r.expectedOn;
+        return { ...r.s, purchaseNumber: r.purchaseNumber, purchaseStatus: r.purchaseStatus, supplierName: r.supplierName, expectedOn, late: r.s.status !== 'arrived' && expectedOn < today };
+      }),
       counts: c,
     };
   }

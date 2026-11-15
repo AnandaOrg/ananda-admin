@@ -1,0 +1,137 @@
+/* Profile & devices: two cards the same height; the last button sits at the bottom. Tokens only. */
+.eq {
+  align-items: stretch;
+}
+
+.eq > :global(.an-card) {
+  display: flex;
+  flex-direction: column;
+}
+
+.eq > :global(.an-card) > .danger {
+  margin-top: auto;
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-3);
+  box-sizing: border-box;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.row.dev {
+  grid-template-columns: var(--control-sm) minmax(0, 1fr) auto;
+}
+
+.lbl {
+  display: grid;
+  min-width: 0;
+  font: 400 14px/20px var(--font-sans);
+}
+
+.sub {
+  font: 400 12px/16px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.ico {
+  display: grid;
+  place-items: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.seg {
+  min-width: 0;
+}
+
+.group {
+  display: contents;
+}
+
+:global(.an-btn).danger {
+  color: var(--bad);
+}
+
+/* Phone: each row is its own box; the language choice fills the width under its label. */
+@media (max-width: 767px) {
+  .eq > :global(.an-card) {
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+
+  .eq > :global(.an-card) > :global(.an-card-h) h2 {
+    font: 600 12px/16px var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .row {
+    background: var(--surface-1);
+    border: 1px solid var(--line-soft);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .profileCard > :global(.an-card-h) {
+    display: none;
+  }
+
+  .langRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .langRow > .lbl {
+    font: 600 12px/16px var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .langRow .sub {
+    display: none;
+  }
+
+  /* Password and two-step verification share one box. */
+  .group {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-soft);
+    background: var(--surface-1);
+  }
+
+  .group > .row {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .row.dev {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .row.dev > .ico {
+    display: none;
+  }
+
+  .danger {
+    margin-top: var(--space-1);
+  }
+}

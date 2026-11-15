@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { canEdit, formatDate, type AuditCategory } from '@ananda/shared';
 import { InjectDb, type Db, type Tx } from '../db/db.module';
@@ -48,7 +48,25 @@ export class UsersService {
       .from(users)
       .innerJoin(roles, eq(roles.id, users.roleId))
       .orderBy(asc(users.status), asc(users.name));
-    return rows.map((r) => ({ ...r, hasPassword: !!r.hasPassword }));
+    // "Signed in on": the devices with a live session, newest first.
+    const live = await this.db
+      .select({ userId: sessions.userId, device: sessions.device, userAgent: sessions.userAgent, lastSeenAt: sessions.lastSeenAt })
+      .from(sessions)
+      .where(and(isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())))
+      .orderBy(desc(sessions.lastSeenAt));
+    return rows.map((r) => {
+      const seen = new Set<string>();
+      const devices = live
+        .filter((d) => d.userId === r.id)
+        .filter((d) => {
+          const k = `${d.device}|${d.userAgent ?? ''}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        })
+        .map(({ device, userAgent, lastSeenAt }) => ({ device, userAgent, lastSeenAt }));
+      return { ...r, hasPassword: !!r.hasPassword, devices };
+    });
   }
 
   async invitations() {
@@ -66,7 +84,13 @@ export class UsersService {
   }
 
   async history(limit = 200) {
-    return this.db.select().from(auditLog).where(eq(auditLog.category, 'users_access' satisfies AuditCategory)).orderBy(desc(auditLog.at)).limit(limit);
+    // Changes to members, roles and access, plus two-step sign-in being turned on.
+    return this.db
+      .select()
+      .from(auditLog)
+      .where(or(eq(auditLog.category, 'users_access' satisfies AuditCategory), eq(auditLog.action, 'two_step_enabled')))
+      .orderBy(desc(auditLog.at))
+      .limit(limit);
   }
 
   private async issueToken(tx: Tx) {
@@ -76,8 +100,8 @@ export class UsersService {
   }
 
   /**
-   * POST /users/invite. Also used by the "Invite new agent" panel: a user without Users & roles
-   * edit may only invite the base role 'agent'.
+   * POST /users/invite. Also used by the "Invite new broker" panel: a user without Users & roles
+   * edit may only invite the base role 'broker'.
    */
   async invite(auth: AuthContext, input: InviteMemberInput) {
     const [role] = await this.db
@@ -85,8 +109,8 @@ export class UsersService {
       .from(roles)
       .where(input.roleId ? eq(roles.id, input.roleId) : eq(roles.key, input.roleKey!));
     if (!role) throw new BadRequestException({ message: 'Check the highlighted fields', fields: { roleId: 'Pick a role' } });
-    if (!canEdit(auth.perms.areas, 'users') && role.key !== 'agent') {
-      throw new ForbiddenException({ code: 'no_access', message: 'You can only invite sales agents' });
+    if (!canEdit(auth.perms.areas, 'users') && role.key !== 'broker') {
+      throw new ForbiddenException({ code: 'no_access', message: 'You can only invite sales brokers' });
     }
     const result = await this.db.transaction(async (tx) => {
       const [existing] = await tx.select().from(users).where(eq(users.email, input.email)).for('update');
@@ -104,7 +128,7 @@ export class UsersService {
       );
       return { user, token, expiresAt };
     });
-    await this.sendInvite(auth, result.user, result.token, result.expiresAt, input.message);
+    await this.sendInvite(auth, result.user, result.token, result.expiresAt, input.message, input.letter ? { subject: input.subject, letter: input.letter } : undefined);
     return { id: result.user.id };
   }
 
@@ -145,6 +169,10 @@ export class UsersService {
       if (patch.roleId && patch.roleId !== user.roleId) {
         const [r] = await tx.select().from(roles).where(eq(roles.id, patch.roleId));
         if (!r) throw new BadRequestException({ message: 'Check the highlighted fields', fields: { roleId: 'Pick a role' } });
+        // A broker's account stays a broker; other people never become brokers. They get a second invitation instead.
+        if ((oldRole.baseRole === 'broker') !== (r.baseRole === 'broker')) {
+          throw new BadRequestException({ message: 'Check the highlighted fields', fields: { roleId: "A broker's account stays a broker. Invite them again with another e-mail for other access." } });
+        }
         newRole = r;
         next.roleId = r.id;
       }
@@ -175,14 +203,18 @@ export class UsersService {
     });
   }
 
-  private async sendInvite(auth: AuthContext, user: typeof users.$inferSelect, token: string, expiresAt: Date, message?: string) {
+  private async sendInvite(auth: AuthContext, user: typeof users.$inferSelect, token: string, expiresAt: Date, message?: string, written?: { subject?: string; letter: string }) {
     const lang = (user.language in INVITE_COPY ? user.language : 'en') as keyof typeof INVITE_COPY;
     const c = INVITE_COPY[lang];
     const link = `${webOrigin()}/invite/${token}`;
+    // Add member sends the e-mail exactly as the System admin wrote it; the link goes underneath.
+    const body = written
+      ? [written.letter.trim(), '', `${c.cta}: ${link}`, c.valid(formatDate(expiresAt, lang))].join('\n')
+      : [`${c.hello} ${user.name},`, '', c.body(auth.user.name), ...(message?.trim() ? ['', message.trim()] : []), '', `${c.cta}: ${link}`, c.valid(formatDate(expiresAt, lang)), '', 'ANANDA'].join('\n');
     await this.mail.send({
       to: [user.email],
-      subject: c.subject,
-      body: [`${c.hello} ${user.name},`, '', c.body(auth.user.name), ...(message?.trim() ? ['', message.trim()] : []), '', `${c.cta}: ${link}`, c.valid(formatDate(expiresAt, lang)), '', 'ANANDA'].join('\n'),
+      subject: written?.subject?.trim() || c.subject,
+      body,
       kind: 'invitation',
       recordType: 'user',
       recordId: user.id,

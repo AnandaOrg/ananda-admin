@@ -4,3 +4,4 @@ export * from './status';
 export * from './format';
 export * from './schemas';
 export * from './rules';
+export * from './paper';

@@ -13,7 +13,7 @@ export interface BusinessRules {
   stockHoldDays: number;
   proformaValidityDays: number;
   commissionPerUnitCents: number;
-  ownership: { months: number; countedFrom: 'each_order' | 'first_order'; warningDays: number; atEnd: 'free_to_claim' | 'stay_with_agent' };
+  ownership: { months: number; countedFrom: 'each_order' | 'first_order'; warningDays: number; atEnd: 'free_to_claim' | 'stay_with_broker' };
   paymentBeforeShippingPercent: number;
   supplierFollowUpDays: number;
 }
@@ -51,13 +51,19 @@ export interface EmailSettings {
   accounting: string;
   sender: string;
   replyTo: string;
-  copyAgent: boolean;
+  copyBroker: boolean;
 }
 
 export interface DocumentSettings {
   languages: Array<'en' | 'bg'>;
   proformaValidityDays: number;
   logoUrl: string | null;
+  /** Uploaded logo printed top left on proformas, invoices and credit notes (Settings › Documents). */
+  logo?: { path: string; name: string; mime: string } | null;
+  /** One line printed at the bottom of every customer document. */
+  footer?: string;
+  /** Number prefixes for new documents, e.g. "S-"; numbers already issued never change. */
+  prefixes?: Partial<Record<'order' | 'invoice' | 'credit_note', string>>;
 }
 
 export interface SecuritySettings {

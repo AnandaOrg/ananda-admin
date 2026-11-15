@@ -1,167 +1,207 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { REASONS, type Flavour } from '@ananda/shared';
+import type { Flavour } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
-import { useAction } from '@/lib/hooks';
-import { Banner, Button, FlavourName, KeyValue, Pill, ReasonChips, Sheet, TextArea, Totals, Skeleton } from '@/components/ui';
+import { ActionError, ArrowCounterClockwise, Button, LoadError, Pill, Sheet, Skeleton } from '@/components/ui';
+import { useCountryName } from '../customers/AddCustomerSheet';
+import { useDecision } from './useDecision';
+import s from './home.module.css';
 
 interface Review {
   id: string;
   type: 'new_customer' | 'special_price' | 'correction';
-  status: string;
+  status: 'pending' | 'approved' | 'declined' | 'withdrawn';
   reason: string | null;
-  agent: { id: string; name: string };
-  customer?: { id: string; companyName: string; vatNumber?: string; vatValid?: boolean | null; country?: string; registeredAddress?: string; contactName?: string; phone?: string; invoiceEmail?: string; note?: string | null };
-  duplicates?: { id: string; companyName: string; vatNumber: string; status: string; agentName: string | null }[];
-  order?: { id: string; number: string; totalCartons?: number; totalUnits?: number };
-  price?: { fromCents: number; toCents: number };
+  createdAt: string;
+  decidedAt: string | null;
+  broker: { id: string; name: string };
+  declineReason: string | null;
+  declineReasons: string[];
+  canUndo: boolean;
+  ownershipMonths: number;
+  customer?: { id: string; companyName: string; vatNumber?: string; vatValid?: boolean | null; country?: string; registeredAddress?: string; postcode?: string | null; city?: string | null; contactName?: string; phone?: string; invoiceEmail?: string };
+  duplicates?: { id: string; companyName: string; vatNumber: string; status: string; brokerName: string | null }[];
+  order?: { id: string; number: string; status: string; totalCartons: number; totalUnits: number; paidCents: number };
+  tier?: { minCartons: number; maxCartons: number; unitPriceCents: number };
+  asked?: { unitPriceCents: number; normally: { minCartons: number; maxCartons: number } | null };
+  discount?: { perUnitCents: number; units: number; totalCents: number };
+  commission?: { perUnitFromCents?: number; perUnitToCents?: number; fromCents: number; toCents: number };
+  paidByAnandaCents?: number;
+  landedUnitCents?: number;
+  marginUnitCents?: number;
   totals?: { fromCents: number; toCents: number };
-  commission?: { fromCents: number; toCents: number };
   perFlavour?: { flavour: Flavour; from: number; to: number }[];
-  cartons?: { from: number; to: number; minimum: number };
+  cartons?: { from: number; to: number; minimum: number; tierChanges: boolean };
   stockReleasedUnits?: number;
+  stockNeededUnits?: number;
 }
 
-/** The facts needed to decide, the agent's reason, and the consequence in one line (FR-HOME-4). */
+/**
+ * Review in a side panel (bottom sheet on phone): what was asked, by whom and what it changes.
+ * Decline asks for a reason first, then a red Decline confirms it; the broker gets it as a notification.
+ */
 export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () => void }) {
   const t = useTranslations('home');
   const tc = useTranslations('common');
-  const { money, unit, num } = useFmt();
+  const { money, date, unit, num } = useFmt();
+  const country = useCountryName();
   const [declining, setDeclining] = useState(false);
-  const [reason, setReason] = useState('');
+  const [why, setWhy] = useState('');
   const [message, setMessage] = useState('');
   const q = useQuery({ queryKey: ['approvals', id], queryFn: () => api.get<Review>(`/approvals/${id}`), enabled: !!id });
-  const approve = useAction(() => api.post(`/approvals/${id}/approve`), { success: t('review.approved'), onDone: onClose });
-  const decline = useAction(() => api.post(`/approvals/${id}/decline`, { reason, message: message || undefined }), { success: t('review.declined'), onDone: onClose });
-  const r = q.data;
-
   const close = () => {
     setDeclining(false);
-    setReason('');
+    setWhy('');
     setMessage('');
     onClose();
   };
+  const { approve, decline, undo } = useDecision(close);
+  const r = q.data && q.data.id === id ? q.data : undefined;
+  const first = r?.broker.name.split(' ')[0] ?? '';
+  const today = new Date().toISOString().slice(0, 10);
 
-  const footer = !r ? null : r.status !== 'pending' ? (
-    <Button onClick={close}>{tc('close')}</Button>
-  ) : declining ? (
-    <>
-      <Button onClick={() => setDeclining(false)}>{tc('back')}</Button>
-      <Button variant="primary" disabled={!reason} busy={decline.isPending} onClick={() => decline.mutate(undefined)}>
-        {t('review.sendDecline')}
-      </Button>
-    </>
+  const rows: [ReactNode, ReactNode, ('good' | 'bad' | 'warn')?][] = [];
+  let sub: ReactNode = null;
+  let note: ReactNode = null;
+  if (r?.type === 'new_customer' && r.customer) {
+    const c = r.customer;
+    sub = r.createdAt.slice(0, 10) === today ? t('review.requestedToday', { date: date(r.createdAt) }) : t('review.requestedOn', { date: date(r.createdAt) });
+    const vat = !c.vatNumber ? t('review.noVat') : c.vatValid === true ? t('review.vatValid', { vat: c.vatNumber }) : c.vatValid === false ? t('review.vatInvalid', { vat: c.vatNumber }) : t('review.vatUnchecked', { vat: c.vatNumber });
+    rows.push([t('review.company'), c.companyName]);
+    rows.push([t('review.vat'), <bdi key="v">{vat}</bdi>, !c.vatNumber ? undefined : c.vatValid === true ? 'good' : c.vatValid === false ? 'bad' : 'warn']);
+    rows.push([t('review.country'), c.country ? country(c.country) : '—']);
+    rows.push([t('review.address'), [c.registeredAddress, [c.postcode, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')]);
+    rows.push([t('review.contact'), [c.contactName, c.phone].filter(Boolean).join(' · ')]);
+    rows.push([
+      t('review.alreadyIn'),
+      r.duplicates && r.duplicates.length ? r.duplicates.map((d) => `${d.companyName}${d.brokerName ? ` · ${d.brokerName}` : ''}`).join(', ') : t('review.noMatch'),
+      r.duplicates && r.duplicates.length ? 'bad' : undefined,
+    ]);
+    note = (
+      <>
+        {r.reason && <>{t('review.reasonOf', { name: first, reason: r.reason })} </>}
+        {t('review.keeps', { name: first, n: r.ownershipMonths })}
+      </>
+    );
+  }
+  if (r?.type === 'special_price' && r.tier && r.asked && r.discount && r.commission && r.order) {
+    sub = t('review.onOrder', { number: r.order.number, cartons: num(r.order.totalCartons), units: num(r.order.totalUnits) });
+    rows.push([t('review.priceList', { min: num(r.tier.minCartons), max: num(r.tier.maxCartons) }), t('review.aUnit', { price: unit(r.tier.unitPriceCents) })]);
+    rows.push([t('review.askedFor'), t('review.aUnit', { price: unit(r.asked.unitPriceCents) }), 'warn']);
+    if (r.asked.normally) rows.push([t('review.normallyFor'), t('review.cartonsRange', { min: num(r.asked.normally.minCartons), max: num(r.asked.normally.maxCartons) })]);
+    rows.push([t('review.discount'), `${unit(r.discount.perUnitCents)} × ${num(r.discount.units)} = ${money(r.discount.totalCents)}`]);
+    rows.push([t('review.fromCommission', { name: first }), t('review.aUnit', { price: `${unit(r.commission.perUnitFromCents ?? 0)} → ${unit(r.commission.perUnitToCents ?? 0)}` })]);
+    rows.push([t('review.paidByAnanda'), money(r.paidByAnandaCents ?? 0)]);
+    rows.push([
+      t('review.margin'),
+      t('review.marginValue', { price: unit(r.asked.unitPriceCents), landed: unit(r.landedUnitCents ?? 0), commission: unit(r.commission.perUnitToCents ?? 0), margin: unit(r.marginUnitCents ?? 0) }),
+      (r.marginUnitCents ?? 0) < 0 ? 'bad' : undefined,
+    ]);
+    note = r.reason ? t('review.reasonOf', { name: first, reason: r.reason }) : null;
+  }
+  if (r?.type === 'correction' && r.perFlavour && r.cartons && r.totals && r.commission && r.order) {
+    sub = t(r.order.paidCents > 0 ? 'review.orderPaid' : 'review.orderNotPaid', { number: r.order.number });
+    const changed = r.perFlavour.filter((f) => f.from !== f.to);
+    for (const f of changed) rows.push([f.flavour.toUpperCase(), t('review.cartonsChange', { from: num(f.from), to: num(f.to) }), 'warn']);
+    if (changed.length < 4) rows.push([t('review.otherFlavours'), t('review.noChange')]);
+    const cartonsNote = r.cartons.to === r.cartons.minimum ? t('review.atMinimum') : r.cartons.tierChanges ? t('review.tierChanges') : '';
+    rows.push([tc('cartons'), `${num(r.cartons.from)} → ${num(r.cartons.to)}${cartonsNote ? ` · ${cartonsNote}` : ''}`]);
+    rows.push([tc('totalInclVat'), `${money(r.totals.fromCents)} → ${money(r.totals.toCents)}`]);
+    rows.push([t('review.commissionOf', { name: first }), `${money(r.commission.fromCents)} → ${money(r.commission.toCents)}`]);
+    rows.push([
+      t('review.stock'),
+      r.stockReleasedUnits ? t('review.stockBack', { n: num(r.stockReleasedUnits) }) : r.stockNeededUnits ? t('review.stockNeeded', { n: num(r.stockNeededUnits) }) : t('review.noChange'),
+    ]);
+    note = (
+      <>
+        {r.reason && <>{t('review.reasonOf', { name: first, reason: r.reason })} </>}
+        {t('review.replaces')}
+      </>
+    );
+  }
+
+  const title = r ? (
+    <span className={s.revTitle}>
+      {t(`review.title.${r.type}`)}
+      <Pill tone="blue">{r.broker.name}</Pill>
+    </span>
   ) : (
-    <>
-      <Button onClick={() => setDeclining(true)}>{tc('decline')}</Button>
-      <Button variant="primary" busy={approve.isPending} onClick={() => approve.mutate(undefined)}>
-        {tc('approve')}
-      </Button>
-    </>
+    tc('review')
   );
 
   return (
-    <Sheet open={!!id} onClose={close} title={r ? t(`review.title.${r.type}`) : tc('review')} sub={r ? t('review.from', { agent: r.agent.name }) : undefined} footer={footer} dirty={declining && !!message}>
-      {!r ? (
-        <Skeleton h={240} />
+    <Sheet open={!!id} onClose={close} title={title} sub={sub ?? undefined} dirty={declining && !!message}>
+      {q.error ? (
+        <LoadError error={q.error} onRetry={() => q.refetch()} />
+      ) : !r ? (
+        <Skeleton h={320} />
       ) : (
-        <>
-          {r.status !== 'pending' && <Banner>{t('review.alreadyDecided')}</Banner>}
-          {r.type === 'new_customer' && r.customer && (
-            <>
-              <KeyValue
-                items={[
-                  [t('review.company'), r.customer.companyName],
-                  [
-                    t('review.vat'),
-                    <span key="v" className="row">
-                      <bdi>{r.customer.vatNumber}</bdi>
-                      {r.customer.vatValid === true && <Pill tone="good">{t('review.vatValid')}</Pill>}
-                      {r.customer.vatValid === false && <Pill tone="bad">{t('review.vatInvalid')}</Pill>}
-                      {r.customer.vatValid == null && <Pill tone="mute">{t('review.vatUnchecked')}</Pill>}
-                    </span>,
-                  ],
-                  [t('review.country'), r.customer.country],
-                  [t('review.address'), r.customer.registeredAddress],
-                  [t('review.contact'), `${r.customer.contactName} · ${r.customer.phone}`],
-                  [tc('email'), r.customer.invoiceEmail],
-                ]}
-              />
-              {r.duplicates && r.duplicates.length > 0 ? (
-                <Banner tone="bad" sub={r.duplicates.map((d) => `${d.companyName} (${d.vatNumber}${d.agentName ? ` · ${d.agentName}` : ''})`).join(', ')}>
-                  {t('review.duplicates')}
-                </Banner>
-              ) : (
-                <p className="body-sm good">{t('review.noDuplicates')}</p>
-              )}
-            </>
-          )}
-          {r.type === 'special_price' && r.price && (
-            <>
-              <KeyValue
-                items={[
-                  [t('review.order'), <bdi key="o">{r.order?.number}</bdi>],
-                  [tc('customer'), r.customer?.companyName ?? '—'],
-                  [tc('cartons'), num(r.order?.totalCartons)],
-                  [
-                    tc('unitPrice'),
-                    <span key="p" className="diff">
-                      <bdi className="from">{unit(r.price.fromCents)}</bdi>→<bdi>{unit(r.price.toCents)}</bdi>
-                    </span>,
-                  ],
-                ]}
-              />
-              <Totals
-                lines={[
-                  [t('review.commission'), `${money(r.commission!.fromCents)} → ${money(r.commission!.toCents)}`],
-                ]}
-                big={[tc('totalInclVat'), `${money(r.totals!.toCents)}`]}
-              />
-            </>
-          )}
-          {r.type === 'correction' && r.perFlavour && (
-            <>
-              <KeyValue items={[[t('review.order'), <bdi key="o">{r.order?.number}</bdi>], [tc('customer'), r.customer?.companyName ?? '—']]} />
-              <div className="stack tight">
-                {r.perFlavour.map((f) => (
-                  <div key={f.flavour} className="row between">
-                    <FlavourName flavour={f.flavour} />
-                    <span className="diff">
-                      <span className="from">{f.from}</span>→<b>{f.to}</b>
-                    </span>
-                  </div>
-                ))}
+        <div className={s.rev}>
+          <div className={s.rvBox}>
+            {rows.map(([k, v, tone], i) => (
+              <div key={i} className={s.rvRow}>
+                <span>{k}</span>
+                <span className={tone ?? ''}>{v}</span>
               </div>
-              <Totals
-                lines={[
-                  [t('review.cartonsVsMin', { min: r.cartons!.minimum }), `${num(r.cartons!.from)} → ${num(r.cartons!.to)}`],
-                  [t('review.commission'), `${money(r.commission!.fromCents)} → ${money(r.commission!.toCents)}`],
-                  [t('review.stockReleased'), tc('unitsCount', { n: num(r.stockReleasedUnits) })],
-                ]}
-                big={[tc('totalInclVat'), `${money(r.totals!.fromCents)} → ${money(r.totals!.toCents)}`]}
-              />
-            </>
-          )}
-          {r.reason && (
-            <div className="an-field">
-              <label>{t('review.agentReason')}</label>
-              <p>{r.reason}</p>
-            </div>
-          )}
-          {declining ? (
+            ))}
+          </div>
+          {note && <div className={s.note}>{note}</div>}
+          {r.status !== 'pending' ? (
             <>
-              <ReasonChips reasons={REASONS.decline} value={reason} onChange={setReason} label={t('review.declineReason')} ns="decline" />
-              <TextArea label={tc('messageOptional')} value={message} onChange={(e) => setMessage(e.target.value)} help={t('review.declineHelp')} />
+              <div className={s.decided}>
+                <Pill tone={r.status === 'approved' ? 'good' : r.status === 'withdrawn' ? 'mute' : 'bad'}>{t(`ok.${r.status}`)}</Pill>
+                {r.canUndo && (
+                  <Button size="sm" icon={ArrowCounterClockwise} writes busy={undo.busy} onClick={() => undo.mutate(r.id, { onSuccess: () => q.refetch() })}>
+                    {tc('undo')}
+                  </Button>
+                )}
+              </div>
+              <ActionError action={undo} />
+            </>
+          ) : declining ? (
+            <>
+              <div className={s.declineBox}>
+                <b>{t('review.whyDecline')}</b>
+                <div className="an-chips" role="group" aria-label={t('review.whyDecline')} style={{ flexWrap: 'wrap' }}>
+                  {r.declineReasons.map((k) => (
+                    <button key={k} type="button" className="an-chip" aria-pressed={why === k} onClick={() => setWhy(k)}>
+                      {t(`review.why.${r.type}.${k}`)}
+                    </button>
+                  ))}
+                </div>
+                <div className="an-field">
+                  <label htmlFor="rv-msg">{t('review.messageTo', { name: first })}</label>
+                  <input id="rv-msg" className="an-input" value={message} placeholder={t('review.messagePh')} onChange={(e) => setMessage(e.target.value)} />
+                </div>
+              </div>
+              <div className={s.btns}>
+                <Button onClick={() => setDeclining(false)}>{tc('back')}</Button>
+                <Button variant="primary" className={s.danger} disabled={!why} busy={decline.busy} onClick={() => decline.mutate({ id: r.id, reason: why, message })}>
+                  {tc('decline')}
+                </Button>
+              </div>
+              <ActionError action={decline} />
+              <span className={s.caption}>{t('review.reasonNotified', { name: first })}</span>
             </>
           ) : (
-            r.status === 'pending' && <p className="body-sm muted">{t(`review.consequence.${r.type}`)}</p>
+            <>
+              <div className={s.btns}>
+                <Button writes className={s.declineBtn} onClick={() => setDeclining(true)}>
+                  {tc('decline')}
+                </Button>
+                <Button variant="primary" busy={approve.busy} onClick={() => approve.mutate(r.id)}>
+                  {tc('approve')}
+                </Button>
+              </div>
+              <ActionError action={approve} />
+              <span className={s.caption}>{t(`review.after.${r.type}`, { name: first })}</span>
+            </>
           )}
-          {(approve.errorText || decline.errorText) && <Banner tone="bad">{approve.errorText || decline.errorText}</Banner>}
-        </>
+        </div>
       )}
     </Sheet>
   );

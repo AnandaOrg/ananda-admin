@@ -37,6 +37,13 @@ export class ApprovalsController {
   }
 
   @Sensitive('approve')
+  @Post(':id/undo')
+  @HttpCode(200)
+  undo(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
+    return this.approvals.undo(auth, id);
+  }
+
+  @Sensitive('approve')
   @Post(':id/decline')
   @HttpCode(200)
   decline(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(decisionSchema)) body: z.infer<typeof decisionSchema>) {

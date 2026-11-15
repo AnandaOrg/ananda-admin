@@ -1,20 +1,20 @@
 'use client';
 
 import { FLAVOURS, type Flavour } from '@ananda/shared';
-import { FLAVOUR_VAR } from '@/components/ui';
+import css from '../purchasing.module.css';
 
 /** Pick several flavours; always in the order Aloha, Gaia, Santorini, Kyoto, each with its colour. */
-export function FlavourToggles({ label, value, onChange, only, help, error }: { label: string; value: Flavour[]; onChange: (v: Flavour[]) => void; only?: Flavour[]; help?: string; error?: string }) {
+export function FlavourToggles({ label, value, onChange, only, help, error, readOnly }: { readOnly?: boolean; label: string; value: Flavour[]; onChange: (v: Flavour[]) => void; only?: Flavour[]; help?: string; error?: string }) {
   const list = FLAVOURS.filter((f) => !only || only.includes(f));
   return (
     <div className="an-field">
       <label>{label}</label>
-      <div className="an-chips" role="group" aria-label={label} style={{ flexWrap: 'wrap' }}>
+      <div className={`an-chips ${css.chipRow}`} role="group" aria-label={label}>
         {list.map((f) => {
           const on = value.includes(f);
           return (
-            <button key={f} type="button" className="an-chip" aria-pressed={on} onClick={() => onChange(on ? value.filter((x) => x !== f) : FLAVOURS.filter((x) => x === f || value.includes(x)))}>
-              <i className="flav-dot" style={{ background: FLAVOUR_VAR[f], marginInlineEnd: 6 }} aria-hidden />
+            <button key={f} type="button" className="an-chip" aria-pressed={on} onClick={() => !readOnly && onChange(on ? value.filter((x) => x !== f) : FLAVOURS.filter((x) => x === f || value.includes(x)))}>
+              <i aria-hidden className={`${css.dot} ${css[f]}`} />
               {f.toUpperCase()}
             </button>
           );

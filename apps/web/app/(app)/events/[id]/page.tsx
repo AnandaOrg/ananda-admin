@@ -1,7 +1,8 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { FLAVOURS, UNITS_PER_CARTON } from '@ananda/shared';
@@ -13,12 +14,11 @@ import {
   Button,
   Card,
   EmptyState,
-  ErrorState,
   FlavourName,
   KpiTile,
   ListCard,
   PageHeader,
-  PageSkeleton,
+  PageState,
   Pill,
   Plus,
   StockBars,
@@ -29,30 +29,40 @@ import {
 } from '@/components/ui';
 import { MoveStockSheet, SaleSheet } from '../_components/StockSheets';
 import { STATUS_TONE, type EventDetail } from '../_components/types';
+import { eventDates } from '../_components/dates';
 
 type Sale = EventDetail['sales'][number];
 type Move = EventDetail['movements'][number];
 type Expense = NonNullable<EventDetail['expenses']>[number];
 
-/** One event (FR-EVT-3): its own stock, sales by agent and direct costs. */
+/** One event (FR-EVT-3): its own stock, sales by broker and direct costs. */
 export default function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const t = useTranslations('events');
   const tc = useTranslations('common');
-  const { money, num, date, dateShort, dateTime } = useFmt();
+  const { money, num, date, dateTime, locale } = useFmt();
+  const router = useRouter();
+  const search = useSearchParams();
   const { readOnly, canView } = useSession();
   const q = useQuery({ queryKey: ['events', id], queryFn: () => api.get<EventDetail>(`/events/${id}`) });
   const [move, setMove] = useState<'to_event' | 'back' | null>(null);
   const [lastDir, setLastDir] = useState<'to_event' | 'back'>('to_event');
   const [sale, setSale] = useState(false);
+  // "0 · move stock" on the list opens the move straight away.
+  const wantsMove = search.get('move') === '1';
+  useEffect(() => {
+    if (wantsMove && q.data?.canEdit && !readOnly) {
+      setMove('to_event');
+      router.replace(`/events/${id}`);
+    }
+  }, [wantsMove, q.data?.canEdit, readOnly, router, id]);
 
-  if (q.isLoading) return <PageSkeleton />;
-  if (q.error || !q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
+  if (!q.data) return <PageState query={q} notFound={{ title: t('detail.notFound'), back: { label: t('detail.backToEvents'), href: '/events' } }} />;
   const d = q.data;
   const e = d.event;
   const mayEdit = d.canEdit && !readOnly;
   const cartons = (units: number) => t('cartons', { n: Math.floor(units / UNITS_PER_CARTON) });
-  const dates = e.startsOn === e.endsOn ? date(e.startsOn) : `${dateShort(e.startsOn)} – ${date(e.endsOn)}`;
+  const dates = eventDates(e.startsOn, e.endsOn, locale);
   const maxBar = Math.max(1, ...d.stock.map((s) => s.movedUnits));
   const openMove = (dir: 'to_event' | 'back') => {
     setLastDir(dir);
@@ -60,7 +70,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
   };
 
   const saleCols: Column<Sale>[] = [
-    { key: 'agent', header: t('detail.agent'), render: (s) => <span className="nm">{s.name}</span> },
+    { key: 'broker', header: t('detail.broker'), render: (s) => <span className="nm">{s.name}</span> },
     ...FLAVOURS.filter((f) => d.sales.some((s) => s.byFlavour[f] > 0)).map((f) => ({
       key: f,
       header: <FlavourName flavour={f} />,
@@ -80,6 +90,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
       type: 'amount',
       render: (s) => <bdi>{money(s.commissionCents)}</bdi>,
     },
+    { key: 'taken', header: t('detail.taken'), type: 'amount', render: (s) => <bdi>{money(s.salesCents)}</bdi> },
   ];
   const moveCols: Column<Move>[] = [
     { key: 'when', header: t('detail.date'), render: (m) => <span className="nowrap">{dateTime(m.createdAt)}</span> },
@@ -108,10 +119,10 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
         actions={
           mayEdit ? (
             <>
-              <Button size="sm" icon={ArrowCounterClockwise} onClick={() => openMove('back')} disabled={d.totals.stockUnits <= 0}>
+              <Button size="sm" writes icon={ArrowCounterClockwise} onClick={() => openMove('back')} disabled={d.totals.stockUnits <= 0}>
                 {t('detail.moveBack')}
               </Button>
-              <Button size="sm" icon={Plus} onClick={() => setSale(true)} disabled={d.totals.stockUnits <= 0}>
+              <Button size="sm" writes icon={Plus} onClick={() => setSale(true)} disabled={d.totals.stockUnits <= 0}>
                 {t('detail.recordSale')}
               </Button>
               <Button size="sm" variant="primary" icon={Truck} onClick={() => openMove('to_event')}>
@@ -122,8 +133,8 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
         }
       />
       <div className="kpis" style={{ ['--n' as string]: d.expenses ? 3 : 2 }}>
-        <KpiTile label={t('detail.tileStock')} value={cartons(d.totals.stockUnits)} sub={t('detail.units', { u: num(d.totals.stockUnits) })} />
-        <KpiTile label={t('detail.tileSold')} value={cartons(d.totals.soldUnits)} sub={t('detail.units', { u: num(d.totals.soldUnits) })} />
+        <KpiTile label={t('detail.tileStock')} value={num(d.totals.stockUnits)} sub={t('detail.unitsSub', { c: cartons(d.totals.stockUnits) })} />
+        <KpiTile label={t('detail.tileSold')} value={money(d.totals.salesCents, true)} sub={t('detail.soldSub', { u: num(d.totals.soldUnits) })} />
         {d.expenses && <KpiTile label={t('detail.tileCosts')} value={money(d.expensesCents ?? 0, true)} sub={t('detail.tileCostsSub')} />}
       </div>
 
@@ -131,7 +142,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
         {d.totals.movedUnits <= 0 && d.totals.stockUnits <= 0 ? (
           <EmptyState
             icon={Truck}
-            title={t('detail.stockTitle')}
+            title={t('detail.stockEmptyTitle')}
             text={t('detail.stockEmpty')}
             action={
               mayEdit ? (
@@ -160,7 +171,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
           </div>
         )}
         <span className="caption muted">
-          {t('detail.invited')}: {d.agents.length ? d.agents.map((a) => a.name).join(', ') : t('noAgents')}
+          {t('detail.invited')}: {d.brokers.length ? d.brokers.map((a) => a.name).join(', ') : t('noneYet')}
         </span>
       </Card>
 
@@ -170,11 +181,11 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
         ) : (
           <>
             <div className="only-wide">
-              <Table columns={saleCols} rows={d.sales} rowKey={(s) => s.agentId} />
+              <Table columns={saleCols} rows={d.sales} rowKey={(s) => s.brokerId} />
             </div>
             <div className="list-cards only-phone" style={{ padding: 'var(--space-3)' }}>
               {d.sales.map((s) => (
-                <ListCard key={s.agentId} title={s.name} amount={money(s.commissionCents)} sub={`${cartons(s.units)} · ${tc('unitsCount', { n: num(s.units) })}`} />
+                <ListCard key={s.brokerId} title={s.name} amount={money(s.salesCents)} sub={`${tc('unitsCount', { n: num(s.units) })} · ${t('detail.commission')} ${money(s.commissionCents)}`} />
               ))}
               <span className="caption muted">{t('detail.commissionHelp')}</span>
             </div>
@@ -193,7 +204,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
               </div>
               <div className="list-cards only-phone" style={{ padding: 'var(--space-3)' }}>
                 {d.expenses.map((x) => (
-                  <ListCard key={x.id} title={x.description} amount={money(x.netCents)} sub={dateShort(x.spentOn)} />
+                  <ListCard key={x.id} title={x.description} amount={money(x.netCents)} sub={date(x.spentOn)} />
                 ))}
               </div>
             </>
@@ -218,7 +229,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
                   amount={(m.units > 0 ? '+' : '−') + num(Math.abs(m.units) / UNITS_PER_CARTON)}
                   sub={
                     <>
-                      {m.flavour.toUpperCase()} · {dateShort(m.createdAt)}
+                      {m.flavour.toUpperCase()} · {date(m.createdAt)}
                       {m.byName && ` · ${m.byName}`}
                     </>
                   }

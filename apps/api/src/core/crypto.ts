@@ -23,6 +23,13 @@ export function totpUri(email: string, secret: string): string {
  * Checks an authenticator code. DEV_TWO_STEP_CODE is also accepted in development, or in a
  * production build only when ALLOW_DEV_TWO_STEP_CODE=true (local demo containers; never on a real server).
  */
+/** True when the local demo code is allowed and matches (never on a real server). */
+export function isDevTwoStepCode(code: string | undefined): boolean {
+  const dev = process.env.DEV_TWO_STEP_CODE;
+  const devAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEV_TWO_STEP_CODE === 'true';
+  return !!code && !!dev && devAllowed && code === dev;
+}
+
 export function verifyTotp(secret: string | null, code: string | undefined): boolean {
   if (!code) return false;
   const dev = process.env.DEV_TWO_STEP_CODE;

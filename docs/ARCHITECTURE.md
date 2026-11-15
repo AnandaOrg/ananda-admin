@@ -23,7 +23,7 @@ pnpm dev            # shared (watch) + api (watch) + web
 ```
 
 Demo users (password `ananda-demo-2026`; two-step code `000000` in development):
-royi@ (System admin), maya@ (Admin), finance@, warehouse@, ivan@ / petya@ / dimitar@ (agents) — all `@ananda.bg`.
+royi@ (System admin), maya@ (Admin), finance@, warehouse@, ivan@ / petya@ / dimitar@ (brokers) — all `@ananda.bg`.
 
 ## API conventions
 
@@ -32,7 +32,7 @@ royi@ (System admin), maya@ (Admin), finance@, warehouse@, ivan@ / petya@ / dimi
   actions, `@Sensitive(action)`. Actions in `STEP_UP_ACTIONS` also need the header `x-two-step-code`;
   the guard verifies it, handlers do nothing extra.
 - **Record scope** on the server for every list, detail, search, export: `orderScope(auth)`,
-  `customerScope(auth)`, `agentFilter(auth)` in `core/scope.ts`. Return 404, not 403, for records out of scope.
+  `customerScope(auth)`, `brokerFilter(auth)` in `core/scope.ts`. Return 404, not 403, for records out of scope.
 - **Money is integer cents and every money field name ends in `Cents`** (unit costs that need fractions
   of a cent are numeric, still named `...Cents`). `PriceStripInterceptor` removes keys matching
   `/Cents$|price|cost|commission|profit|stockValue|margin/` for users without "See prices" (Warehouse).
@@ -62,7 +62,7 @@ royi@ (System admin), maya@ (Admin), finance@, warehouse@, ivan@ / petya@ / dimi
 - Data: `useQuery({ queryKey: ['<area>', ...], queryFn: () => api.get(...) })`; writes with `useAction`
   (`lib/hooks.ts`) which shows field errors, toasts and refetches. Sensitive actions pass `{ code }`
   (`api.post(path, body, { code })`) collected with `<TwoStepField>` in the panel.
-- Permissions: `useSession()` → `canView(area)`, `canEdit(area)`, `can(action)`, `isAgent`,
+- Permissions: `useSession()` → `canView(area)`, `canEdit(area)`, `can(action)`, `isBroker`,
   `isWarehouse`, `isAdmin`, `readOnly` (Preview as role). Only show actions that are possible right now.
 - Components from `@/components/ui` only; no hard-coded colours, sizes or radii; logical properties
   (`margin-inline-start`, `inset-inline-end`) so Hebrew mirrors. Wrap amounts and codes in `<bdi>`.

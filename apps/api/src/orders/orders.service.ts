@@ -3,10 +3,16 @@ import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql, type S
 import {
   FLAVOURS,
   ORDER_PRE_SHIPPING,
+  ORDER_UPLOAD_KINDS,
+  ORDER_UPLOAD_MAX_BYTES,
+  depositOf,
+  type OrderUploadKind,
   UNITS_PER_CARTON,
   addDays,
   addMonths,
   calculateOrder,
+  formatDate,
+  formatMoney,
   isoDate,
   tierFor,
   type CartonsByFlavour,
@@ -38,6 +44,7 @@ import { outstandingSql } from '../core/figures.service';
 import { orderScope } from '../core/scope';
 import { can, type AuthContext } from '../common/context';
 import { DocumentsService } from '../documents/documents.service';
+import { CustomersService } from '../customers/customers.service';
 
 type OrderRow = typeof orders.$inferSelect;
 type LineRow = typeof orderLines.$inferSelect;
@@ -45,7 +52,7 @@ type LineRow = typeof orderLines.$inferSelect;
 export interface OrderListQuery {
   filter?: string;
   q?: string;
-  agentId?: string;
+  brokerId?: string;
   from?: string;
   to?: string;
   flavour?: string;
@@ -70,6 +77,7 @@ export class OrdersService {
     private readonly notify: NotifyService,
     private readonly files: FilesService,
     private readonly docs: DocumentsService,
+    private readonly customersVat: CustomersService,
   ) {}
 
   // ---------- Reading ----------
@@ -94,7 +102,7 @@ export class OrdersService {
     const base: SQL[] = [];
     const scope = orderScope(auth);
     if (scope) base.push(scope);
-    if (q.agentId) base.push(eq(orders.agentId, q.agentId));
+    if (q.brokerId) base.push(eq(orders.brokerId, q.brokerId));
     if (q.from) base.push(gte(orders.createdAt, new Date(q.from)));
     if (q.to) base.push(lt(orders.createdAt, addDays(new Date(q.to), 1)));
     if (q.flavour && (FLAVOURS as readonly string[]).includes(q.flavour)) {
@@ -120,13 +128,16 @@ export class OrdersService {
         customerId: customers.id,
         customerName: customers.companyName,
         city: customers.city,
-        agentId: users.id,
-        agentName: users.name,
+        brokerId: users.id,
+        brokerName: users.name,
+        // House sale: the order is held by someone who is not a broker (house customer, no commission).
+        houseSale: sql<boolean>`coalesce((select base_role from roles where roles.id = ${users.roleId}) <> 'broker', true)`,
+        paymentTerms: orders.paymentTerms,
         pendingCorrection: sql<boolean>`exists (select 1 from ${approvalRequests} where ${approvalRequests.orderId} = ${orders.id} and ${approvalRequests.status} = 'pending')`,
       })
       .from(orders)
       .leftJoin(customers, eq(customers.id, orders.customerId))
-      .innerJoin(users, eq(users.id, orders.agentId))
+      .innerJoin(users, eq(users.id, orders.brokerId))
       .where(and(...base, this.filterCond(q.filter)))
       .orderBy(desc(orders.createdAt))
       .limit(500);
@@ -161,12 +172,40 @@ export class OrdersService {
   async detail(auth: AuthContext, id: string) {
     const { order, lines } = await this.load(auth, id);
     const [customer] = order.customerId ? await this.db.select().from(customers).where(eq(customers.id, order.customerId)) : [null];
-    const [agent] = await this.db.select({ id: users.id, name: users.name, email: users.email, phone: users.phone }).from(users).where(eq(users.id, order.agentId));
+    const [broker] = await this.db.select({ id: users.id, name: users.name, email: users.email, phone: users.phone }).from(users).where(eq(users.id, order.brokerId));
     const [pays, docs, approvals, timeline, commission] = await Promise.all([
-      this.db.select().from(payments).where(eq(payments.orderId, id)).orderBy(asc(payments.createdAt)),
       this.db
-        .select({ id: documents.id, type: documents.type, number: documents.number, createdAt: documents.createdAt, totalCents: documents.totalCents, language: documents.language, supersededById: documents.supersededById, fileName: documents.fileName, label: documents.label })
+        .select({
+          id: payments.id,
+          receivedOn: payments.receivedOn,
+          amountCents: payments.amountCents,
+          method: payments.method,
+          bankReference: payments.bankReference,
+          createdAt: payments.createdAt,
+          confirmedByName: users.name,
+        })
+        .from(payments)
+        .leftJoin(users, eq(users.id, payments.confirmedById))
+        .where(eq(payments.orderId, id))
+        .orderBy(asc(payments.createdAt)),
+      this.db
+        .select({
+          id: documents.id,
+          type: documents.type,
+          number: documents.number,
+          createdAt: documents.createdAt,
+          totalCents: documents.totalCents,
+          language: documents.language,
+          supersededById: documents.supersededById,
+          fileName: documents.fileName,
+          mimeType: documents.mimeType,
+          label: documents.label,
+          data: documents.data,
+          createdById: documents.createdById,
+          createdByName: users.name,
+        })
         .from(documents)
+        .leftJoin(users, eq(users.id, documents.createdById))
         .where(eq(documents.orderId, id))
         .orderBy(asc(documents.createdAt)),
       this.db.select().from(approvalRequests).where(eq(approvalRequests.orderId, id)).orderBy(desc(approvalRequests.createdAt)),
@@ -176,7 +215,23 @@ export class OrdersService {
     const waiting = order.status === 'waiting_for_stock' ? await this.shortages(lines) : [];
     const today = isoDate();
     const outstandingCents = Math.max(0, order.totalCents - order.paidCents - order.creditedCents);
-    const visibleDocs = auth.perms.scope === 'shipping' ? docs.filter((d) => d.type === 'delivery_note') : docs;
+    const shownDocs = docs.map(({ data, ...d }) => {
+      const x = (data ?? {}) as Record<string, unknown>;
+      const str = (v: unknown) => (typeof v === 'string' ? v : null);
+      return {
+        ...d,
+        uploadKind: str(x.uploadKind) as OrderUploadKind | null,
+        description: str(x.description),
+        reason: str(x.reason),
+        references: str(x.references),
+        replaces: str(x.replaces),
+        priceAdjustment: x.priceAdjustment === true,
+        openedAt: str(x.openedAt),
+      };
+    });
+    const visibleDocs = auth.perms.scope === 'shipping' ? shownDocs.filter((d) => d.type === 'delivery_note') : shownDocs;
+    const [company, bank] = await Promise.all([this.settings.get('company'), this.settings.get('bank')]);
+    const cancelledEntry = order.status === 'cancelled' ? timeline.find((t) => t.action === 'cancelled') : undefined;
     return {
       order: { ...order, outstandingCents, daysLate: lateDays(order.paymentDueOn, outstandingCents, order.status, today) },
       lines: lines.map((l) => ({ ...l, remainingCartons: l.cartons - (l.deliveredCartons ?? 0) })),
@@ -193,9 +248,11 @@ export class OrdersService {
         deliveryAddress: customer.deliveryAddress ?? customer.registeredAddress,
         city: customer.city,
         paymentTermsDays: customer.paymentTermsDays,
+        paymentTerms: customer.paymentTerms,
         proformaLanguage: customer.proformaLanguage,
       },
-      agent,
+      broker,
+      houseSale: await this.isHouse(this.db, order.brokerId),
       payments: pays,
       documents: visibleDocs,
       approvals,
@@ -203,6 +260,9 @@ export class OrdersService {
       commission: commission.filter((c) => c.status !== 'void'),
       waitingFor: waiting,
       timeline: timeline.map((t) => ({ id: t.id, at: t.at, actorName: t.actorName, action: t.action, changes: t.changes, meta: t.meta })),
+      cancelNote: ((cancelledEntry?.meta as { note?: string } | null)?.note as string | undefined) ?? null,
+      // Company and bank for the payment and warehouse papers (same layout as the proforma).
+      paper: { company: { name: company.legalName || company.name, vatNumber: company.vatNumber, address: [company.address, company.city].filter(Boolean).join(', ') }, bank: { bank: bank.bank, iban: bank.iban }, brand: (await this.docs.brand()).app, language: await this.docs.languageFor(customer?.proformaLanguage ?? 'en') },
       actions: this.actionsFor(auth, order, approvals.some((a) => a.status === 'pending')),
     };
   }
@@ -214,13 +274,19 @@ export class OrdersService {
     const canSell = auth.perms.areas.sales === 'edit';
     const s = order.status;
     if (s === 'draft' && canSell) a.push('edit', 'delete', 'send_payment_request', ...(pending ? [] : ['special_price']));
-    if (s === 'payment_to_confirm' && can(auth, 'confirm_payment')) a.push('confirm_payment');
+    const after = order.paymentTerms === 'after_delivery_30';
+    const owed = order.totalCents - order.paidCents - order.creditedCents > 0;
+    if ((s === 'payment_to_confirm' || (after && owed && s !== 'draft' && s !== 'cancelled')) && can(auth, 'confirm_payment')) a.push('confirm_payment');
     if (s === 'ready_to_send' && isAdmin) a.push('send_to_warehouse');
     if (s === 'waiting_for_stock' && isAdmin) a.push('allocate');
-    if ((s === 'delivered' || s === 'delivered_part') && can(auth, 'issue_invoices') && order.paidCents >= order.totalCents) a.push('issue_invoice');
+    if ((s === 'delivered' || s === 'delivered_part') && can(auth, 'issue_invoices') && (after || order.paidCents >= order.totalCents - order.creditedCents)) a.push('issue_invoice');
     if (s === 'delivered_part' && isAdmin && !order.partDeliveryOutcome) a.push('part_outcome');
     if (ORDER_PRE_SHIPPING.includes(s) && canSell && !pending) a.push('correction', 'cancel');
     if (s === 'invoiced' && can(auth, 'issue_invoices')) a.push('credit_note');
+    // A cancelled order can be brought back by whoever could cancel it (brokers only while unpaid).
+    if (s === 'cancelled' && canSell && order.requestSentAt && (auth.perms.scope === 'all' || order.paidCents === 0)) a.push('uncancel');
+    // Brokers upload documents to their own orders (purchase order, signed order, proof of payment...).
+    if (auth.perms.scope === 'own' && canSell && s !== 'cancelled') a.push('upload');
     return a;
   }
 
@@ -245,7 +311,7 @@ export class OrdersService {
   private async assertCustomerForSale(auth: AuthContext, customerId: string, tx: Db | Tx) {
     const [c] = await tx.select().from(customers).where(eq(customers.id, customerId));
     if (!c) throw new BadRequestException({ message: 'Choose a customer', fields: { customerId: 'Choose a customer' } });
-    if (auth.perms.scope === 'own' && c.agentId !== auth.user.id) throw new ForbiddenException({ message: 'This customer belongs to another agent' });
+    if (auth.perms.scope === 'own' && c.brokerId !== auth.user.id) throw new ForbiddenException({ message: 'This customer belongs to another broker' });
     return c;
   }
 
@@ -258,7 +324,7 @@ export class OrdersService {
     return calc;
   }
 
-  private totalsFrom(calc: ReturnType<typeof calculateOrder>) {
+  private totalsFrom(calc: ReturnType<typeof calculateOrder>, house = false) {
     return {
       totalCartons: calc.totalCartons,
       totalUnits: calc.totalUnits,
@@ -267,49 +333,80 @@ export class OrdersService {
       netCents: calc.netCents,
       vatCents: calc.vatCents,
       totalCents: calc.totalCents,
-      commissionCents: calc.commissionCents,
+      commissionCents: house ? 0 : calc.commissionCents,
     };
   }
 
-  async createDraft(auth: AuthContext, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string; eventId?: string | null; agentId?: string }) {
-    return this.db.transaction(async (tx) => {
-      let agentId = auth.user.id;
+  /** A house sale: the order is held by someone who is not a broker, so there is no commission. */
+  private async isHouse(tx: Db | Tx, userId: string) {
+    const [u] = await tx.select({ base: sql<string>`(select base_role from roles where roles.id = ${users.roleId})` }).from(users).where(eq(users.id, userId));
+    return u?.base !== 'broker';
+  }
+
+  /**
+   * Who gets the order (and its commission). Brokers always sell for themselves. An Admin keeps the
+   * customer's broker unless they pick another broker or 'none' (house sale, no commission); the
+   * broker who owns the customer is told when the commission goes to someone else.
+   */
+  private async brokerFor(auth: AuthContext, tx: Db | Tx, customer: { brokerId: string | null } | null, picked: string | undefined, fallback: string) {
+    if (auth.perms.scope !== 'all') return fallback;
+    if (picked === 'none') return auth.user.id;
+    if (picked) {
+      const [a] = await tx.select({ id: users.id }).from(users).where(and(eq(users.id, picked), sql`${users.roleId} in (select id from roles where base_role = 'broker')`));
+      if (!a) throw new BadRequestException({ message: 'Choose a broker', fields: { brokerId: 'Choose a broker' } });
+      return a.id;
+    }
+    return customer?.brokerId ?? fallback;
+  }
+
+  async createDraft(auth: AuthContext, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string; eventId?: string | null; brokerId?: string }) {
+    const r = await this.db.transaction(async (tx) => {
+      let customer: typeof customers.$inferSelect | null = null;
       if (input.customerId) {
-        const c = await this.assertCustomerForSale(auth, input.customerId, tx);
-        if (c.status !== 'active') throw new BadRequestException({ message: 'This customer is not approved yet', fields: { customerId: 'Waiting for approval' } });
-        // Admins selling for a customer keep the customer's agent on the order.
-        if (auth.perms.scope === 'all' && c.agentId) agentId = c.agentId;
+        customer = await this.assertCustomerForSale(auth, input.customerId, tx);
+        if (customer.status !== 'active') throw new BadRequestException({ message: 'This customer is not approved yet', fields: { customerId: 'Waiting for approval' } });
       }
+      const brokerId = await this.brokerFor(auth, tx, customer, input.brokerId, auth.user.id);
       const number = await this.numbering.next(tx, 'order');
       const [order] = await tx
         .insert(orders)
-        .values({ number, customerId: input.customerId ?? null, agentId, eventId: input.eventId ?? null, note: input.note, createdById: auth.user.id })
+        .values({ number, customerId: input.customerId ?? null, brokerId, eventId: input.eventId ?? null, note: input.note, createdById: auth.user.id })
         .returning();
       const calc = await this.writeLines(tx, order.id, input.cartons, null);
-      await tx.update(orders).set(this.totalsFrom(calc)).where(eq(orders.id, order.id));
-      await this.audit.log(auth, { category: 'orders', action: 'draft_created', recordType: 'order', recordId: order.id, recordLabel: number }, tx);
-      return { id: order.id, number };
+      await tx.update(orders).set(this.totalsFrom(calc, await this.isHouse(tx, brokerId))).where(eq(orders.id, order.id));
+      await this.audit.log(auth, { category: 'orders', action: 'draft_created', recordType: 'order', recordId: order.id, recordLabel: number, meta: customer?.brokerId && customer.brokerId !== brokerId ? { brokerChangedFrom: customer.brokerId } : undefined }, tx);
+      return { id: order.id, number, customer, brokerId };
     });
+    await this.tellOwnerIfChanged(r.customer, r.brokerId, r.number, r.id);
+    return { id: r.id, number: r.number };
   }
 
-  async updateDraft(auth: AuthContext, id: string, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string }) {
-    return this.db.transaction(async (tx) => {
+  private async tellOwnerIfChanged(customer: { brokerId: string | null; companyName: string } | null, brokerId: string, number: string, id: string) {
+    if (!customer?.brokerId || customer.brokerId === brokerId) return;
+    const [u] = await this.db.select({ name: users.name }).from(users).where(eq(users.id, brokerId));
+    await this.notify.toUsers([customer.brokerId], { type: 'broker_changed', title: `${number} for ${customer.companyName} went to ${u?.name ?? 'another broker'}`, body: 'The commission on this order goes to them.', link: `/sales/${id}` });
+  }
+
+  async updateDraft(auth: AuthContext, id: string, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string; brokerId?: string }) {
+    const r = await this.db.transaction(async (tx) => {
       const { order } = await this.load(auth, id, tx, true);
       if (order.status !== 'draft') throw new ConflictException({ message: 'Only drafts can be edited. Ask for a correction instead.' });
-      let agentId = order.agentId;
+      let customer: typeof customers.$inferSelect | null = null;
       if (input.customerId) {
-        const c = await this.assertCustomerForSale(auth, input.customerId, tx);
-        if (c.status !== 'active') throw new BadRequestException({ message: 'This customer is not approved yet', fields: { customerId: 'Waiting for approval' } });
-        if (auth.perms.scope === 'all' && c.agentId) agentId = c.agentId;
+        customer = await this.assertCustomerForSale(auth, input.customerId, tx);
+        if (customer.status !== 'active') throw new BadRequestException({ message: 'This customer is not approved yet', fields: { customerId: 'Waiting for approval' } });
       }
+      const brokerId = input.brokerId || customer ? await this.brokerFor(auth, tx, customer, input.brokerId, order.brokerId) : order.brokerId;
       const calc = await this.writeLines(tx, id, input.cartons, order.specialUnitPriceCents);
       await tx
         .update(orders)
-        .set({ ...this.totalsFrom(calc), customerId: input.customerId ?? null, agentId, note: input.note ?? order.note })
+        .set({ ...this.totalsFrom(calc, await this.isHouse(tx, brokerId)), customerId: input.customerId ?? null, brokerId, note: input.note ?? order.note })
         .where(eq(orders.id, id));
       await this.audit.log(auth, { category: 'orders', action: 'draft_updated', recordType: 'order', recordId: id, recordLabel: order.number }, tx);
-      return { ok: true };
+      return { customer, brokerId, changed: brokerId !== order.brokerId, number: order.number };
     });
+    if (r.changed) await this.tellOwnerIfChanged(r.customer, r.brokerId, r.number, id);
+    return { ok: true };
   }
 
   async deleteDraft(auth: AuthContext, id: string) {
@@ -332,6 +429,11 @@ export class OrdersService {
   }
 
   async sendPaymentRequest(auth: AuthContext, id: string) {
+    // A VAT number the EU register couldn't confirm when the customer was added is checked again before the first proforma (customers).
+    const vat = await this.customersVat.recheckVatBeforeProforma(auth, id);
+    if (vat?.checked && vat.valid === false) {
+      throw new BadRequestException({ message: "The EU register says this customer's VAT number isn't valid. Fix it on the customer card, then send the payment request.", code: 'vat_invalid' });
+    }
     const result = await this.db.transaction(async (tx) => {
       const { order, lines } = await this.load(auth, id, tx, true);
       if (order.status !== 'draft') throw new ConflictException({ message: 'This payment request was already sent' });
@@ -349,21 +451,27 @@ export class OrdersService {
       const reserve = await this.canReserve(tx, lines);
       const number = await this.numbering.next(tx, 'proforma');
       const validUntil = isoDate(addDays(now, rules.proformaValidityDays));
-      const dueOn = isoDate(addDays(now, customer.paymentTermsDays));
-      const data = await this.docs.customerDocData(tx, id, number, lines, { dueOn, validUntil });
+      // Payment terms (customer card): 100% before shipping, 50% now and the rest before shipping, or
+      // invoice due 30 days after delivery — then the order can go to the warehouse without a payment.
+      const terms = customer.paymentTerms ?? 'before_shipping';
+      const after = terms === 'after_delivery_30';
+      const depositCents = terms === 'half_before_shipping' ? depositOf(order.totalCents) : null;
+      const dueOn = after ? null : isoDate(addDays(now, customer.paymentTermsDays));
+      const data = await this.docs.customerDocData(tx, id, number, lines, { dueOn, validUntil, paymentTerms: terms, depositCents });
       const [doc] = await tx
         .insert(documents)
-        .values({ type: 'proforma', number, orderId: id, customerId: customer.id, language: customer.proformaLanguage, data: data as never, totalCents: data.totalCents, createdById: auth.user.id })
+        .values({ type: 'proforma', number, orderId: id, customerId: customer.id, language: data.language, data: data as never, totalCents: data.totalCents, createdById: auth.user.id })
         .returning();
       await tx
         .update(orders)
         .set({
-          status: 'payment_to_confirm',
+          status: after ? (reserve ? 'ready_to_send' : 'waiting_for_stock') : 'payment_to_confirm',
           requestSentAt: now,
           allocated: reserve,
-          reservedUntil: reserve ? addDays(now, rules.stockHoldDays) : null,
+          reservedUntil: reserve && !after ? addDays(now, rules.stockHoldDays) : null,
           proformaExpiresAt: addDays(now, rules.proformaValidityDays),
           paymentDueOn: dueOn,
+          paymentTerms: terms,
         })
         .where(eq(orders.id, id));
       // Ownership runs N months from each order, or from the first order only (FR-CUST-5, rule editor).
@@ -372,17 +480,17 @@ export class OrdersService {
       if (extend && (!customer.ownedUntil || customer.ownedUntil < ownedUntil)) {
         await tx.update(customers).set({ ownedUntil, ownershipWarnedAt: null }).where(eq(customers.id, customer.id));
       }
-      await tx.insert(commissionEntries).values({ agentId: order.agentId, orderId: id, units: order.totalUnits, amountCents: order.commissionCents, status: 'coming' });
+      if (!(await this.isHouse(tx, order.brokerId))) await tx.insert(commissionEntries).values({ brokerId: order.brokerId, orderId: id, units: order.totalUnits, amountCents: order.commissionCents, status: 'coming' });
       await this.audit.log(auth, { category: 'orders', action: 'payment_request_sent', recordType: 'order', recordId: id, recordLabel: order.number, money: true, meta: { proforma: number, totalCents: order.totalCents, reserved: reserve } }, tx);
       await this.audit.log(auth, { category: 'documents', action: 'proforma_issued', recordType: 'document', recordId: doc.id, recordLabel: number }, tx);
       return { order, customer, data, number };
     });
-    const agentEmail = await this.emailOf(result.order.agentId);
+    const brokerEmail = await this.emailOf(result.order.brokerId);
     await this.mail.send({
       kind: 'payment_request',
       to: [result.customer.invoiceEmail],
-      cc: [agentEmail],
-      subject: result.customer.proformaLanguage === 'bg' ? `Проформа ${result.number} · ${result.order.number}` : `Proforma ${result.number} · ${result.order.number}`,
+      cc: [brokerEmail],
+      subject: result.data.language === 'bg' ? `Проформа ${result.number} · ${result.order.number}` : `Proforma ${result.number} · ${result.order.number}`,
       body: paymentRequestBody(result.data),
       recordType: 'order',
       recordId: id,
@@ -417,7 +525,7 @@ export class OrdersService {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
     const lines = await tx.select().from(orderLines).where(eq(orderLines.orderId, orderId));
     const calc = await this.writeLines(tx, orderId, cartonsOf(lines), unitPriceCents);
-    await tx.update(orders).set({ ...this.totalsFrom(calc), specialUnitPriceCents: unitPriceCents }).where(eq(orders.id, orderId));
+    await tx.update(orders).set({ ...this.totalsFrom(calc, await this.isHouse(tx, order.brokerId)), specialUnitPriceCents: unitPriceCents }).where(eq(orders.id, orderId));
     return order;
   }
 
@@ -426,16 +534,30 @@ export class OrdersService {
   async confirmPayment(auth: AuthContext, id: string, input: { receivedOn: string; amountCents: number; method: string; bankReference?: string }) {
     const result = await this.db.transaction(async (tx) => {
       const { order, lines } = await this.load(auth, id, tx, true);
-      if (order.status !== 'payment_to_confirm') throw new ConflictException({ message: 'This order is not waiting for a payment' });
+      const after = order.paymentTerms === 'after_delivery_30';
+      // 30 days after delivery: the payment can come at any point after the payment request.
+      if (order.status !== 'payment_to_confirm' && !(after && order.status !== 'draft' && order.status !== 'cancelled')) throw new ConflictException({ message: 'This order is not waiting for a payment' });
       const outstanding = order.totalCents - order.paidCents - order.creditedCents;
+      if (outstanding <= 0) throw new ConflictException({ message: 'This order is paid in full' });
       if (input.amountCents > outstanding) throw new BadRequestException({ message: 'The amount is more than what is owed', fields: { amountCents: `At most ${(outstanding / 100).toFixed(2)}` } });
       await tx.insert(payments).values({ orderId: id, receivedOn: input.receivedOn, amountCents: input.amountCents, method: input.method, bankReference: input.bankReference, confirmedById: auth.user.id });
       const paidCents = order.paidCents + input.amountCents;
       const full = paidCents >= order.totalCents - order.creditedCents;
-      let status: OrderStatus = 'payment_to_confirm';
+      let status: OrderStatus = order.status;
       let allocated = order.allocated;
       const patch: Partial<OrderRow> = { paidCents };
-      if (full) {
+      const deposit = depositOf(order.totalCents - order.creditedCents);
+      if (order.status !== 'payment_to_confirm') {
+        // 30 days after delivery: the order already moved on; only the money and the commission change.
+        if (full) {
+          Object.assign(patch, { paidAt: new Date() });
+          await tx.update(commissionEntries).set({ status: 'ready', readyAt: new Date() }).where(and(eq(commissionEntries.orderId, id), eq(commissionEntries.status, 'coming')));
+        }
+      } else if (!full && order.paymentTerms === 'half_before_shipping' && paidCents >= deposit && order.paidCents < deposit) {
+        // Deposit in: the order is confirmed and its stock is held until it ships; the rest is due before shipping (no date).
+        if (!allocated) allocated = await this.canReserve(tx, lines, id);
+        Object.assign(patch, { allocated, reservedUntil: null, paymentDueOn: null });
+      } else if (full) {
         if (!allocated) allocated = await this.canReserve(tx, lines, id);
         status = allocated ? 'ready_to_send' : 'waiting_for_stock';
         const cost = await this.stock.avgLandedCost(tx);
@@ -464,7 +586,7 @@ export class OrdersService {
         tx,
       );
       if (full) {
-        await this.notify.toUsers([order.agentId], { type: 'payment', title: `${order.number} is paid`, body: status === 'waiting_for_stock' ? 'Waiting for stock' : 'Ready to send', link: `/sales/${id}` }, tx);
+        await this.notify.toUsers([order.brokerId], { type: 'payment', title: `${order.number} is paid`, body: status === 'waiting_for_stock' ? 'Waiting for stock' : status === 'ready_to_send' ? 'Ready to send' : 'Paid in full', link: `/sales/${id}` }, tx);
       }
       return { status, full };
     });
@@ -477,7 +599,11 @@ export class OrdersService {
     const result = await this.db.transaction(async (tx) => {
       const { order, lines } = await this.load(auth, id, tx, true);
       if (order.status !== 'ready_to_send') throw new ConflictException({ message: 'Only paid orders with stock can be sent to the warehouse' });
-      if (order.paidCents < order.totalCents - order.creditedCents) throw new ConflictException({ message: 'The order must be paid in full before shipping' });
+      if (order.paymentTerms !== 'after_delivery_30' && order.paidCents < order.totalCents - order.creditedCents) throw new ConflictException({ message: 'The order must be paid in full before shipping' });
+      if (order.purchaseCostCents == null) {
+        const cost = await this.stock.avgLandedCost(tx);
+        await tx.update(orders).set({ purchaseCostCents: Math.round(lines.reduce((s, l) => s + l.units * cost[l.flavour], 0)) }).where(eq(orders.id, id));
+      }
       for (const l of lines) await this.stock.move(tx, { flavour: l.flavour, units: -l.units, kind: 'dispatch', orderId: id, byId: auth.user.id });
       await tx.update(orders).set({ status: 'at_warehouse', sentToWarehouseAt: new Date() }).where(eq(orders.id, id));
       await this.audit.log(auth, { category: 'orders', action: 'sent_to_warehouse', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: 'at_warehouse' } } }, tx);
@@ -537,7 +663,7 @@ export class OrdersService {
       await this.audit.log(auth, { category: 'orders', action: status === 'delivered' ? 'delivered' : 'delivered_in_part', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: status } }, meta: part ? { reason: part.reason, returnedCartons: returned } : undefined }, tx);
       const title = status === 'delivered' ? `${order.number} delivered` : `${order.number} delivered in part · ${returned} cartons back`;
       await this.notify.toRoles(['system_admin', 'admin'], { type: 'delivered', title, link: `/sales/${id}` }, tx);
-      await this.notify.toUsers([order.agentId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
+      await this.notify.toUsers([order.brokerId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
       return { status, returnedCartons: returned };
     });
   }
@@ -568,15 +694,27 @@ export class OrdersService {
       const { order, lines } = await this.load(auth, id, tx, true);
       if (order.status !== 'delivered' && order.status !== 'delivered_part') throw new ConflictException({ message: 'Invoices are issued once the order is delivered' });
       if (order.status === 'delivered_part' && !order.partDeliveryOutcome) throw new ConflictException({ message: 'Decide between a credit note and re-delivery first' });
-      if (order.paidCents < order.totalCents - order.creditedCents) throw new ConflictException({ message: 'Only fully paid orders can be invoiced' });
+      const after = order.paymentTerms === 'after_delivery_30';
+      if (!after && order.paidCents < order.totalCents - order.creditedCents) throw new ConflictException({ message: 'Only fully paid orders can be invoiced' });
+      // 30 days after delivery: the invoice is what the customer pays, due 30 days after the delivery.
+      const invoiceDue = after && order.paidCents < order.totalCents - order.creditedCents ? isoDate(addDays(order.deliveredAt ?? new Date(), 30)) : null;
       const number = await this.numbering.next(tx, 'invoice');
       const [proforma] = await tx.select({ number: documents.number }).from(documents).where(and(eq(documents.orderId, id), eq(documents.type, 'proforma'), sql`${documents.supersededById} is null`)).orderBy(desc(documents.createdAt)).limit(1);
-      const data = await this.docs.customerDocData(tx, id, number, lines, { references: proforma?.number ?? null });
+      const [lastPay] = await tx.select().from(payments).where(eq(payments.orderId, id)).orderBy(desc(payments.receivedOn)).limit(1);
+      const data = await this.docs.customerDocData(tx, id, number, lines, {
+        references: proforma?.number ?? null,
+        paidCents: order.paidCents,
+        paidOn: lastPay?.receivedOn ?? null,
+        paidMethod: lastPay?.method ?? null,
+        deliveredOn: order.deliveredAt ? isoDate(order.deliveredAt) : null,
+        paymentTerms: order.paymentTerms,
+        dueOn: invoiceDue,
+      });
       const [doc] = await tx
         .insert(documents)
         .values({ type: 'invoice', number, orderId: id, customerId: order.customerId, language: data.language, data: data as never, totalCents: data.totalCents, createdById: auth.user.id })
         .returning();
-      await tx.update(orders).set({ status: 'invoiced', invoicedAt: new Date() }).where(eq(orders.id, id));
+      await tx.update(orders).set({ status: 'invoiced', invoicedAt: new Date(), ...(invoiceDue ? { paymentDueOn: invoiceDue } : {}) }).where(eq(orders.id, id));
       await this.audit.log(auth, { category: 'documents', action: 'invoice_issued', recordType: 'order', recordId: id, recordLabel: order.number, money: true, meta: { invoice: number, documentId: doc.id, totalCents: data.totalCents } }, tx);
       // Part delivery settled by credit note: credit the cartons that came back (already returned to stock).
       let credit: Awaited<ReturnType<OrdersService['writeCreditNote']>> | null = null;
@@ -607,7 +745,7 @@ export class OrdersService {
     await this.mail.send({
       kind: 'invoice',
       to: [data.customer.invoiceEmail],
-      cc: [await this.emailOf(order.agentId), email.accounting, ...(await this.notify.emailsWithRoles(['system_admin', 'admin']))],
+      cc: [await this.emailOf(order.brokerId), email.accounting, ...(await this.notify.emailsWithRoles(['system_admin', 'admin']))],
       subject: data.language === 'bg' ? `Фактура ${number} · ${order.number}` : `Invoice ${number} · ${order.number}`,
       body: invoiceBody(data, 'invoice'),
       recordType: 'order',
@@ -620,7 +758,7 @@ export class OrdersService {
     await this.mail.send({
       kind: 'credit_note',
       to: [data.customer.invoiceEmail],
-      cc: [await this.emailOf(order.agentId)],
+      cc: [await this.emailOf(order.brokerId)],
       subject: data.language === 'bg' ? `Кредитно известие ${number}` : `Credit note ${number}`,
       body: invoiceBody(data, 'credit_note'),
       recordType: 'order',
@@ -671,27 +809,72 @@ export class OrdersService {
     await tx.update(orders).set({ creditedCents: order.creditedCents + data.totalCents }).where(eq(orders.id, order.id));
     // A5: commission already earned on credited units is offset against the next payout.
     if (data.commissionCents) {
-      await tx.insert(commissionEntries).values({ agentId: order.agentId, orderId: order.id, units: -units, amountCents: -(data.commissionCents ?? 0), status: 'ready', readyAt: new Date(), note: `Credit note ${number}` });
+      await tx.insert(commissionEntries).values({ brokerId: order.brokerId, orderId: order.id, units: -units, amountCents: -(data.commissionCents ?? 0), status: 'ready', readyAt: new Date(), note: `Credit note ${number}` });
     }
     await this.audit.log(auth, { category: 'documents', action: 'credit_note_issued', recordType: 'order', recordId: order.id, recordLabel: order.number, money: true, changes: { creditedCents: { from: order.creditedCents, to: order.creditedCents + data.totalCents } }, meta: { creditNote: number, documentId: doc.id, reason: input.reason } }, tx);
     return { number, data };
   }
 
-  async creditNote(auth: AuthContext, id: string, input: { reason: string; cartons: CartonsByFlavour; note?: string }) {
+  async creditNote(auth: AuthContext, id: string, input: { reason: string; cartons: CartonsByFlavour; note?: string; amountCents?: number }) {
     const r = await this.db.transaction(async (tx) => {
       const { order, lines } = await this.load(auth, id, tx, true);
       if (order.status !== 'invoiced') throw new ConflictException({ message: 'Credit notes follow an invoice' });
       const [invoice] = await tx.select().from(documents).where(and(eq(documents.orderId, id), eq(documents.type, 'invoice')));
-      const out = await this.writeCreditNote(tx, auth, order, lines, { id: invoice.id, number: invoice.number }, input, true);
+      // Price adjustment: an agreed amount; stock doesn't change.
+      if (input.amountCents != null) return { ...(await this.writePriceCredit(tx, auth, order, { id: invoice.id, number: invoice.number }, input.amountCents, input.note)), order };
+      // Returned cartons go back into available stock; damaged ones are written off.
+      const out = await this.writeCreditNote(tx, auth, order, lines, { id: invoice.id, number: invoice.number }, input, input.reason !== 'damaged');
       return { ...out, order };
     });
     await this.emailCredit(r.order, r.data, r.number);
     return { ok: true, creditNote: r.number };
   }
 
+  private async writePriceCredit(tx: Tx, auth: AuthContext, order: OrderRow, invoice: { id: string; number: string | null }, amountCents: number, note?: string) {
+    const max = order.totalCents - order.creditedCents;
+    if (amountCents > max) throw new BadRequestException({ message: 'More than what is left on the invoice', fields: { amountCents: `At most ${(max / 100).toFixed(2)}` } });
+    const number = await this.numbering.next(tx, 'credit_note');
+    const netCents = Math.round(amountCents / 1.2);
+    const data = await this.docs.customerDocData(tx, order.id, number, [], {
+      references: invoice.number,
+      reason: 'price_error',
+      note: note ?? null,
+      priceAdjustment: true,
+      netCents,
+      vatCents: amountCents - netCents,
+      totalCents: amountCents,
+    });
+    const [doc] = await tx
+      .insert(documents)
+      .values({ type: 'credit_note', number, orderId: order.id, customerId: order.customerId, referencesDocumentId: invoice.id, language: data.language, data: data as never, totalCents: amountCents, createdById: auth.user.id })
+      .returning();
+    await tx.update(orders).set({ creditedCents: order.creditedCents + amountCents }).where(eq(orders.id, order.id));
+    await this.audit.log(auth, { category: 'documents', action: 'credit_note_issued', recordType: 'order', recordId: order.id, recordLabel: order.number, money: true, changes: { creditedCents: { from: order.creditedCents, to: order.creditedCents + amountCents } }, meta: { creditNote: number, documentId: doc.id, reason: 'price_error' } }, tx);
+    return { number, data };
+  }
+
   // ---------- Correction and cancel ----------
 
   async requestCorrection(auth: AuthContext, id: string, cartons: CartonsByFlavour, reason: string) {
+    // An Admin corrects directly: the corrected proforma replaces the old one and is sent at once.
+    if (auth.perms.scope === 'all') {
+      const r = await this.db.transaction(async (tx) => {
+        const { order, lines } = await this.load(auth, id, tx, true);
+        if (!ORDER_PRE_SHIPPING.includes(order.status)) throw new ConflictException({ message: 'Corrections are possible only before shipping. After invoicing, issue a credit note.' });
+        const rules = await this.settings.rules(tx);
+        const calc = calculateOrder(cartons, order.specialUnitPriceCents);
+        if (calc.totalCartons < rules.minOrderCartons) throw new BadRequestException({ message: `The minimum order is ${rules.minOrderCartons} cartons` });
+        const before = cartonsOf(lines);
+        if (FLAVOURS.every((f) => (before[f] ?? 0) === (cartons[f] ?? 0))) throw new BadRequestException({ message: 'Change at least one quantity' });
+        await tx.update(approvalRequests).set({ status: 'withdrawn' }).where(and(eq(approvalRequests.orderId, id), eq(approvalRequests.status, 'pending')));
+        const applied = await this.applyCorrection(tx, auth, id, cartons);
+        await this.audit.log(auth, { category: 'orders', action: 'correction_sent', recordType: 'order', recordId: id, recordLabel: order.number, meta: { reason, proforma: applied.number } }, tx);
+        if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'correction', title: `${order.number} was corrected`, body: reason, link: `/sales/${id}` }, tx);
+        return applied;
+      });
+      await this.sendCorrectedProforma(r.order, { ...r.data, note: reason }, r.number);
+      return { applied: true, proforma: r.number };
+    }
     return this.db.transaction(async (tx) => {
       const { order, lines } = await this.load(auth, id, tx, true);
       if (!ORDER_PRE_SHIPPING.includes(order.status)) throw new ConflictException({ message: 'Corrections are possible only before shipping. After invoicing, issue a credit note.' });
@@ -720,7 +903,12 @@ export class OrdersService {
     const fullyPaid = order.paidCents >= owed;
     let status: OrderStatus = order.status;
     let allocated = order.allocated;
-    if (!fullyPaid) {
+    const after = order.paymentTerms === 'after_delivery_30';
+    if (after) {
+      // 30 days after delivery: no payment needed before shipping.
+      allocated = await this.canReserve(tx, lines, orderId);
+      status = allocated ? 'ready_to_send' : 'waiting_for_stock';
+    } else if (!fullyPaid) {
       status = 'payment_to_confirm';
       allocated = await this.canReserve(tx, lines, orderId);
     } else if (order.status !== 'payment_to_confirm') {
@@ -731,7 +919,7 @@ export class OrdersService {
     }
     await tx
       .update(orders)
-      .set({ ...this.totalsFrom(calc), status, allocated, paidAt: fullyPaid ? order.paidAt : null, reservedUntil: allocated && !fullyPaid ? addDays(new Date(), rules.stockHoldDays) : null })
+      .set({ ...this.totalsFrom(calc, await this.isHouse(tx, order.brokerId)), status, allocated, paidAt: fullyPaid ? order.paidAt : null, reservedUntil: allocated && !fullyPaid && !after && !(order.paymentTerms === 'half_before_shipping' && order.paidCents >= depositOf(owed)) ? addDays(new Date(), rules.stockHoldDays) : null })
       .where(eq(orders.id, orderId));
     await tx
       .update(commissionEntries)
@@ -741,7 +929,7 @@ export class OrdersService {
     const [old] = await tx.select().from(documents).where(and(eq(documents.orderId, orderId), eq(documents.type, 'proforma'), sql`${documents.supersededById} is null`));
     const number = await this.numbering.next(tx, 'proforma');
     const dueOn = order.paymentDueOn;
-    const data = await this.docs.customerDocData(tx, orderId, number, lines, { dueOn, validUntil: isoDate(addDays(new Date(), rules.proformaValidityDays)), replaces: old?.number ?? null });
+    const data = await this.docs.customerDocData(tx, orderId, number, lines, { dueOn, validUntil: isoDate(addDays(new Date(), rules.proformaValidityDays)), replaces: old?.number ?? null, paymentTerms: order.paymentTerms, depositCents: order.paymentTerms === 'half_before_shipping' ? depositOf(calc.totalCents) : null });
     const [doc] = await tx
       .insert(documents)
       .values({ type: 'proforma', number, orderId, customerId: order.customerId, language: data.language, data: data as never, totalCents: data.totalCents, label: 'Corrected proforma', createdById: auth.user.id })
@@ -768,7 +956,7 @@ export class OrdersService {
     await this.mail.send({
       kind: 'corrected_proforma',
       to: [data.customer.invoiceEmail],
-      cc: [await this.emailOf(order.agentId)],
+      cc: [await this.emailOf(order.brokerId)],
       subject: data.language === 'bg' ? `Коригирана проформа ${number} · ${order.number}` : `Corrected proforma ${number} · ${order.number}`,
       body: paymentRequestBody(data),
       recordType: 'order',
@@ -777,7 +965,28 @@ export class OrdersService {
     });
   }
 
+  /** Cancel before shipping (FR-SALE-5). The customer, the broker and the warehouse are told; it can be undone. */
   async cancel(auth: AuthContext, id: string, reason: string, note?: string) {
+    const r = await this.cancelTx(auth, id, reason, note);
+    const [c] = r.order.customerId ? await this.db.select().from(customers).where(eq(customers.id, r.order.customerId)) : [];
+    if (c) {
+      const bg = c.proformaLanguage === 'bg';
+      await this.mail.send({
+        kind: 'order_cancelled',
+        to: [c.invoiceEmail],
+        cc: [await this.emailOf(r.order.brokerId)],
+        subject: bg ? `Поръчка ${r.order.number} е анулирана` : `Order ${r.order.number} is cancelled`,
+        body: bg
+          ? [`Здравейте, ${c.contactName},`, '', `Поръчка ${r.order.number} е анулирана.${note ? ` ${note}` : ''}`, 'Проформата към нея вече не е валидна.', '', 'ANANDA'].join('\n')
+          : [`Hello ${c.contactName},`, '', `Order ${r.order.number} is cancelled.${note ? ` ${note}` : ''}`, 'Its proforma is no longer valid.', '', 'ANANDA'].join('\n'),
+        recordType: 'order',
+        recordId: id,
+      });
+    }
+    return { ok: true };
+  }
+
+  private async cancelTx(auth: AuthContext, id: string, reason: string, note?: string) {
     return this.db.transaction(async (tx) => {
       const { order } = await this.load(auth, id, tx, true);
       if (!ORDER_PRE_SHIPPING.includes(order.status)) throw new ConflictException({ message: 'Orders can be cancelled only before shipping' });
@@ -786,8 +995,57 @@ export class OrdersService {
       await tx.update(commissionEntries).set({ status: 'void' }).where(and(eq(commissionEntries.orderId, id), inArray(commissionEntries.status, ['coming', 'ready'])));
       await tx.update(approvalRequests).set({ status: 'withdrawn' }).where(and(eq(approvalRequests.orderId, id), eq(approvalRequests.status, 'pending')));
       await this.audit.log(auth, { category: 'orders', action: 'cancelled', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: 'cancelled' } }, meta: { reason, note, paidCents: order.paidCents } }, tx);
-      if (order.agentId !== auth.user.id) await this.notify.toUsers([order.agentId], { type: 'cancelled', title: `${order.number} was cancelled`, body: reason, link: `/sales/${id}` }, tx);
-      return { ok: true };
+      if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'cancelled', title: `${order.number} was cancelled`, body: reason, link: `/sales/${id}` }, tx);
+      await this.notify.toRoles(['warehouse'], { type: 'cancelled', title: `${order.number} was cancelled`, body: 'Nothing to ship for this order.', link: '/warehouse' }, tx);
+      return { order };
+    });
+  }
+
+  /** Undo a cancel: the order goes back to where its payment puts it, and stock is reserved again if it can be. */
+  async uncancel(auth: AuthContext, id: string) {
+    return this.db.transaction(async (tx) => {
+      const { order, lines } = await this.load(auth, id, tx, true);
+      if (order.status !== 'cancelled' || !order.requestSentAt) throw new ConflictException({ message: 'This order is not cancelled' });
+      if (auth.perms.scope === 'own' && order.paidCents > 0) throw new ForbiddenException({ message: 'This order has a payment. Ask an admin to bring it back.' });
+      const rules = await this.settings.rules(tx);
+      const full = order.paidCents > 0 && order.paidCents >= order.totalCents - order.creditedCents;
+      const allocated = await this.canReserve(tx, lines, id);
+      const status: OrderStatus = full ? (allocated ? 'ready_to_send' : 'waiting_for_stock') : 'payment_to_confirm';
+      await tx
+        .update(orders)
+        .set({ status, cancelledAt: null, cancelReason: null, allocated, reservedUntil: allocated && !full ? addDays(new Date(), rules.stockHoldDays) : null })
+        .where(eq(orders.id, id));
+      await tx.update(commissionEntries).set({ status: full ? 'ready' : 'coming' }).where(and(eq(commissionEntries.orderId, id), eq(commissionEntries.status, 'void')));
+      await this.audit.log(auth, { category: 'orders', action: 'cancel_undone', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: 'cancelled', to: status } } }, tx);
+      if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'cancel_undone', title: `${order.number} is open again`, body: 'The cancel was undone.', link: `/sales/${id}` }, tx);
+      return { ok: true, status };
+    });
+  }
+
+  // ---------- Uploads (brokers, on their own orders) ----------
+
+  async upload(auth: AuthContext, id: string, file: { buffer: Buffer; originalname: string; mimetype: string; size: number } | undefined, input: { kind: string; description?: string }) {
+    if (!file) throw new BadRequestException({ message: 'Choose a file', fields: { file: 'Choose a file' } });
+    if (!(ORDER_UPLOAD_KINDS as readonly string[]).includes(input.kind)) throw new BadRequestException({ message: 'Choose the type', fields: { kind: 'Choose the type' } });
+    const description = input.description?.trim() || null;
+    if (input.kind === 'other' && !description) throw new BadRequestException({ message: 'Say what it is', fields: { description: 'Say what it is, so the Admin knows where it belongs.' } });
+    if (!this.files.isAllowed(file.mimetype) || !/\.(pdf|jpe?g|png|heic|heif|webp)$/i.test(file.originalname)) throw new BadRequestException({ message: 'Use a PDF, JPG, PNG or HEIC.', fields: { file: 'Use a PDF, JPG, PNG or HEIC.' } });
+    if (file.size > ORDER_UPLOAD_MAX_BYTES) throw new BadRequestException({ message: 'The limit is 10 MB.', fields: { file: 'The limit is 10 MB.' } });
+    const kind = input.kind as OrderUploadKind;
+    const saved = await this.files.save(file);
+    return this.db.transaction(async (tx) => {
+      const { order } = await this.load(auth, id, tx, true);
+      if (order.status === 'cancelled') throw new ConflictException({ message: 'This order is cancelled' });
+      const [c] = order.customerId ? await tx.select({ name: customers.companyName }).from(customers).where(eq(customers.id, order.customerId)) : [];
+      const [doc] = await tx
+        .insert(documents)
+        .values({ type: 'upload', orderId: id, customerId: order.customerId, label: UPLOAD_LABEL[kind], filePath: saved.path, fileName: saved.name, mimeType: saved.mime, data: { uploadKind: kind, description }, createdById: auth.user.id })
+        .returning({ id: documents.id });
+      await this.audit.log(auth, { category: 'documents', action: 'document_uploaded', recordType: 'order', recordId: id, recordLabel: order.number, meta: { documentId: doc.id, kind, description, fileName: saved.name } }, tx);
+      // Every upload is told to the Admins. A proof of payment never confirms the payment: the bank does.
+      const admins = (await this.notify.userIdsWithRoles(['system_admin', 'admin'], tx)).filter((u) => u !== auth.user.id);
+      await this.notify.send('broker_upload', { users: admins }, { broker: auth.user.name, doc: kind === 'other' && description ? description : UPLOAD_DOC[kind], order: order.number, customer: c?.name ?? '' }, `/sales/${id}`, tx);
+      return { id: doc.id };
     });
   }
 
@@ -796,7 +1054,7 @@ export class OrdersService {
   /** Waiting orders, oldest first, for the Allocate panel (FR-INV-3). */
   async waitingForStock() {
     const rows = await this.db
-      .select({ id: orders.id, number: orders.number, paidAt: orders.paidAt, customerName: customers.companyName, agentId: orders.agentId })
+      .select({ id: orders.id, number: orders.number, paidAt: orders.paidAt, customerName: customers.companyName, brokerId: orders.brokerId })
       .from(orders)
       .leftJoin(customers, eq(customers.id, orders.customerId))
       .where(eq(orders.status, 'waiting_for_stock'))
@@ -815,7 +1073,7 @@ export class OrdersService {
         if (!(await this.canReserve(tx, lines, id))) throw new ConflictException({ message: `Not enough stock for ${order.number}. Untick it and try again.` });
         await tx.update(orders).set({ status: 'ready_to_send', allocated: true }).where(eq(orders.id, id));
         await this.audit.log(auth, { category: 'stock', action: 'allocated', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: 'waiting_for_stock', to: 'ready_to_send' } } }, tx);
-        await this.notify.toUsers([order.agentId], { type: 'allocated', title: `${order.number} has stock`, body: 'Paid · ready to send', link: `/sales/${id}` }, tx);
+        await this.notify.toUsers([order.brokerId], { type: 'allocated', title: `${order.number} has stock`, body: 'Paid · ready to send', link: `/sales/${id}` }, tx);
         done.push(order.number);
       }
       return { allocated: done };
@@ -824,7 +1082,7 @@ export class OrdersService {
 
   // ---------- Scheduled rules ----------
 
-  /** A8: release the stock hold after N unpaid days and tell the agent; the order stays open. */
+  /** A8: release the stock hold after N unpaid days and tell the broker; the order stays open. */
   async releaseExpiredHolds() {
     const now = new Date();
     const expired = await this.db
@@ -835,22 +1093,22 @@ export class OrdersService {
       await this.db.transaction(async (tx) => {
         await tx.update(orders).set({ allocated: false, reservedUntil: null, holdReleasedAt: now }).where(eq(orders.id, o.id));
         await this.audit.log(null, { category: 'stock', action: 'stock_hold_released', recordType: 'order', recordId: o.id, recordLabel: o.number }, tx);
-        await this.notify.toUsers([o.agentId], { type: 'hold_released', title: `Stock hold on ${o.number} released`, body: 'The payment did not arrive in time. The order stays open.', link: `/sales/${o.id}` }, tx);
+        await this.notify.toUsers([o.brokerId], { type: 'hold_released', title: `Stock hold on ${o.number} released`, body: 'The payment did not arrive in time. The order stays open.', link: `/sales/${o.id}` }, tx);
       });
     }
     return expired.length;
   }
 
-  /** A12: remind the agent when a proforma expires; the order stays open. */
+  /** A12: remind the broker when a proforma expires; the order stays open. */
   async remindExpiredProformas() {
     const now = new Date();
     const due = await this.db
       .select()
       .from(orders)
-      .where(and(eq(orders.status, 'payment_to_confirm'), lt(orders.proformaExpiresAt, now), sql`${orders.proformaReminderAt} is null`));
+      .where(and(eq(orders.status, 'payment_to_confirm'), isNotNull(orders.paymentDueOn), lt(orders.proformaExpiresAt, now), sql`${orders.proformaReminderAt} is null`));
     for (const o of due) {
       await this.db.update(orders).set({ proformaReminderAt: now }).where(eq(orders.id, o.id));
-      await this.notify.toUsers([o.agentId], { type: 'proforma_expired', title: `Proforma for ${o.number} expired`, body: 'Follow up with the customer.', link: `/sales/${o.id}` });
+      await this.notify.toUsers([o.brokerId], { type: 'proforma_expired', title: `Proforma for ${o.number} expired`, body: 'Follow up with the customer.', link: `/sales/${o.id}` });
     }
     return due.length;
   }
@@ -861,13 +1119,29 @@ export class OrdersService {
   }
 }
 
+const UPLOAD_LABEL: Record<OrderUploadKind, string> = {
+  purchase_order: "Customer's purchase order",
+  signed_order: 'Signed order or agreement',
+  payment_proof: 'Proof of payment',
+  delivery: 'Delivery photo or signed note',
+  other: 'Something else',
+};
+/** Short name in the Admin's notification ("Ivan Kolev uploaded a purchase order"). */
+const UPLOAD_DOC: Record<OrderUploadKind, string> = {
+  purchase_order: 'Purchase order',
+  signed_order: 'Signed order',
+  payment_proof: 'Proof of payment',
+  delivery: 'Delivery photo',
+  other: 'Document',
+};
+
 export function lateDays(dueOn: string | null, outstandingCents: number, status: string, today: string): number {
   if (!dueOn || outstandingCents <= 0 || status === 'draft' || status === 'cancelled' || dueOn >= today) return 0;
   return Math.floor((new Date(today).getTime() - new Date(dueOn).getTime()) / 86_400_000);
 }
 
-function money(cents: number) {
-  return `€${(cents / 100).toFixed(2)}`;
+function money(cents: number, lang: 'en' | 'bg' = 'en') {
+  return formatMoney(cents, lang);
 }
 
 function paymentRequestBody(d: Awaited<ReturnType<DocumentsService['customerDocData']>>) {
@@ -876,7 +1150,7 @@ function paymentRequestBody(d: Awaited<ReturnType<DocumentsService['customerDocD
       `Здравейте, ${d.customer.contactName},`,
       '',
       `Изпращаме проформа ${d.number} за поръчка ${d.orderNumber}.`,
-      `Сума с ДДС: ${money(d.totalCents)}. Плащане до ${d.dueOn}.`,
+      `Сума с ДДС: ${money(d.totalCents, 'bg')}. Плащане до ${formatDate(d.dueOn, 'bg')}.`,
       `IBAN ${d.bank.iban} · BIC ${d.bank.bic} · Основание: ${d.number}`,
       '',
       'Изпращаме стоката след получаване на пълното плащане.',
@@ -888,7 +1162,7 @@ function paymentRequestBody(d: Awaited<ReturnType<DocumentsService['customerDocD
     `Hello ${d.customer.contactName},`,
     '',
     `Please find proforma ${d.number} for order ${d.orderNumber} attached.`,
-    `Total incl. VAT: ${money(d.totalCents)}. Please pay by ${d.dueOn}.`,
+    `Total incl. VAT: ${money(d.totalCents)}. Please pay by ${formatDate(d.dueOn, 'en')}.`,
     `IBAN ${d.bank.iban} · BIC ${d.bank.bic} · Reference: ${d.number}`,
     '',
     'We ship once the full payment has arrived.',
@@ -901,6 +1175,6 @@ function invoiceBody(d: Awaited<ReturnType<DocumentsService['customerDocData']>>
   const bg = d.language === 'bg';
   const what = type === 'invoice' ? (bg ? 'фактура' : 'invoice') : bg ? 'кредитно известие' : 'credit note';
   return bg
-    ? [`Здравейте, ${d.customer.contactName},`, '', `Прилагаме ${what} ${d.number} за поръчка ${d.orderNumber}: ${money(d.totalCents)} с ДДС.`, '', d.company.name].join('\n')
+    ? [`Здравейте, ${d.customer.contactName},`, '', `Прилагаме ${what} ${d.number} за поръчка ${d.orderNumber}: ${money(d.totalCents, 'bg')} с ДДС.`, '', d.company.name].join('\n')
     : [`Hello ${d.customer.contactName},`, '', `Please find ${what} ${d.number} for order ${d.orderNumber} attached: ${money(d.totalCents)} incl. VAT.`, '', d.company.name].join('\n');
 }

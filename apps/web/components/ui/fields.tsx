@@ -43,12 +43,11 @@ export function MoneyField({ label, help, error, className, cents, onCents, ...r
   const id = useId();
   return (
     <Field id={id} label={label} help={help} error={error} className={className}>
-      <span className={`an-input ${error ? 'error' : ''}`} style={{ paddingInlineEnd: 0 }}>
+      <span className={`an-input an-money ${error ? 'error' : ''}`}>
         <span className="muted">€</span>
         <input
           id={id}
           inputMode="decimal"
-          style={{ flex: 1, minWidth: 0, height: '100%', border: 0, background: 'none', color: 'inherit', font: 'inherit', outline: 'none', fontVariantNumeric: 'tabular-nums' }}
           defaultValue={cents == null ? '' : (cents / 100).toFixed(2)}
           onChange={(e) => {
             const n = parseFloat(e.target.value.replace(/\s/g, '').replace(',', '.'));
@@ -76,8 +75,8 @@ export function Select({ label, help, error, className, options, placeholder, ..
   const id = useId();
   return (
     <Field id={id} label={label} help={help} error={error} className={className}>
-      <span style={{ position: 'relative', display: 'block' }}>
-        <select id={id} className={`an-input an-dd ${error ? 'error' : ''}`} style={{ paddingInlineEnd: 36 }} aria-invalid={!!error || undefined} {...rest}>
+      <span className="an-select-wrap">
+        <select id={id} className={`an-input an-dd ${error ? 'error' : ''}`} aria-invalid={!!error || undefined} {...rest}>
           {placeholder && (
             <option value="" disabled>
               {placeholder}
@@ -89,7 +88,7 @@ export function Select({ label, help, error, className, options, placeholder, ..
             </option>
           ))}
         </select>
-        <span style={{ position: 'absolute', insetInlineEnd: 12, top: 14, pointerEvents: 'none', color: 'var(--text-muted)' }}>
+        <span className="an-select-caret">
           <Icon as={CaretDown} size="sm" />
         </span>
       </span>
@@ -121,7 +120,7 @@ export function ReasonChips({ reasons, value, onChange, label, ns }: { reasons: 
   return (
     <div className="an-field">
       <label>{label}</label>
-      <div className="an-chips" role="group" aria-label={label} style={{ flexWrap: 'wrap' }}>
+      <div className="an-chips wrap" role="group" aria-label={label}>
         {reasons.map((r) => (
           <button key={r} type="button" className="an-chip" aria-pressed={value === r} onClick={() => onChange(r)}>
             {t(`reasons.${ns}.${r}`)}

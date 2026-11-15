@@ -1,9 +1,8 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { SaleForm } from '../SaleForm';
+import { SalesList } from '../SalesList';
 
+/** New sale opens as a panel over Sales & orders (links from Overview, Customers, the sidebar). */
 export default function NewSalePage() {
-  const params = useSearchParams();
-  return <SaleForm initial={{ customerId: params.get('customer'), cartons: {}, note: '' }} />;
+  return <SalesList newSale />;
 }

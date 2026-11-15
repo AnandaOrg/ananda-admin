@@ -87,7 +87,7 @@ export function vatOf(netCents: number): number {
 
 /**
  * Commission = units × €0.50, minus any special-price reduction (special prices are paid
- * out of the agent's commission), never below zero.
+ * out of the broker's commission), never below zero.
  */
 export function commissionFor(units: number, tierUnitPriceCents: number, unitPriceCents: number): number {
   const reduction = Math.max(0, tierUnitPriceCents - unitPriceCents) * units;

@@ -45,13 +45,14 @@ export function orderFlowIndex(status: OrderStatus): number {
 
 export type StatusTone = 'good' | 'warn' | 'bad' | 'info' | 'blue' | 'mute';
 
+/** Prototype 10 Nov: to confirm / delivered in part amber, waiting and drafts grey, paid / delivered / invoiced green, at the warehouse blue-green. */
 export const ORDER_STATUS_TONE: Record<OrderStatus, StatusTone> = {
   draft: 'mute',
-  payment_to_confirm: 'info',
-  waiting_for_stock: 'warn',
+  payment_to_confirm: 'warn',
+  waiting_for_stock: 'mute',
   ready_to_send: 'good',
   at_warehouse: 'info',
-  delivered: 'info',
+  delivered: 'good',
   delivered_part: 'warn',
   invoiced: 'good',
   cancelled: 'mute',
@@ -93,9 +94,11 @@ export const REASONS = {
   decline: ['already_customer', 'wrong_details', 'not_a_fit', 'other'],
   adjustment: ['breakage', 'samples', 'count_difference', 'other'],
   credit: ['returned', 'damaged', 'price_error', 'other'],
-  change_agent: ['agent_left', 'customer_request', 'performance', 'other'],
+  change_broker: ['broker_left', 'customer_request', 'performance', 'other'],
   part_delivery: ['customer_refused', 'damaged', 'short_on_truck', 'other'],
-  cancel: ['customer_cancelled', 'duplicate', 'other'],
+  cancel: ['customer_cancelled', 'duplicate', 'stock_unavailable', 'not_paid', 'other'],
 } as const;
 
-export const EXPENSE_CATEGORIES = ['marketing', 'events', 'travel', 'office', 'software', 'fees', 'salaries', 'other'] as const;
+export const EXPENSE_CATEGORIES = ['marketing', 'events', 'travel', 'office', 'software', 'fees', 'salaries', 'other', 'transport', 'rent', 'bank_fees', 'accountant', 'samples'] as const;
+/** The categories offered in New expense, in this order (older ones stay valid for existing rows). */
+export const EXPENSE_FORM_CATEGORIES = ['marketing', 'transport', 'rent', 'bank_fees', 'accountant', 'samples', 'events', 'other'] as const satisfies readonly (typeof EXPENSE_CATEGORIES)[number][];

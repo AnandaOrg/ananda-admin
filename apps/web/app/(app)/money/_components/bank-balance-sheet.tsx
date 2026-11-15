@@ -6,7 +6,8 @@ import { isoDate } from '@ananda/shared';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
-import { Banner, Button, MoneyField, Select, Sheet, TextField } from '@/components/ui';
+import { ActionError, Button, MoneyField, Select, Sheet, TextField } from '@/components/ui';
+import { DateField } from './date-field';
 
 export interface CashOnHand {
   cents: number;
@@ -54,14 +55,14 @@ export function BankBalanceSheet({ open, onClose, cash }: { open: boolean; onClo
         </>
       }
     >
-      {save.errorText && !Object.keys(fields).length && <Banner tone="bad">{save.errorText}</Banner>}
+      {!Object.keys(fields).length && <ActionError action={save} />}
       {options.length > 0 ? (
         <Select label={t('bank.account')} value={account} onChange={(e) => setAccount(e.target.value)} options={options.map((a) => ({ value: a, label: a }))} error={fields.account} />
       ) : (
         <TextField label={t('bank.account')} value={account} onChange={(e) => setAccount(e.target.value)} help={t('bank.accountHelp')} error={fields.account} />
       )}
-      <TextField label={t('bank.date')} type="date" value={balanceOn} max={isoDate()} onChange={(e) => setBalanceOn(e.target.value)} error={fields.balanceOn} />
-      <MoneyField key={key} label={t('bank.balance')} cents={cents} onCents={setCents} help={last ? t('bank.last', { amount: money(last.balanceCents), date: date(last.balanceOn) }) : t('bank.firstTime')} error={fields.balanceCents} />
+      <DateField label={t('bank.date')} value={balanceOn} max={isoDate()} onChange={setBalanceOn} error={fields.balanceOn} />
+      <MoneyField key={key} label={t('bank.balance')} cents={cents} onCents={setCents} help={last ? t('bank.last', { amount: `\u2066${money(last.balanceCents)}\u2069`, date: date(last.balanceOn) }) : t('bank.firstTime')} error={fields.balanceCents} />
     </Sheet>
   );
 }

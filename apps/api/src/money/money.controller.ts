@@ -41,8 +41,8 @@ export class MoneyController {
     sendCsv(
       res,
       'deal-profit.csv',
-      ['Paid on', 'Order', 'Credit note', 'Customer', 'Agent', 'Units', 'Net sales', 'Purchase cost', 'Commission', 'Profit after commission'],
-      d.deals.map((r) => [r.paidAt.slice(0, 10), r.number, r.documentNumber, r.customerName, r.agentName, r.units, euros(r.netCents), euros(r.purchaseCostCents), euros(r.commissionCents), euros(r.profitCents)]),
+      ['Paid on', 'Order', 'Credit note', 'Customer', 'Broker', 'Units', 'Net sales', 'Purchase cost', 'Commission', 'Profit after commission'],
+      d.deals.map((r) => [r.paidAt.slice(0, 10), r.number, r.documentNumber, r.customerName, r.brokerName, r.units, euros(r.netCents), euros(r.purchaseCostCents), euros(r.commissionCents), euros(r.profitCents)]),
     );
   }
 
@@ -86,11 +86,13 @@ export class MoneyController {
   @Get('expenses/export.csv')
   async expensesCsv(@Query() q: PeriodQuery & { category?: string; q?: string; status?: string }, @Res() res: Response) {
     const { items } = await this.money.listExpenses(q);
+    const range = q.period === 'custom' && q.from && q.to ? `_${q.from}_${q.to}` : '';
+    const category = (c: string) => c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' ');
     sendCsv(
       res,
-      'expenses.csv',
-      ['Date', 'Category', 'Description', 'Amount excl. VAT', 'VAT rate', 'Total incl. VAT', 'Paid', 'Receipt'],
-      items.map((e) => [e.spentOn, e.category, e.description, euros(e.netCents), `${Math.round(Number(e.vatRate) * 100)}%`, euros(e.totalCents), e.paid ? 'Yes' : 'No', e.receiptDocumentId ? 'Yes' : 'No']),
+      `ANANDA_expenses${range}.csv`,
+      ['Date', 'Month', 'Category', 'Description', 'Amount excl. VAT (EUR)', 'VAT rate', 'Total incl. VAT (EUR)', 'Paid', 'Receipt'],
+      items.map((e) => [e.spentOn, e.spentOn.slice(0, 7), category(e.category), e.description, euros(e.netCents), `${Math.round(Number(e.vatRate) * 100)}%`, euros(e.totalCents), e.paid ? 'Yes' : 'No', e.receiptDocumentId ? 'Yes' : 'No']),
     );
   }
 

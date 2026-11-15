@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { Public } from '../common/context';
 import { OrdersService } from '../orders/orders.service';
 import { CustomersService } from '../customers/customers.service';
+import { LateAlertsService } from './late-alerts.service';
 
 /**
  * Scheduled jobs for Vercel Cron (see vercel.json). Vercel sends `Authorization: Bearer $CRON_SECRET`.
@@ -13,6 +14,7 @@ export class CronController {
   constructor(
     private readonly orders: OrdersService,
     private readonly customers: CustomersService,
+    private readonly late: LateAlertsService,
   ) {}
 
   private check(auth: string | undefined) {
@@ -30,11 +32,19 @@ export class CronController {
     return { holdsReleased: await this.orders.releaseExpiredHolds(), proformasReminded: await this.orders.remindExpiredProformas() };
   }
 
-  /** FR-CUST-5: warn agents before ownership ends. */
+  /** FR-CUST-5: warn brokers before ownership ends. */
   @Public()
   @Get('ownership')
   async ownershipJob(@Headers('authorization') auth?: string) {
     this.check(auth);
     return { warned: await this.customers.warnExpiringOwnership() };
+  }
+
+  /** Late purchases (to Admins) and late customer payments (to their broker), once a week per record. */
+  @Public()
+  @Get('late')
+  async lateJob(@Headers('authorization') auth?: string) {
+    this.check(auth);
+    return this.late.run();
   }
 }

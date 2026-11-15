@@ -1,5 +1,5 @@
 {
-  "kicker": "{n, plural, =0 {No events yet} one {# event} other {# events}}",
+  "kicker": "{n, plural, =0 {Nothing upcoming} other {# upcoming}}",
   "new": "New event",
   "tiles": {
     "stock": "Stock at events",
@@ -7,21 +7,29 @@
     "sales": "Event sales this year",
     "salesSub": "{u} units",
     "expenses": "Direct event expenses",
-    "expensesSub": "This year, excl. VAT"
+    "expensesSub": "This year, excl. VAT",
+    "units": "units",
+    "salesShort": "Event sales",
+    "thisYear": "this year"
   },
   "cartons": "{n, plural, one {# carton} other {# cartons}}",
   "empty": {
-    "title": "No events yet",
-    "text": "An event or festival holds its own stock. Move cartons to it, record what agents sell there and see its direct costs."
+    "title": "Plan your first event or festival",
+    "text": "An event has its own stock: an Admin moves cartons to it and back. Its sales and direct costs count against it, so you see what it made.",
+    "titlePhone": "Plan your first event",
+    "textPhone": "Each event has its own stock, sales and costs."
   },
   "cols": {
     "event": "Event",
     "dates": "Dates",
-    "agents": "Agents",
+    "brokers": "Brokers",
     "stock": "Stock there",
     "sold": "Sold",
     "costs": "Direct costs",
-    "status": "Status"
+    "status": "Status",
+    "when": "When",
+    "type": "Type",
+    "invited": "Invited"
   },
   "kind": {
     "event": "Event",
@@ -32,7 +40,7 @@
     "on": "On now",
     "past": "Finished"
   },
-  "noAgents": "No agents invited",
+  "noBrokers": "No brokers invited",
   "form": {
     "title": "New event",
     "name": "Name",
@@ -40,30 +48,33 @@
     "to": "To",
     "place": "Place",
     "kind": "Type",
-    "agents": "Invited agents",
-    "agentsHelp": "Invited agents see the event and can sell there.",
-    "noAgents": "There are no agents yet.",
+    "brokers": "Invited brokers",
+    "brokersHelp": "Invited brokers see the event and can sell there.",
+    "noBrokers": "There are no brokers yet.",
     "create": "Create event",
-    "created": "{name} created"
+    "created": "Event created",
+    "namePlaceholder": "e.g. Varna Wine Fair",
+    "placePlaceholder": "e.g. Varna, Sea Garden"
   },
   "detail": {
-    "moveTo": "Move stock to event",
+    "moveTo": "Move stock",
     "moveBack": "Bring stock back",
     "recordSale": "Record sales",
-    "stockTitle": "Stock at the event",
+    "stockTitle": "Stock there",
+    "stockEmptyTitle": "No stock there yet",
     "stockEmpty": "No stock at the event. Move cartons here from the warehouse.",
     "moved": "Moved in {c}",
     "sold": "Sold {c}",
-    "tileStock": "Stock at the event",
-    "tileSold": "Sold at the event",
+    "tileStock": "Stock there",
+    "tileSold": "Event sales",
     "tileCosts": "Direct costs",
     "tileCostsSub": "Excl. VAT",
     "units": "{u} units",
-    "salesTitle": "Sales by agent",
+    "salesTitle": "Sales by broker",
     "salesEmpty": "No sales recorded yet.",
-    "agent": "Agent",
+    "broker": "Broker",
     "commission": "Commission",
-    "commissionHelp": "Normal commission per unit (A13). It goes straight to the agent’s Ready to pay.",
+    "commissionHelp": "Normal commission per unit (A13). It goes straight to the broker’s Ready to pay.",
     "costsTitle": "Direct costs",
     "costsEmpty": "No expenses linked to this event. Add one in Expenses and choose this event.",
     "addExpense": "Add expense",
@@ -78,9 +89,14 @@
       "event_sale": "Sold"
     },
     "by": "By {name}",
-    "invited": "Invited agents",
+    "invited": "Invited brokers",
     "what": "What",
-    "who": "Who"
+    "who": "Who",
+    "taken": "Taken, excl. VAT",
+    "unitsSub": "{c}",
+    "soldSub": "{u} units sold",
+    "notFound": "We can't find this event",
+    "backToEvents": "Back to events"
   },
   "move": {
     "titleTo": "Move stock to the event",
@@ -93,16 +109,23 @@
     "total": "{n, plural, one {# carton} other {# cartons}} · {u} units",
     "submitTo": "Move to event",
     "submitBack": "Bring back",
-    "doneTo": "{n, plural, one {# carton} other {# cartons}} moved to {name}",
-    "doneBack": "{n, plural, one {# carton} other {# cartons}} back at the warehouse"
+    "doneTo": "{n, plural, one {# carton} other {# cartons}} moved",
+    "doneBack": "{n, plural, one {# carton} other {# cartons}} returned"
   },
   "sale": {
     "title": "Record sales",
-    "agent": "Sold by",
-    "agentPlaceholder": "Choose an agent",
+    "broker": "Sold by",
+    "brokerPlaceholder": "Choose a broker",
     "help": "Cartons sold at the event, per flavour. Up to the stock at the event.",
     "submit": "Record sales",
-    "done": "{n, plural, one {# carton} other {# cartons}} recorded for {name} · {amount} commission ready to pay",
-    "noAgents": "Invite an agent to the event before recording sales."
-  }
+    "done": "Sale recorded",
+    "noBrokers": "Invite a broker to the event before recording sales.",
+    "amount": "Taken, excl. VAT",
+    "amountHelp": "What was taken for these cartons at the event."
+  },
+  "kickerNone": "No events yet",
+  "noneYet": "None yet",
+  "noBrokersYet": "no brokers invited yet",
+  "moveStockEmpty": "0 · move stock",
+  "foot": "Move cartons to the event before it starts. What comes back is counted on return."
 }
