@@ -2,6 +2,9 @@
  * e.g. API_URL=http://localhost:4011/api CRON_SECRET=testsecret pnpm --filter @ananda/api test). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const API = process.env.API_URL ?? 'http://localhost:4010/api';
 const CODE = process.env.DEV_TWO_STEP_CODE ?? '000000';
@@ -141,3 +144,49 @@ test('late alert: part delivered and unpaid, once; none when paid, fully deliver
 async function customerRestore(admin: Client, id: string, paymentTerms: string, paymentTermsDays: number) {
   assert.equal((await admin.req('PATCH', `/customers/${id}`, { paymentTerms, paymentTermsDays })).status, 200);
 }
+
+const req = createRequire(import.meta.url);
+const { deliveryProgress } = req(join(dirname(fileURLToPath(import.meta.url)), '../dist/orders/delivery-progress.js')) as {
+  deliveryProgress: (status: string, total: number, lines: { deliveredCartons: number | null }[], outcome?: string | null) => { deliveredCartons: number; totalCartons: number; part: boolean };
+};
+
+test('part delivered rule: closed with a credit note is no longer "part"; re-delivery still is', () => {
+  const lines = [{ deliveredCartons: 10 }, { deliveredCartons: null }];
+  assert.equal(deliveryProgress('at_warehouse', 42, lines).part, true);
+  assert.equal(deliveryProgress('delivered_part', 42, lines).part, true, 'waiting for the Admin decision');
+  assert.equal(deliveryProgress('at_warehouse', 42, lines, 'redeliver').part, true, 'the rest will still ship');
+  const closed = deliveryProgress('delivered_part', 42, lines, 'credit_note');
+  assert.equal(closed.part, false, 'the rest never ships');
+  assert.equal(closed.deliveredCartons, 10, 'the figures stay');
+  assert.equal(deliveryProgress('delivered', 42, [{ deliveredCartons: 42 }]).part, false);
+  assert.equal(deliveryProgress('at_warehouse', 42, [{ deliveredCartons: 0 }]).part, false);
+});
+
+// Needs DATABASE_URL (the API's own database): only the Admin's credit-note decision can end a part delivery, and the API cannot reach
+// "delivered in part" any more, so the state is set directly.
+test('late alert and order page: an order closed with a credit note is not part delivered', { skip: !process.env.DATABASE_URL }, async () => {
+  const t = await setup();
+  const { ivan, admin, warehouse, customer } = t;
+  const before = (await admin.req('GET', `/customers/${customer.id}`)).data;
+  const terms = before.customer?.paymentTerms ?? before.paymentTerms ?? 'before_shipping';
+  const days = before.customer?.paymentTermsDays ?? before.paymentTermsDays ?? 7;
+  assert.equal((await admin.req('PATCH', `/customers/${customer.id}`, { paymentTerms: 'after_delivery_30' })).status, 200);
+  const { Pool } = req('pg') as { Pool: new (o: { connectionString?: string }) => { query: (q: string, v?: unknown[]) => Promise<unknown>; end: () => Promise<void> } };
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  try {
+    const id = await atWarehouse(t, false);
+    assert.equal((await warehouse.req('POST', `/warehouse/orders/${id}/part-delivery`, pdf({ aloha: 10 }))).status, 200);
+    await pool.query(`update orders set status = 'delivered_part', part_delivery_outcome = 'credit_note' where id = $1`, [id]);
+    for (const who of [admin, ivan]) assert.deepEqual((await who.req('GET', `/orders/${id}`)).data.delivery, { deliveredCartons: 10, totalCartons: 42, part: false });
+    await lateJob();
+    assert.equal((await alerts(ivan, id)).length, 0, 'cartons that will never ship do not alert');
+    // Same order, decision still open: it is part delivered and alerts.
+    await pool.query(`update orders set part_delivery_outcome = null where id = $1`, [id]);
+    assert.equal((await admin.req('GET', `/orders/${id}`)).data.delivery.part, true);
+    await lateJob();
+    assert.equal((await alerts(ivan, id)).length, 1);
+  } finally {
+    await pool.end();
+    await customerRestore(admin, customer.id, terms, days);
+  }
+});

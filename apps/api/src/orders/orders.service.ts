@@ -38,6 +38,7 @@ import { NumberingService } from '../core/numbering.service';
 import { SettingsService } from '../core/settings.service';
 import { StockService } from '../core/stock.service';
 import { MailService } from '../core/mail.service';
+import { deliveryProgress } from './delivery-progress';
 import { NotifyService } from '../core/notify.service';
 import { FilesService } from '../core/files.service';
 import { outstandingSql } from '../core/figures.service';
@@ -56,15 +57,6 @@ export interface OrderListQuery {
   from?: string;
   to?: string;
   flavour?: string;
-}
-
-/**
- * How much of an order has gone out. `part` = some cartons were delivered, the rest has not been
- * (still at the warehouse, or came back). Not a status: the order status is unchanged.
- */
-export function deliveryProgress(status: OrderStatus, totalCartons: number, lines: { deliveredCartons: number | null }[]) {
-  const deliveredCartons = lines.reduce((s, l) => s + (l.deliveredCartons ?? 0), 0);
-  return { deliveredCartons, totalCartons, part: (status === 'at_warehouse' || status === 'delivered_part') && deliveredCartons > 0 && deliveredCartons < totalCartons };
 }
 
 const NEEDS_ACTION: OrderStatus[] = ['payment_to_confirm', 'waiting_for_stock', 'ready_to_send', 'delivered', 'delivered_part'];
@@ -244,7 +236,7 @@ export class OrdersService {
     return {
       order: { ...order, outstandingCents, daysLate: lateDays(order.paymentDueOn, outstandingCents, order.status, today) },
       lines: lines.map((l) => ({ ...l, remainingCartons: l.cartons - (l.deliveredCartons ?? 0) })),
-      delivery: deliveryProgress(order.status, order.totalCartons, lines),
+      delivery: deliveryProgress(order.status, order.totalCartons, lines, order.partDeliveryOutcome),
       tier: tierFor(order.totalCartons),
       customer: customer && {
         id: customer.id,
@@ -671,8 +663,9 @@ export class OrdersService {
       await tx.insert(documents).values({ type: 'delivery_note', orderId: id, customerId: order.customerId, filePath: saved.path, fileName: saved.name, mimeType: saved.mime, label: 'Signed delivery note', data: part ? { reason: part.reason, note: part.note, returnedCartons: returned } : {}, createdById: auth.user.id });
       await tx.update(orders).set({ status, deliveredAt: new Date(), partDeliveryOutcome: null }).where(eq(orders.id, id));
       await this.audit.log(auth, { category: 'orders', action: status === 'delivered' ? 'delivered' : 'delivered_in_part', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: status } }, meta: part ? { reason: part.reason, returnedCartons: returned } : undefined }, tx);
-      const kind = status === 'delivered' ? 'delivered' : 'delivered_back';
-      await this.notify.send(kind, { roles: ['system_admin', 'admin'], users: [order.brokerId] }, { order: order.number, ...(returned > 0 ? { returned } : {}) }, `/sales/${id}`, tx);
+      const to = { roles: ['system_admin', 'admin'] as ('system_admin' | 'admin')[], users: [order.brokerId] };
+      if (returned > 0) await this.notify.send('delivered_back', to, { order: order.number, returned }, `/sales/${id}`, tx);
+      else await this.notify.send('delivered', to, { order: order.number }, `/sales/${id}`, tx);
       return { status, returnedCartons: returned };
     });
   }

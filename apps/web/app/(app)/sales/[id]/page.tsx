@@ -478,8 +478,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         title={
           <span className="sales-title">
             {customerName}
-            <SalesStatus status={o.status} daysLate={o.daysLate} page />
-            {d.delivery.part && !(o.status === 'delivered_part' && !o.daysLate) && <Pill tone="warn">{t('order.partDelivered')}</Pill>}
+            <SalesStatus status={o.status} daysLate={o.daysLate} page part={d.delivery.part} />
           </span>
         }
         actions={
@@ -529,7 +528,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
             {flow}
           </Card>
           <Card className="o3" title={t('order.lines')}>
-            {d.delivery.deliveredCartons > 0 && (
+            {d.delivery.part && (
               <div className="sales-deliv stack tight">
                 <div className="sales-tot">
                   <span className="sales-deliv-head">

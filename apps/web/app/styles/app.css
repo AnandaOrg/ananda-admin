@@ -375,9 +375,9 @@ textarea.an-area::placeholder { color: var(--text-muted); }
 .stock-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-5); }
 @media (max-width: 767px) { .stock-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .an-stock .s span { display: block; }
-/* Low stock: a warn edge drawn around the flavour (light: amber edge). It is an outline, so the four columns keep the same width and the figures line up. */
-.an-stock.low { outline: 1px solid var(--warn); outline-offset: var(--space-3); border-radius: var(--radius-lg); }
-@media (max-width: 767px) { .an-stock.low { outline-offset: var(--space-2); } }
+/* Low stock: a warn edge drawn around the flavour (light: amber edge). It is an outline, so the columns keep the same width and the figures line up.
+   Offset + 1px edge stays under half the grid gap (--space-5), so two low flavours side by side never touch. */
+.an-stock.low { outline: 1px solid var(--warn); outline-offset: var(--space-2); border-radius: var(--radius-lg); }
 [data-theme="light"] .an-stock.low { outline-color: color-mix(in srgb, var(--warn) 55%, var(--surface-1)); }
 
 /* Profit equation */

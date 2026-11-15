@@ -510,14 +510,15 @@ export class CustomersService {
     const today = new Date();
     const limit = isoDate(addDays(today, rules.ownership.warningDays));
     const rows = await this.db
-      .select({ c: customers, email: users.email, lastOrderAt: this.lastOrderSql })
+      .select({ c: customers, email: users.email, lastOrderAt: sql<Date | string | null>`(select max(${orders.requestSentAt}) from ${orders} where ${orders.customerId} = ${customers.id} and ${orders.status} not in ('draft','cancelled'))` })
       .from(customers)
       .innerJoin(users, eq(users.id, customers.brokerId))
       .where(and(eq(customers.status, 'active'), isNotNull(customers.brokerId), gte(customers.ownedUntil, isoDate(today)), lte(customers.ownedUntil, limit), sql`${customers.ownershipWarnedAt} is null`));
     for (const { c, email, lastOrderAt } of rows) {
       const days = Math.max(0, Math.round((new Date(c.ownedUntil!).getTime() - new Date(isoDate(today)).getTime()) / 86_400_000));
-      const lastOrderOn = lastOrderAt ? String(lastOrderAt).slice(0, 10) : '';
-      const data = { customer: c.companyName, days, until: c.ownedUntil!, lastOrderOn, hasLastOrder: lastOrderOn ? 'yes' : 'no' };
+      // A timestamptz instant, turned into a calendar day the same way formatDate did (server-local day).
+      const lastOrderOn = lastOrderAt ? isoDate(new Date(lastOrderAt)) : '';
+      const data = { customer: c.companyName, days, until: c.ownedUntil!, lastOrderOn, hasLastOrder: lastOrderOn ? ('yes' as const) : ('no' as const) };
       const { title, body } = notifyText('ownership_expiring', data);
       await this.db.update(customers).set({ ownershipWarnedAt: new Date() }).where(eq(customers.id, c.id));
       await this.notify.send('ownership_expiring', { users: [c.brokerId] }, data, `/customers/${c.id}`);

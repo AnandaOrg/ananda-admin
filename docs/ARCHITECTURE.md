@@ -42,7 +42,7 @@ royi@ (System admin), maya@ (Admin), finance@, warehouse@, ivan@ / petya@ / dimi
   don't recompute.
 - **Writes**: inside `db.transaction`, lock the row (`.for('update')`), check the state machine, write,
   then `audit.log(auth, {...}, tx)` in the same transaction (before → after for money fields, `money: true`).
-  Notifications via `NotifyService.send(kind, to, data, link, tx)` with a kind from `NOTIFY_KINDS` (never prose: `data` carries ids, names, numbers, `...Cents`, ISO dates, counts, and the web translates it from `common.notify.<kind>.title|body` in EN, BG and HE; add the kind, its messages and its icon in `components/shell/notifications.tsx` together, `test/notify-catalog.test.mts` checks it). E-mails via `MailService` (after the transaction commits).
+  Notifications via `NotifyService.send(kind, to, data, link, tx)` with a kind from `NOTIFY_KINDS`; `data` is typed per kind by `NOTIFY_DATA` (only those fields are stored, free text capped at 500; add new fields there) (never prose: `data` carries ids, names, numbers, `...Cents`, ISO dates, counts, and the web translates it from `common.notify.<kind>.title|body` in EN, BG and HE; add the kind, its messages and its icon in `components/shell/notifications.tsx` together, `test/notify-catalog.test.mts` checks it). E-mails via `MailService` (after the transaction commits).
   The audit log is append-only (DB trigger).
 - **Realtime**: `RealtimeInterceptor` pushes a refetch to every open client after any successful write.
 - **Validation**: zod schemas from `@ananda/shared` with `new ZodPipe(schema)`. Errors come back as

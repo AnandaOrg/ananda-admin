@@ -101,33 +101,91 @@ function kindOf(n: Notification): string {
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const hm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
-/** Switches in the messages; never wrapped for right-to-left (they are matched, not shown). */
-const CONTROL = new Set(['kind', 'next', 'vatValid', 'hasBroker', 'hasLastOrder', 'hasMessage', 'hasIban']);
+type Data = Record<string, string | number>;
+type Translate = ReturnType<typeof useTranslations>;
+
+/**
+ * Per kind, next to the catalog: how stored `data` becomes the message's inputs.
+ *  - `legacy` makes rows written before the kind's data changed read like new ones (Production still holds them).
+ *  - `words` puts codes (reasons, upload kinds) into the reader's language; `plain` lists the inputs that are
+ *    already translated phrases (not wrapped for right-to-left).
+ * A kind with neither needs nothing: its data goes straight into the message.
+ */
+interface KindRules {
+  legacy?: (d: Data) => Data;
+  words?: (a: { t: Translate; locale: Locale; data: Data; vals: Data }) => void;
+  plain?: string[];
+}
+
+/** English labels the API stored in `doc` before `docKind` existed (broker_upload: short name, upload_opened: document label). */
+const DOC_KIND_BY_LABEL: Record<string, string> = {
+  'Purchase order': 'purchase_order',
+  'Signed order': 'signed_order',
+  'Proof of payment': 'payment_proof',
+  'Delivery photo': 'delivery',
+  Document: 'other',
+  "Customer's purchase order": 'purchase_order',
+  'Signed order or agreement': 'signed_order',
+  'Delivery photo or signed note': 'delivery',
+  'Something else': 'other',
+};
+const withDocKind = (d: Data): Data => (d.docKind ? d : { ...d, docKind: DOC_KIND_BY_LABEL[String(d.doc ?? '')] ?? 'custom' });
+
+const KIND_RULES: Record<string, KindRules> = {
+  // Old rows: `vatValid` was the number 1, or missing, instead of 'yes' / 'no'.
+  customer_approval: { legacy: (d) => ({ ...d, vatValid: [1, '1', 'yes', 'true'].includes(d.vatValid as string | number) ? 'yes' : 'no' }) },
+  cancelled: {
+    words: ({ t, data, vals }) => {
+      const reason = String(data.reason ?? '');
+      if (t.has(`reasons.cancel.${reason}`)) vals.reason = t(`reasons.cancel.${reason}`);
+    },
+  },
+  declined: {
+    words: ({ t, data, vals }) => {
+      const reason = String(data.reason ?? '');
+      vals.why = t.has(`notify.why.${data.kind}.${reason}`) ? t(`notify.why.${data.kind}.${reason}`) : String(data.why ?? reason);
+    },
+  },
+  upload_opened: {
+    legacy: withDocKind,
+    words: ({ t, data, vals }) => {
+      if (t.has(`notify.docs.${data.docKind}`)) vals.doc = t(`notify.docs.${data.docKind}`);
+    },
+  },
+  broker_upload: {
+    legacy: withDocKind,
+    plain: ['docPhrase'],
+    words: ({ t, locale, data, vals }) => {
+      const doc = String(data.doc ?? '').toLowerCase();
+      vals.docPhrase = t.has(`notify.docsA.${data.docKind}`) ? t(`notify.docsA.${data.docKind}`) : locale === 'en' ? `${doc.startsWith('a') ? 'an' : 'a'} ${doc}` : doc;
+    },
+  },
+};
+
+/** The switches (`{name, select, ...}`) a message uses: matched, never shown, so never wrapped for right-to-left. */
+const selectNames = (message: unknown) => (typeof message === 'string' ? [...message.matchAll(/\{(\w+),\s*select\b/g)].map((m) => m[1]) : []);
 
 /**
  * The reader's text for a notification that carries structured data: money (`...Cents`) and ISO dates
  * in the reader's number style, codes (reasons, upload kinds) in the reader's words, and in Hebrew every
  * value isolated so order numbers, names and amounts stay left-to-right.
  */
-export function notifyText(t: ReturnType<typeof useTranslations>, locale: Locale, n: Notification, key: string): string {
-  const data = n.data ?? {};
-  const vals: Record<string, string | number> = {};
+export function notifyText(t: Translate, locale: Locale, n: Notification, key: string): string {
+  const rules = KIND_RULES[n.type];
+  const data = rules?.legacy ? rules.legacy(n.data ?? {}) : (n.data ?? {});
+  const vals: Data = {};
   for (const [k, v] of Object.entries(data)) {
     vals[k] = v;
     if (k.endsWith('Cents')) vals[k.slice(0, -5) || 'amount'] = formatMoney(Number(v), locale);
     else if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) vals[k] = formatDate(v, locale);
   }
-  for (const f of CONTROL) vals[f] ??= 'no';
-  const reason = String(data.reason ?? '');
-  if (n.type === 'cancelled' && t.has(`reasons.cancel.${reason}`)) vals.reason = t(`reasons.cancel.${reason}`);
-  if (n.type === 'declined') vals.why = t.has(`notify.why.${data.kind}.${reason}`) ? t(`notify.why.${data.kind}.${reason}`) : String(data.why ?? reason);
-  const docKind = String(data.docKind ?? '');
-  if (n.type === 'upload_opened' && t.has(`notify.docs.${docKind}`)) vals.doc = t(`notify.docs.${docKind}`);
-  if (n.type === 'broker_upload') {
-    const doc = String(data.doc ?? '').toLowerCase();
-    vals.docPhrase = t.has(`notify.docsA.${docKind}`) ? t(`notify.docsA.${docKind}`) : locale === 'en' ? `${doc.startsWith('a') ? 'an' : 'a'} ${doc}` : doc;
+  const control = new Set(selectNames(t.raw(key)));
+  for (const f of control) vals[f] ??= 'no';
+  rules?.words?.({ t, locale, data, vals });
+  if (locale === 'he') {
+    const plain = new Set(rules?.plain);
+    for (const [k, v] of Object.entries(vals)) if (typeof v === 'string' && v && !control.has(k) && !plain.has(k)) vals[k] = iso(v);
   }
-  if (locale === 'he') for (const [k, v] of Object.entries(vals)) if (typeof v === 'string' && v && !CONTROL.has(k) && k !== 'docPhrase') vals[k] = iso(v);
   return t(key, vals);
 }
 

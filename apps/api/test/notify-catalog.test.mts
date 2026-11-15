@@ -10,7 +10,11 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const req = createRequire(import.meta.url);
-const { NOTIFY_KINDS } = req(join(here, '../dist/core/notify.service.js')) as { NOTIFY_KINDS: Record<string, { title: (d: any) => string; body: (d: any) => string }> };
+const { NOTIFY_KINDS, NOTIFY_DATA, cleanNotifyData } = req(join(here, '../dist/core/notify.service.js')) as {
+  NOTIFY_KINDS: Record<string, { title: (d: any) => string; body: (d: any) => string }>;
+  NOTIFY_DATA: Record<string, Record<string, string>>;
+  cleanNotifyData: (kind: string, data: Record<string, unknown>) => Record<string, string | number>;
+};
 const { formatMoney, formatDate } = req('@ananda/shared') as { formatMoney: (c: number, l: string) => string; formatDate: (v: string, l: string) => string };
 // intl-messageformat is the engine under next-intl (the tray's translator); reach it through the web app's own install.
 const fromNextIntl = createRequire(realpathSync(join(here, '../../web/node_modules/next-intl/package.json')));
@@ -108,3 +112,34 @@ for (const kind of Object.keys(S)) {
     }
   });
 }
+
+/** The names a message reads: `{name}`, `{name, plural, ...}`, `{name, select, ...}`. */
+const placeholders = (m: string) => new Set([...m.matchAll(/\{(\w+)\s*[,}]/g)].map((x) => x[1]));
+// Names the tray makes from other fields: money from `...Cents`, the article phrase from the upload kind.
+const derived = (field: string) => (field.endsWith('Cents') ? [field.slice(0, -5) || 'amount'] : field === 'docKind' ? ['docPhrase'] : []);
+
+for (const kind of Object.keys(NOTIFY_DATA)) {
+  test(`notify.${kind}: the data contract, the sample and the messages use the same names`, () => {
+    const fields = Object.keys(NOTIFY_DATA[kind]);
+    assert.deepEqual(Object.keys(S[kind]).sort(), fields.sort(), 'the sample data has the contract fields');
+    const known = new Set([...fields, ...fields.flatMap(derived)]);
+    for (const l of ['en', 'bg', 'he']) {
+      for (const part of ['title', 'body'] as const) {
+        const m = msgs(l)[kind]?.[part];
+        if (!m) continue;
+        for (const name of placeholders(m)) assert.ok(known.has(name), `${l} ${part} of ${kind} uses {${name}}, not in its data: ${fields.join(', ')}`);
+      }
+    }
+    // Every field is read by the English text or the tray (nothing stored for nothing).
+    const used = new Set([...placeholders(msgs('en')[kind].title), ...placeholders(msgs('en')[kind].body ?? '')]);
+    for (const f of fields) assert.ok(used.has(f) || derived(f).some((d) => used.has(d)) || ['kind', 'reason', 'docKind', 'doc', 'message'].includes(f), `${kind}.${f} is never read by a message`);
+  });
+}
+
+test('stored data keeps only the contract fields and caps free text', () => {
+  const long = 'x'.repeat(5000);
+  const out = cleanNotifyData('special_price_request', { order: 'S-0008', reason: long, extra: 'dropped' });
+  assert.deepEqual(Object.keys(out).sort(), ['order', 'reason']);
+  assert.equal(String(out.reason).length, 500);
+  assert.equal(cleanNotifyData('cancelled', { order: 'S-0008', reason: 'duplicate' }).reason, 'duplicate', 'codes are not capped');
+});
