@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { useAction, useMedia } from '@/lib/hooks';
+import { useUndoOwner } from '@/app/(app)/customers/useUndoOwner';
 import {
   ActionError,
   Banner,
@@ -93,7 +94,8 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
   const [contact, setContact] = useState(false);
   const [c, setC] = useState({ name: '', role: '', phone: '', email: '' });
   const q = useQuery({ queryKey: ['customers', id], queryFn: () => api.get<CustomerCard>(`/customers/${id}`) });
-  const claim = useAction(() => api.post(`/customers/${id}/claim`), { success: t('claimed') });
+  const undoClaim = useUndoOwner('claim');
+  const claim = useAction(() => api.post(`/customers/${id}/claim`), { success: t('claimed'), successAction: { label: tc('undo'), onClick: () => undoClaim.mutate(id) } });
   const submit = useAction(() => api.patch(`/customers/${id}`, { submit: true }), { success: t('new.sent') });
   const archive = useAction((archived: boolean) => api.post(`/customers/${id}/archive`, { archived }), { success: (_r) => t('archivedDone'), errorToast: true });
   const addContact = useAction(() => api.post(`/customers/${id}/contacts`, { name: c.name, role: c.role || undefined, phone: c.phone || undefined, email: c.email || undefined }), {

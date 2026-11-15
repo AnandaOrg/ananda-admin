@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { and, desc, eq } from 'drizzle-orm';
 import type { AuditCategory } from '@ananda/shared';
 import { InjectDb, type Db, type DbOrTx } from '../db/db.module';
 import { auditLog } from '../db/schema';
@@ -15,6 +16,9 @@ export interface AuditEntry {
   money?: boolean;
   meta?: Record<string, unknown>;
 }
+
+/** How long a one-tap action can be taken back (Undo on the toast, and from Overview for decisions). */
+export const UNDO_MINUTES = 30;
 
 /** Every write creates a permanent entry (FR-ADM-2). Pass the transaction so it commits with the change. */
 @Injectable()
@@ -35,6 +39,15 @@ export class AuditService {
       money: entry.money ?? false,
       meta: entry.meta,
     });
+  }
+
+  /**
+   * The newest entry for a record. An Undo uses it to refuse when anything else happened to the record
+   * after the action it takes back, and to read the "before" values it puts back.
+   */
+  async latest(recordType: string, recordId: string, tx: DbOrTx = this.db) {
+    const [row] = await tx.select().from(auditLog).where(and(eq(auditLog.recordType, recordType), eq(auditLog.recordId, recordId))).orderBy(desc(auditLog.at)).limit(1);
+    return row;
   }
 }
 

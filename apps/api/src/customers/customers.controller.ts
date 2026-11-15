@@ -89,6 +89,21 @@ export class CustomersController {
   }
 
   @Access('edit', 'customers')
+  @Post(':id/claim/undo')
+  @HttpCode(200)
+  undoClaim(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
+    return this.customers.undoOwnerChange(auth, id, 'claim');
+  }
+
+  @Access('edit', 'customers')
+  @Post(':id/change-broker/undo')
+  @HttpCode(200)
+  undoChangeBroker(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
+    if (auth.perms.scope !== 'all') throw new ForbiddenException({ message: 'Only an admin can change the broker' });
+    return this.customers.undoOwnerChange(auth, id, 'change');
+  }
+
+  @Access('edit', 'customers')
   @Post(':id/archive')
   @HttpCode(200)
   archive(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(z.object({ archived: z.boolean() }))) body: { archived: boolean }) {

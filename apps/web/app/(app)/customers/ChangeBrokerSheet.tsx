@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
+import { useUndoOwner } from './useUndoOwner';
 import { ActionError, Button, Sheet } from '@/components/ui';
 import { DropdownField } from './Dropdown';
 import s from './customers.module.css';
@@ -22,8 +23,11 @@ export function ChangeBrokerSheet({ customer, onClose }: { customer: { id: strin
     setReason('');
     onClose();
   };
-  const move = useAction(() => api.post(`/customers/${customer!.id}/change-broker`, { brokerId, reason }), {
+  const tc = useTranslations('common');
+  const undoMove = useUndoOwner('change-broker');
+  const move = useAction(() => api.post(`/customers/${customer!.id}/change-broker`, { brokerId, reason }).then(() => customer!.id), {
     success: t('brokerChanged'),
+    successAction: (id) => ({ label: tc('undo'), onClick: () => undoMove.mutate(id) }),
     onDone: close,
   });
   if (!customer) return null;

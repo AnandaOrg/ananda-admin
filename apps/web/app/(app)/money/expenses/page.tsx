@@ -90,7 +90,12 @@ export default function ExpensesPage() {
 
   const query = qs(rangeQuery(range));
   const q = useQuery({ queryKey: ['money', 'expenses', query], queryFn: () => api.get<ExpensesResponse>(`/money/expenses${query}`), placeholderData: keepPreviousData });
-  const markPaid = useAction((id: string) => api.post(`/money/expenses/${id}/paid`), { success: t('expenses.detail.markedPaid'), onDone: () => setSelected(null) });
+  const unpay = useAction((id: string) => api.post(`/money/expenses/${id}/paid/undo`), { success: t('expenses.detail.markedUnpaid'), errorToast: true });
+  const markPaid = useAction((id: string) => api.post(`/money/expenses/${id}/paid`).then(() => id), {
+    success: t('expenses.detail.markedPaid'),
+    successAction: (id) => ({ label: tc('undo'), onClick: () => unpay.mutate(id) }),
+    onDone: () => setSelected(null),
+  });
 
   const catLabel = (c: string) => (t.has(`categories.${c}`) ? t(`categories.${c}`) : c);
   const label = monthRangeLabel(range.from, range.to, locale);

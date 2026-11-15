@@ -42,6 +42,13 @@ export class SettingsCardsController {
   removeLogo(@Auth() auth: AuthContext) {
     return this.settings.removeLogo(auth);
   }
+
+  @Access('edit', 'settings')
+  @Post('documents/logo/undo')
+  @HttpCode(200)
+  undoRemoveLogo(@Auth() auth: AuthContext) {
+    return this.settings.undoRemoveLogo(auth);
+  }
 }
 
 /** Profile & devices facts for the signed-in person (every role). */

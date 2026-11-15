@@ -4,7 +4,7 @@ import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, lt, lte, ne, or, sq
 import { addDays, addMonths, formatDate, isoDate } from '@ananda/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { approvalRequests, auditLog, customerContacts, customers, documents, orders, payments, users } from '../db/schema';
-import { AuditService, diff } from '../core/audit.service';
+import { AuditService, UNDO_MINUTES, diff } from '../core/audit.service';
 import { NotifyService } from '../core/notify.service';
 import { MailService } from '../core/mail.service';
 import { SettingsService } from '../core/settings.service';
@@ -449,9 +449,38 @@ export class CustomersService {
       const rules = await this.settings.rules(tx);
       const ownedUntil = brokerId ? isoDate(addMonths(new Date(), rules.ownership.months)) : null;
       await tx.update(customers).set({ brokerId, ownedUntil, ownershipWarnedAt: null }).where(eq(customers.id, id));
-      await this.audit.log(auth, { category: 'customers', action: 'broker_changed', recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { brokerId: { from: c.brokerId, to: brokerId } }, meta: { reason, note } }, tx);
+      await this.audit.log(auth, { category: 'customers', action: 'broker_changed', recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { brokerId: { from: c.brokerId, to: brokerId }, ownedUntil: { from: c.ownedUntil, to: ownedUntil } }, meta: { reason, note } }, tx);
       if (brokerId) await this.notify.toUsers([brokerId], { type: 'customer_assigned', title: `${c.companyName} is now yours`, body: `Yours until ${ownedUntil}, and longer with each order.`, link: `/customers/${id}` }, tx);
       if (c.brokerId && c.brokerId !== brokerId) await this.notify.toUsers([c.brokerId], { type: 'customer_moved', title: `${c.companyName} moved to ${broker?.name ?? 'no broker'}`, body: 'Open orders stay with you.', link: `/customers` }, tx);
+      return { ok: true };
+    });
+  }
+
+  /**
+   * The toast's Undo for Claim and Change broker: the customer goes back to the broker and date it had. Only while
+   * that action is the last thing that happened to the customer, it was a moment ago, nobody sold to them since,
+   * and (for a claim) the person undoing is the one who claimed.
+   */
+  async undoOwnerChange(auth: AuthContext, id: string, kind: 'claim' | 'change') {
+    const action = kind === 'claim' ? 'customer_claimed' : 'broker_changed';
+    return this.db.transaction(async (tx) => {
+      const [c] = await tx.select().from(customers).where(eq(customers.id, id)).for('update');
+      if (!c || (kind === 'claim' && c.brokerId !== auth.user.id)) throw new NotFoundException({ message: 'Customer not found' });
+      const last = await this.audit.latest('customer', id, tx);
+      const ch = last?.changes as { brokerId?: { from: string | null; to: string | null }; ownedUntil?: { from: string | null; to: string | null } } | null | undefined;
+      if (!last || last.action !== action || !ch?.brokerId || !ch.ownedUntil || c.brokerId !== ch.brokerId.to || (kind === 'claim' && last.actorId !== auth.user.id)) {
+        throw new ConflictException({ message: 'This customer changed since, so it cannot be undone' });
+      }
+      if (Date.now() - last.at.getTime() > UNDO_MINUTES * 60_000) throw new ConflictException({ message: `This can be undone for ${UNDO_MINUTES} minutes` });
+      const [sale] = await tx.select({ id: orders.id }).from(orders).where(and(eq(orders.customerId, id), gte(orders.createdAt, last.at))).limit(1);
+      if (sale) throw new ConflictException({ message: 'An order was started for this customer since, so it cannot be undone' });
+      const { from: brokerId } = ch.brokerId;
+      await tx.update(customers).set({ brokerId, ownedUntil: ch.ownedUntil.from }).where(eq(customers.id, id));
+      await this.audit.log(auth, { category: 'customers', action: `${action}_undone`, recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { brokerId: { from: c.brokerId, to: brokerId }, ownedUntil: { from: c.ownedUntil, to: ch.ownedUntil.from } } }, tx);
+      if (kind === 'change') {
+        await this.notify.toUsers([c.brokerId], { type: 'customer_moved', title: `${c.companyName} is no longer yours`, body: 'The move was undone.', link: '/customers' }, tx);
+        await this.notify.toUsers([brokerId], { type: 'customer_assigned', title: `${c.companyName} is yours again`, body: 'The move was undone.', link: `/customers/${id}` }, tx);
+      }
       return { ok: true };
     });
   }

@@ -1,9 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNotNull, notInArray, sql } from 'drizzle-orm';
 import { VAT_RATE, formatMoney, isoDate, vatOf } from '@ananda/shared';
 import { InjectDb, type Db, type Tx } from '../db/db.module';
 import { brokerNudges, brokerProfiles, commissionEntries, customers, events, orders, roles, users } from '../db/schema';
-import { AuditService } from '../core/audit.service';
+import { AuditService, UNDO_MINUTES } from '../core/audit.service';
 import { MailService } from '../core/mail.service';
 import { NotifyService } from '../core/notify.service';
 import { SettingsService } from '../core/settings.service';
@@ -348,7 +348,44 @@ export class BrokersService {
         return u.length > 2 ? `${u.slice(0, 2).join(', ')} +${u.length - 2}` : u.join(', ');
       };
       await this.notify.send('commission_paid', { users: [brokerId] }, { amountCents: sum, order: list(what.map((w) => w.order ?? w.event)), customer: list(what.map((w) => w.customer)) || '—' }, '/brokers', tx);
-      return { ok: true, amountCents: sum, entries: pick.length };
+      return { ok: true, amountCents: sum, entries: pick.length, entryIds: pick.map((r) => r.id) };
+    });
+  }
+
+  /**
+   * Take a Mark as paid back (the toast's Undo): the entries go back to Sent, or to Ready when they were never
+   * sent. Only while they are still Paid from that tap and it was a moment ago; the broker is told it was a mistake.
+   */
+  async undoMarkPaid(auth: AuthContext, brokerId: string, entryIds: string[]) {
+    if (!auth.perms.sensitive.includes('pay_commission')) throw new ForbiddenException({ code: 'no_access', message: 'You do not have access to this' });
+    return this.db.transaction(async (tx) => {
+      const broker = await this.assertBroker(brokerId, tx, true);
+      const rows = await tx.select().from(commissionEntries).where(and(eq(commissionEntries.brokerId, brokerId), inArray(commissionEntries.id, entryIds))).for('update');
+      const since = Date.now() - UNDO_MINUTES * 60_000;
+      if (!rows.length || rows.length !== new Set(entryIds).size || rows.some((r) => r.status !== 'paid')) throw new ConflictException({ message: 'This payment changed since, so it cannot be undone' });
+      if (rows.some((r) => !r.paidAt || r.paidAt.getTime() < since)) throw new ConflictException({ message: `A payment can be undone for ${UNDO_MINUTES} minutes. Ask finance to correct it.` });
+      const sum = rows.reduce((s, r) => s + r.amountCents, 0);
+      const wasSent = rows.filter((r) => r.sentAt);
+      const wasReady = rows.filter((r) => !r.sentAt);
+      if (wasSent.length) await tx.update(commissionEntries).set({ status: 'sent', paidAt: null }).where(inArray(commissionEntries.id, wasSent.map((r) => r.id)));
+      if (wasReady.length) await tx.update(commissionEntries).set({ status: 'ready', paidAt: null }).where(inArray(commissionEntries.id, wasReady.map((r) => r.id)));
+      const total = (xs: typeof rows) => xs.reduce((s, r) => s + r.amountCents, 0);
+      await this.audit.log(
+        auth,
+        {
+          category: 'commission',
+          action: 'commission_paid_undone',
+          recordType: 'user',
+          recordId: brokerId,
+          recordLabel: broker.name,
+          money: true,
+          changes: { paidCents: { from: sum, to: 0 }, ...(wasSent.length ? { sentCents: { from: 0, to: total(wasSent) } } : {}), ...(wasReady.length ? { readyCents: { from: 0, to: total(wasReady) } } : {}) },
+          meta: { entries: rows.length, amountCents: sum },
+        },
+        tx,
+      );
+      await this.notify.toUsers([brokerId], { type: 'commission_paid_undone', title: 'Commission marked paid by mistake', body: 'It is not paid yet. You will see it as paid once it leaves the bank.', link: '/brokers' }, tx);
+      return { ok: true, amountCents: sum, entries: rows.length };
     });
   }
 

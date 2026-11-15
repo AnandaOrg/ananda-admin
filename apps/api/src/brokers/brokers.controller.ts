@@ -171,4 +171,12 @@ export class BrokersController {
   markPaid(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(commissionPaySchema)) body: z.infer<typeof commissionPaySchema>) {
     return this.brokers.markPaid(auth, id, body.entryIds);
   }
+
+  /** Undo for the Mark as paid toast; the same permission as the original, no new code (the tap that is taken back had one). */
+  @Access('view', 'brokers')
+  @Post(':id/mark-paid/undo')
+  @HttpCode(200)
+  undoMarkPaid(@Auth() auth: AuthContext, @Param('id', uuid) id: string, @Body(new ZodPipe(z.object({ entryIds: z.array(z.string().uuid()).min(1) }))) body: { entryIds: string[] }) {
+    return this.brokers.undoMarkPaid(auth, id, body.entryIds);
+  }
 }

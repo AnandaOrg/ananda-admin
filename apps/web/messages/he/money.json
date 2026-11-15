@@ -187,6 +187,7 @@
       "paid": "שולם",
       "unpaid": "לא שולם",
       "markPaid": "סימון כשולם",
+      "markedUnpaid": "סומן כלא שולם",
       "markedPaid": "סומן כשולם",
       "viewReceipt": "צפייה בקבלה",
       "vatLine": "מע״מ {rate}%",

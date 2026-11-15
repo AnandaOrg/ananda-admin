@@ -499,6 +499,7 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
 /** Logo on documents: the shared FileUpload (images only, saved straight away); a stored logo shows as a ready row with Remove. */
 function LogoField({ logo, editable }: { logo: SettingsData['documents']['logo']; editable: boolean }) {
   const t = useTranslations('admin');
+  const tc = useTranslations('common');
   const [stamp, setStamp] = useState(0);
   const [sent, setSent] = useState<File | null>(null);
   const upload = useAction(
@@ -509,7 +510,8 @@ function LogoField({ logo, editable }: { logo: SettingsData['documents']['logo']
     },
     { success: t('settings.cardPanel.logoUploaded'), onDone: () => (setStamp(Date.now()), setSent(null)) },
   );
-  const remove = useAction(() => api.del('/settings/documents/logo'), { success: t('settings.cardPanel.logoRemoved') });
+  const restore = useAction(() => api.post('/settings/documents/logo/undo'), { success: t('settings.cardPanel.logoRestored'), onDone: () => setStamp(Date.now()), errorToast: true });
+  const remove = useAction(() => api.del('/settings/documents/logo'), { success: t('settings.cardPanel.logoRemoved'), successAction: { label: tc('undo'), onClick: () => restore.mutate(undefined) } });
   const err = upload.fields.file ?? remove.errorText ?? undefined;
   const failed = !!upload.error && !upload.fields.file;
   return (

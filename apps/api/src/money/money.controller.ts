@@ -110,4 +110,11 @@ export class MoneyController {
   markPaid(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
     return this.money.markPaid(auth, id);
   }
+
+  @Access('edit', 'expenses')
+  @Post('expenses/:id/paid/undo')
+  @HttpCode(200)
+  undoMarkPaid(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
+    return this.money.undoMarkPaid(auth, id);
+  }
 }
