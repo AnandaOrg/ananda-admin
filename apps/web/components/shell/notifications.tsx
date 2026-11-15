@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { formatDate, formatDateShort, formatMoney, type Locale } from '@ananda/shared';
+import { iso } from '@/lib/format';
 import {
   Bell,
   CalendarBlank,
@@ -55,6 +56,7 @@ const KIND: Record<string, [PhosphorIcon, Tone]> = {
   to_ship: [Package, ''],
   purchase_late: [Clock, 'bad'],
   payment_late: [Clock, 'bad'],
+  part_delivery_unpaid: [Clock, 'warn'],
   payment: [Coins, 'good'],
   payment_confirmed: [Coins, 'good'],
   commission_paid: [Coins, 'good'],
@@ -70,7 +72,23 @@ const KIND: Record<string, [PhosphorIcon, Tone]> = {
   stock_count: [Package, ''],
   stock_low: [TrendDown, 'warn'],
   customer_assigned: [UserPlus, 'blue'],
+  customer_assigned_until: [UserPlus, 'blue'],
+  customer_assigned_undone: [UserPlus, 'blue'],
   customer_moved: [Users, ''],
+  customer_moved_undone: [Users, ''],
+  broker_changed: [Users, ''],
+  special_price_request: [Tag, 'warn'],
+  correction_request: [NotePencil, 'warn'],
+  order_corrected: [NotePencil, 'warn'],
+  delivered_back: [Truck, 'warn'],
+  part_delivered: [Truck, 'warn'],
+  to_ship_again: [Package, ''],
+  cancelled_warehouse: [X, 'bad'],
+  cancel_undone: [CheckCircle, 'good'],
+  commission_paid_undone: [Coins, 'warn'],
+  iban_changed: [Gear, 'warn'],
+  stock_arrived: [Package, 'good'],
+  waiting_again: [Clock, 'warn'],
 };
 
 function kindOf(n: Notification): string {
@@ -82,6 +100,36 @@ function kindOf(n: Notification): string {
 
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const hm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+/** Switches in the messages; never wrapped for right-to-left (they are matched, not shown). */
+const CONTROL = new Set(['kind', 'next', 'vatValid', 'hasBroker', 'hasLastOrder', 'hasMessage', 'hasIban']);
+
+/**
+ * The reader's text for a notification that carries structured data: money (`...Cents`) and ISO dates
+ * in the reader's number style, codes (reasons, upload kinds) in the reader's words, and in Hebrew every
+ * value isolated so order numbers, names and amounts stay left-to-right.
+ */
+export function notifyText(t: ReturnType<typeof useTranslations>, locale: Locale, n: Notification, key: string): string {
+  const data = n.data ?? {};
+  const vals: Record<string, string | number> = {};
+  for (const [k, v] of Object.entries(data)) {
+    vals[k] = v;
+    if (k.endsWith('Cents')) vals[k.slice(0, -5) || 'amount'] = formatMoney(Number(v), locale);
+    else if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) vals[k] = formatDate(v, locale);
+  }
+  for (const f of CONTROL) vals[f] ??= 'no';
+  const reason = String(data.reason ?? '');
+  if (n.type === 'cancelled' && t.has(`reasons.cancel.${reason}`)) vals.reason = t(`reasons.cancel.${reason}`);
+  if (n.type === 'declined') vals.why = t.has(`notify.why.${data.kind}.${reason}`) ? t(`notify.why.${data.kind}.${reason}`) : String(data.why ?? reason);
+  const docKind = String(data.docKind ?? '');
+  if (n.type === 'upload_opened' && t.has(`notify.docs.${docKind}`)) vals.doc = t(`notify.docs.${docKind}`);
+  if (n.type === 'broker_upload') {
+    const doc = String(data.doc ?? '').toLowerCase();
+    vals.docPhrase = t.has(`notify.docsA.${docKind}`) ? t(`notify.docsA.${docKind}`) : locale === 'en' ? `${doc.startsWith('a') ? 'an' : 'a'} ${doc}` : doc;
+  }
+  if (locale === 'he') for (const [k, v] of Object.entries(vals)) if (typeof v === 'string' && v && !CONTROL.has(k) && k !== 'docPhrase') vals[k] = iso(v);
+  return t(key, vals);
+}
 
 /**
  * Notifications list (desktop popover under the tray, phone sheet from the bell): grouped Today /
@@ -121,16 +169,8 @@ export function NotificationsBody({
   ).filter((g) => g[1].length);
   const text = (n: Notification, part: 'title' | 'body') => {
     const key = `notify.${n.type}.${part}`;
-    if (n.data && t.has(key)) {
-      // Money comes as `...Cents`; it is shown in the reader's number style as `{amount}` etc.
-      const vals: Record<string, string | number> = {};
-      for (const [k, v] of Object.entries(n.data)) {
-        vals[k] = v;
-        if (k.endsWith('Cents')) vals[k.slice(0, -5) || 'amount'] = formatMoney(Number(v), locale);
-        else if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) vals[k] = formatDate(v, locale);
-      }
-      return t(key, vals);
-    }
+    if (n.data && t.has(key)) return notifyText(t, locale, n, key);
+    // Older rows have no data: show the English that was stored with them.
     return part === 'title' ? n.title : (n.body ?? '');
   };
   const markAll = (
@@ -176,7 +216,7 @@ export function NotificationsBody({
           </div>
         ) : !list.length ? (
           <div className="nt-empty">
-            <span className="ei">
+            <span className="ei done">
               <Icon as={Check} size="lg" />
             </span>
             <b>{t('notifications.caughtUp')}</b>

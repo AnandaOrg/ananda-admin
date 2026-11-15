@@ -384,7 +384,7 @@ export class BrokersService {
         },
         tx,
       );
-      await this.notify.toUsers([brokerId], { type: 'commission_paid_undone', title: 'Commission marked paid by mistake', body: 'It is not paid yet. You will see it as paid once it leaves the bank.', link: '/brokers' }, tx);
+      await this.notify.send('commission_paid_undone', { users: [brokerId] }, {}, '/brokers', tx);
       return { ok: true, amountCents: sum, entries: rows.length };
     });
   }

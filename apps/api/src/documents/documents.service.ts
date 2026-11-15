@@ -167,7 +167,7 @@ export class DocumentsService implements OnModuleInit {
     if (doc.type !== 'upload' || !doc.orderId || !data.uploadKind || data.openedAt || auth.perms.scope !== 'all' || !doc.createdById || doc.createdById === auth.user.id) return;
     const [o] = await this.db.select({ number: orders.number, customer: customers.companyName }).from(orders).leftJoin(customers, eq(customers.id, orders.customerId)).where(eq(orders.id, doc.orderId));
     await this.db.update(documents).set({ data: { ...data, openedAt: new Date().toISOString(), openedById: auth.user.id } }).where(eq(documents.id, doc.id));
-    await this.notify.send('upload_opened', { users: [doc.createdById] }, { doc: doc.label ?? 'Document', order: o?.number ?? '', customer: o?.customer ?? '' }, `/sales/${doc.orderId}`);
+    await this.notify.send('upload_opened', { users: [doc.createdById] }, { doc: doc.label ?? 'Document', docKind: String(data.uploadKind), order: o?.number ?? '', customer: o?.customer ?? '' }, `/sales/${doc.orderId}`);
   }
 
   /** The printable page of a customer document, in the document's own language. */

@@ -97,3 +97,6 @@
   .sales-flow .act { max-width: none; }
 }
 .sales-flow { list-style: none; margin: 0; padding: 0; }
+
+.sales-deliv { margin-block-end: var(--space-3); font-variant-numeric: tabular-nums; }
+.sales-tot > span.sales-deliv-head:first-child { color: var(--text); font-weight: 500; }

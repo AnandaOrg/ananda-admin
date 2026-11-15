@@ -1,11 +1,11 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, lt, lte, ne, or, sql, type SQL } from 'drizzle-orm';
-import { addDays, addMonths, formatDate, isoDate } from '@ananda/shared';
+import { addDays, addMonths, isoDate } from '@ananda/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { approvalRequests, auditLog, customerContacts, customers, documents, orders, payments, users } from '../db/schema';
 import { AuditService, UNDO_MINUTES, diff } from '../core/audit.service';
-import { NotifyService } from '../core/notify.service';
+import { NotifyService, notifyText } from '../core/notify.service';
 import { MailService } from '../core/mail.service';
 import { SettingsService } from '../core/settings.service';
 import { outstandingSql } from '../core/figures.service';
@@ -380,7 +380,7 @@ export class CustomersService {
         },
         tx,
       );
-      if (isAdmin && brokerId && brokerId !== auth.user.id) await this.notify.toUsers([brokerId], { type: 'customer_assigned', title: `${c.companyName} is now yours`, body: 'Added by an Admin. You can start a sale.', link: `/customers/${c.id}` }, tx);
+      if (isAdmin && brokerId && brokerId !== auth.user.id) await this.notify.send('customer_assigned', { users: [brokerId] }, { customer: c.companyName }, `/customers/${c.id}`, tx);
       return { id: c.id, status, companyName: c.companyName, vatChecked: !!check?.checked };
     });
   }
@@ -388,7 +388,7 @@ export class CustomersService {
   private async openApproval(tx: Tx, auth: AuthContext, customerId: string, reason?: string | null) {
     const [req] = await tx.insert(approvalRequests).values({ type: 'new_customer', customerId, requestedById: auth.user.id, reason: reason ?? null }).returning();
     const [c] = await tx.select({ name: customers.companyName, vatValid: customers.vatValid }).from(customers).where(eq(customers.id, customerId));
-    await this.notify.send('customer_approval', { roles: ['system_admin', 'admin'] }, { broker: auth.user.name, customer: c.name, ...(c.vatValid ? { vatValid: 1 } : {}) }, `/home?review=${req.id}`, tx);
+    await this.notify.send('customer_approval', { roles: ['system_admin', 'admin'] }, { broker: auth.user.name, customer: c.name, vatValid: c.vatValid ? 'yes' : 'no' }, `/home?review=${req.id}`, tx);
     await this.notify.send('sent_for_approval', { users: [auth.user.id] }, { customer: c.name }, `/customers/${customerId}`, tx);
   }
 
@@ -450,8 +450,8 @@ export class CustomersService {
       const ownedUntil = brokerId ? isoDate(addMonths(new Date(), rules.ownership.months)) : null;
       await tx.update(customers).set({ brokerId, ownedUntil, ownershipWarnedAt: null }).where(eq(customers.id, id));
       await this.audit.log(auth, { category: 'customers', action: 'broker_changed', recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { brokerId: { from: c.brokerId, to: brokerId }, ownedUntil: { from: c.ownedUntil, to: ownedUntil } }, meta: { reason, note } }, tx);
-      if (brokerId) await this.notify.toUsers([brokerId], { type: 'customer_assigned', title: `${c.companyName} is now yours`, body: `Yours until ${ownedUntil}, and longer with each order.`, link: `/customers/${id}` }, tx);
-      if (c.brokerId && c.brokerId !== brokerId) await this.notify.toUsers([c.brokerId], { type: 'customer_moved', title: `${c.companyName} moved to ${broker?.name ?? 'no broker'}`, body: 'Open orders stay with you.', link: `/customers` }, tx);
+      if (brokerId) await this.notify.send('customer_assigned_until', { users: [brokerId] }, { customer: c.companyName, until: ownedUntil! }, `/customers/${id}`, tx);
+      if (c.brokerId && c.brokerId !== brokerId) await this.notify.send('customer_moved', { users: [c.brokerId] }, { customer: c.companyName, broker: broker?.name ?? '', hasBroker: broker ? 'yes' : 'no' }, '/customers', tx);
       return { ok: true };
     });
   }
@@ -478,8 +478,8 @@ export class CustomersService {
       await tx.update(customers).set({ brokerId, ownedUntil: ch.ownedUntil.from }).where(eq(customers.id, id));
       await this.audit.log(auth, { category: 'customers', action: `${action}_undone`, recordType: 'customer', recordId: id, recordLabel: c.companyName, changes: { brokerId: { from: c.brokerId, to: brokerId }, ownedUntil: { from: c.ownedUntil, to: ch.ownedUntil.from } } }, tx);
       if (kind === 'change') {
-        await this.notify.toUsers([c.brokerId], { type: 'customer_moved', title: `${c.companyName} is no longer yours`, body: 'The move was undone.', link: '/customers' }, tx);
-        await this.notify.toUsers([brokerId], { type: 'customer_assigned', title: `${c.companyName} is yours again`, body: 'The move was undone.', link: `/customers/${id}` }, tx);
+        await this.notify.send('customer_moved_undone', { users: [c.brokerId] }, { customer: c.companyName }, '/customers', tx);
+        await this.notify.send('customer_assigned_undone', { users: [brokerId] }, { customer: c.companyName }, `/customers/${id}`, tx);
       }
       return { ok: true };
     });
@@ -516,11 +516,11 @@ export class CustomersService {
       .where(and(eq(customers.status, 'active'), isNotNull(customers.brokerId), gte(customers.ownedUntil, isoDate(today)), lte(customers.ownedUntil, limit), sql`${customers.ownershipWarnedAt} is null`));
     for (const { c, email, lastOrderAt } of rows) {
       const days = Math.max(0, Math.round((new Date(c.ownedUntil!).getTime() - new Date(isoDate(today)).getTime()) / 86_400_000));
-      const until = formatDate(c.ownedUntil, 'en');
-      const title = `${days} days left with ${c.companyName}`;
-      const body = `${lastOrderAt ? `No order since ${formatDate(lastOrderAt, 'en')}. ` : ''}If ${c.companyName} doesn't order by ${until}, it becomes free for any broker to claim.`;
+      const lastOrderOn = lastOrderAt ? String(lastOrderAt).slice(0, 10) : '';
+      const data = { customer: c.companyName, days, until: c.ownedUntil!, lastOrderOn, hasLastOrder: lastOrderOn ? 'yes' : 'no' };
+      const { title, body } = notifyText('ownership_expiring', data);
       await this.db.update(customers).set({ ownershipWarnedAt: new Date() }).where(eq(customers.id, c.id));
-      await this.notify.toUsers([c.brokerId], { type: 'ownership_expiring', title, body, link: `/customers/${c.id}` });
+      await this.notify.send('ownership_expiring', { users: [c.brokerId] }, data, `/customers/${c.id}`);
       await this.mail.send({ kind: 'ownership_expiring', to: [email], subject: title, body, recordType: 'customer', recordId: c.id });
     }
     return rows.length;

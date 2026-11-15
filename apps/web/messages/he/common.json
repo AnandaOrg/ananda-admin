@@ -16,6 +16,7 @@
   "retry": "לנסות שוב",
   "close": "סגירה",
   "undo": "ביטול פעולה",
+  "reorder": "להזמנה",
   "save": "שמירה",
   "saveDraft": "שמירת טיוטה",
   "cancel": "ביטול",
@@ -306,39 +307,64 @@
   "notify": {
     "customer_approval": {
       "title": "{broker} רוצה להוסיף את {customer}",
-      "body": "לקוח חדש"
+      "body": "{vatValid, select, yes {לקוח חדש · מספר המע״מ תקין} other {לקוח חדש}}"
     },
-    "special_price": {
-      "title": "{broker} מבקש/ת מחיר מיוחד",
-      "body": "{order} · {customer}"
+    "special_price_request": {
+      "title": "מחיר מיוחד עבור {order}",
+      "body": "{reason}"
     },
-    "correction": {
-      "title": "{broker} מבקש/ת תיקון",
-      "body": "{order} · {customer}"
+    "correction_request": {
+      "title": "תיקון עבור {order}",
+      "body": "{reason}"
     },
     "broker_upload": {
-      "title": "{broker} העלה/תה מסמך",
-      "body": "{doc} · {order} · {customer}"
+      "title": "{broker} העלה/תה {docPhrase}",
+      "body": "{order} · {customer}"
     },
     "broker_signed": {
       "title": "{broker} חתם/ה על הסכם הברוקר",
       "body": "פרטי החברה והבנק הוזנו. יש לחתום גם כדי להשלים את ההגדרה."
     },
     "delivered": {
-      "title": "{order} נמסרה",
-      "body": "המחסן העלה את תעודת המשלוח החתומה."
+      "title": "{order} נמסרה"
+    },
+    "delivered_back": {
+      "title": "{order} נמסרה חלקית · {returned, plural, one {קרטון # חזר} other {# קרטונים חזרו}}"
+    },
+    "part_delivered": {
+      "title": "{order} נמסרה חלקית · {stays, plural, one {נותר קרטון # למשלוח} other {נותרו # קרטונים למשלוח}}"
     },
     "purchase_late": {
       "title": "{purchase} באיחור של {days, plural, one {יום אחד} other {{days} ימים}}",
-      "body": "{supplier}"
+      "body": "{waiting, plural, =0 {{supplier}} one {{supplier} · הזמנה # ממתינה למלאי הזה} other {{supplier} · # הזמנות ממתינות למלאי הזה}}"
+    },
+    "stock_arrived": {
+      "title": "{purchase} התקבלה · {count, plural, one {אפשר להקצות הזמנה #} other {אפשר להקצות # הזמנות}}",
+      "body": "{orders}"
+    },
+    "stock_count": {
+      "title": "ספירת מלאי מאת {name}",
+      "body": "{total, plural, one {נספר קרטון מלא #} other {נספרו # קרטונים מלאים}}"
+    },
+    "iban_changed": {
+      "title": "{admin} שינה/תה את ה-IBAN בחשבוניות הפרופורמה",
+      "body": "{hasIban, select, yes {IBAN חדש …{last4}} other {ה-IBAN הוסר}}"
     },
     "payment_confirmed": {
       "title": "התשלום עבור {order} אושר",
       "body": "{customer} · {amount}"
     },
+    "payment": {
+      "title": "{order} שולמה",
+      "body": "{next, select, waiting {ממתינה למלאי} ready {מוכנה למשלוח} other {שולמה במלואה}}"
+    },
     "payment_late": {
       "title": "{customer} באיחור של {days, plural, one {יום אחד} other {{days} ימים}}",
       "body": "{amount} חוב על {order}"
+    },
+    "part_delivery_unpaid": {
+      "title": "{order} נמסרה חלקית ולא שולמה",
+      "body": "{customer} · חוב {amount} · נמסרו {delivered} מתוך {total, plural, one {קרטון #} other {# קרטונים}}"
     },
     "upload_opened": {
       "title": "המנהל פתח את הקובץ שהעלית",
@@ -347,6 +373,10 @@
     "commission_paid": {
       "title": "עמלה שולמה: {amount}",
       "body": "{order} · {customer}. בדרך לחשבון הבנק שלך."
+    },
+    "commission_paid_undone": {
+      "title": "העמלה סומנה כשולמה בטעות",
+      "body": "היא עדיין לא שולמה. היא תסומן כשולמה כשתצא מהבנק."
     },
     "sent_for_approval": {
       "title": "{customer} נשלח לאישור",
@@ -363,6 +393,111 @@
     "event": {
       "title": "הוזמנת אל {event}",
       "body": "{startsOn} – {endsOn}, {place}"
+    },
+    "customer_assigned": {
+      "title": "{customer} שלך עכשיו",
+      "body": "נוסף על ידי מנהל. אפשר להתחיל מכירה."
+    },
+    "customer_assigned_until": {
+      "title": "{customer} שלך עכשיו",
+      "body": "שלך עד {until}, ולזמן ארוך יותר עם כל הזמנה."
+    },
+    "customer_moved": {
+      "title": "{customer} עבר אל {hasBroker, select, yes {{broker}} other {ללא ברוקר}}",
+      "body": "הזמנות פתוחות נשארות אצלך."
+    },
+    "customer_moved_undone": {
+      "title": "{customer} כבר לא שלך",
+      "body": "ההעברה בוטלה."
+    },
+    "customer_assigned_undone": {
+      "title": "{customer} שוב שלך",
+      "body": "ההעברה בוטלה."
+    },
+    "ownership_expiring": {
+      "title": "{days, plural, one {נותר יום # עם {customer}} other {נותרו # ימים עם {customer}}}",
+      "body": "{hasLastOrder, select, yes {אין הזמנה מאז {lastOrderOn}. } other {}}אם {customer} לא יזמין עד {until}, הוא יתפנה לכל ברוקר."
+    },
+    "broker_changed": {
+      "title": "{order} של {customer} עברה אל {hasBroker, select, yes {{broker}} other {ברוקר אחר}}",
+      "body": "העמלה על ההזמנה הזאת עוברת אליו."
+    },
+    "order_corrected": {
+      "title": "{order} תוקנה",
+      "body": "{reason}"
+    },
+    "cancelled": {
+      "title": "{order} בוטלה",
+      "body": "{reason}"
+    },
+    "cancelled_warehouse": {
+      "title": "{order} בוטלה",
+      "body": "אין מה לשלוח בהזמנה הזאת."
+    },
+    "cancel_undone": {
+      "title": "{order} פתוחה שוב",
+      "body": "הביטול בוטל."
+    },
+    "allocated": {
+      "title": "ל-{order} יש מלאי",
+      "body": "שולמה · מוכנה למשלוח"
+    },
+    "hold_released": {
+      "title": "שריון המלאי של {order} שוחרר",
+      "body": "התשלום לא הגיע בזמן. ההזמנה נשארת פתוחה."
+    },
+    "proforma_expired": {
+      "title": "חשבונית הפרופורמה של {order} פגה",
+      "body": "כדאי לפנות ללקוח."
+    },
+    "to_ship": {
+      "title": "{order} למשלוח"
+    },
+    "to_ship_again": {
+      "title": "{order} למסירה חוזרת"
+    },
+    "approved": {
+      "title": "אושר: {label}",
+      "body": "{kind, select, new_customer {אפשר להתחיל מכירה.} special_price {הפרופורמה תשתמש במחיר שאושר.} other {הלקוח קיבל את הפרופורמה המתוקנת.}}"
+    },
+    "declined": {
+      "title": "נדחה: {label}",
+      "body": "{why}{hasMessage, select, yes { · {message}} other {}}"
+    },
+    "waiting_again": {
+      "title": "ממתין שוב: {label}",
+      "body": "המנהל ביטל את ההחלטה. תקבלו תשובה בקרוב."
+    },
+    "docs": {
+      "purchase_order": "הזמנת הרכש של הלקוח",
+      "signed_order": "הזמנה או הסכם חתומים",
+      "payment_proof": "אישור תשלום",
+      "delivery": "תמונת מסירה או תעודה חתומה",
+      "other": "משהו אחר"
+    },
+    "docsA": {
+      "purchase_order": "הזמנת רכש",
+      "signed_order": "הזמנה חתומה",
+      "payment_proof": "אישור תשלום",
+      "delivery": "תמונת מסירה",
+      "other": "מסמך"
+    },
+    "why": {
+      "new_customer": {
+        "already_customer": "כבר לקוח",
+        "wrong_details": "מע״מ או פרטים שגויים",
+        "not_a_fit": "לא מתאים ל-ANANDA"
+      },
+      "special_price": {
+        "discount_too_big": "ההנחה גבוהה מדי",
+        "smaller_discount": "הצעת הנחה קטנה יותר",
+        "not_for_customer": "לא ללקוח הזה"
+      },
+      "correction": {
+        "stock_picked": "המלאי כבר לוקט",
+        "customer_confirm": "הלקוח צריך לאשר קודם",
+        "wrong_quantities": "כמויות שגויות"
+      }
     }
   },
   "systemRole": {
@@ -374,7 +509,7 @@
   },
   "upload": {
     "drop": "גררו לכאן PDF או תמונה, או <b>בחרו קובץ</b>",
-    "hint": "\u2066PDF, JPG, PNG\u2069 או \u2066HEIC\u2069, עד \u2066{max}\u2069",
+    "hint": "⁦PDF, JPG, PNG⁩ או ⁦HEIC⁩, עד ⁦{max}⁩",
     "takePhoto": "צילום",
     "chooseFile": "בחירת קובץ",
     "remove": "הסרה",

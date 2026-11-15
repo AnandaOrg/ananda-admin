@@ -118,6 +118,10 @@
     "termsDays": "{n, plural, =0 {Pay before delivery} one {# day} other {# days}}"
   },
   "order": {
+    "deliveredOf": "Delivered <n>{done}</n> of <n>{total}</n> cartons",
+    "deliveredOfLine": "<n>{done}</n> of <n>{total}</n>",
+    "stillToShip": "{n, plural, =0 {All delivered} other {# to ship}}",
+    "partDelivered": "Part delivered",
     "kicker": "{number} · created {date} · broker",
     "kickerPhone": "{number} · {date} · broker {broker}",
     "kickerHouse": "{number} · created {date} · house sale",

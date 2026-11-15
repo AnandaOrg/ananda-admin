@@ -58,6 +58,15 @@ export interface OrderListQuery {
   flavour?: string;
 }
 
+/**
+ * How much of an order has gone out. `part` = some cartons were delivered, the rest has not been
+ * (still at the warehouse, or came back). Not a status: the order status is unchanged.
+ */
+export function deliveryProgress(status: OrderStatus, totalCartons: number, lines: { deliveredCartons: number | null }[]) {
+  const deliveredCartons = lines.reduce((s, l) => s + (l.deliveredCartons ?? 0), 0);
+  return { deliveredCartons, totalCartons, part: (status === 'at_warehouse' || status === 'delivered_part') && deliveredCartons > 0 && deliveredCartons < totalCartons };
+}
+
 const NEEDS_ACTION: OrderStatus[] = ['payment_to_confirm', 'waiting_for_stock', 'ready_to_send', 'delivered', 'delivered_part'];
 const CLOSED: OrderStatus[] = ['invoiced', 'cancelled'];
 
@@ -235,6 +244,7 @@ export class OrdersService {
     return {
       order: { ...order, outstandingCents, daysLate: lateDays(order.paymentDueOn, outstandingCents, order.status, today) },
       lines: lines.map((l) => ({ ...l, remainingCartons: l.cartons - (l.deliveredCartons ?? 0) })),
+      delivery: deliveryProgress(order.status, order.totalCartons, lines),
       tier: tierFor(order.totalCartons),
       customer: customer && {
         id: customer.id,
@@ -384,7 +394,7 @@ export class OrdersService {
   private async tellOwnerIfChanged(customer: { brokerId: string | null; companyName: string } | null, brokerId: string, number: string, id: string) {
     if (!customer?.brokerId || customer.brokerId === brokerId) return;
     const [u] = await this.db.select({ name: users.name }).from(users).where(eq(users.id, brokerId));
-    await this.notify.toUsers([customer.brokerId], { type: 'broker_changed', title: `${number} for ${customer.companyName} went to ${u?.name ?? 'another broker'}`, body: 'The commission on this order goes to them.', link: `/sales/${id}` });
+    await this.notify.send('broker_changed', { users: [customer.brokerId] }, { order: number, customer: customer.companyName, broker: u?.name ?? '', hasBroker: u ? 'yes' : 'no' }, `/sales/${id}`);
   }
 
   async updateDraft(auth: AuthContext, id: string, input: { customerId?: string | null; cartons: CartonsByFlavour; note?: string; brokerId?: string }) {
@@ -515,7 +525,7 @@ export class OrdersService {
         .values({ type: 'special_price', orderId: id, customerId: order.customerId, requestedById: auth.user.id, reason, payload: { unitPriceCents, tierUnitPriceCents: tier.unitPriceCents, units: order.totalUnits } })
         .returning();
       await this.audit.log(auth, { category: 'orders', action: 'special_price_requested', recordType: 'order', recordId: id, recordLabel: order.number, money: true, changes: { unitPriceCents: { from: tier.unitPriceCents, to: unitPriceCents } } }, tx);
-      await this.notify.toRoles(['system_admin', 'admin'], { type: 'approval', title: `Special price for ${order.number}`, body: reason, link: `/home?review=${req.id}` }, tx);
+      await this.notify.send('special_price_request', { roles: ['system_admin', 'admin'] }, { order: order.number, reason }, `/home?review=${req.id}`, tx);
       return { id: req.id };
     });
   }
@@ -586,7 +596,7 @@ export class OrdersService {
         tx,
       );
       if (full) {
-        await this.notify.toUsers([order.brokerId], { type: 'payment', title: `${order.number} is paid`, body: status === 'waiting_for_stock' ? 'Waiting for stock' : status === 'ready_to_send' ? 'Ready to send' : 'Paid in full', link: `/sales/${id}` }, tx);
+        await this.notify.send('payment', { users: [order.brokerId] }, { order: order.number, next: status === 'waiting_for_stock' ? 'waiting' : status === 'ready_to_send' ? 'ready' : 'paid' }, `/sales/${id}`, tx);
       }
       return { status, full };
     });
@@ -607,7 +617,7 @@ export class OrdersService {
       for (const l of lines) await this.stock.move(tx, { flavour: l.flavour, units: -l.units, kind: 'dispatch', orderId: id, byId: auth.user.id });
       await tx.update(orders).set({ status: 'at_warehouse', sentToWarehouseAt: new Date() }).where(eq(orders.id, id));
       await this.audit.log(auth, { category: 'orders', action: 'sent_to_warehouse', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: 'at_warehouse' } } }, tx);
-      await this.notify.toRoles(['warehouse'], { type: 'to_ship', title: `${order.number} to ship`, link: `/warehouse` }, tx);
+      await this.notify.send('to_ship', { roles: ['warehouse'] }, { order: order.number }, '/warehouse', tx);
       return { order, lines };
     });
     await this.emailWarehouse(result.order, result.lines.map((l) => ({ flavour: l.flavour, cartons: l.cartons })));
@@ -661,9 +671,8 @@ export class OrdersService {
       await tx.insert(documents).values({ type: 'delivery_note', orderId: id, customerId: order.customerId, filePath: saved.path, fileName: saved.name, mimeType: saved.mime, label: 'Signed delivery note', data: part ? { reason: part.reason, note: part.note, returnedCartons: returned } : {}, createdById: auth.user.id });
       await tx.update(orders).set({ status, deliveredAt: new Date(), partDeliveryOutcome: null }).where(eq(orders.id, id));
       await this.audit.log(auth, { category: 'orders', action: status === 'delivered' ? 'delivered' : 'delivered_in_part', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: status } }, meta: part ? { reason: part.reason, returnedCartons: returned } : undefined }, tx);
-      const title = status === 'delivered' ? `${order.number} delivered` : `${order.number} delivered in part · ${returned} cartons back`;
-      await this.notify.toRoles(['system_admin', 'admin'], { type: 'delivered', title, link: `/sales/${id}` }, tx);
-      await this.notify.toUsers([order.brokerId], { type: 'delivered', title, link: `/sales/${id}` }, tx);
+      const kind = status === 'delivered' ? 'delivered' : 'delivered_back';
+      await this.notify.send(kind, { roles: ['system_admin', 'admin'], users: [order.brokerId] }, { order: order.number, ...(returned > 0 ? { returned } : {}) }, `/sales/${id}`, tx);
       return { status, returnedCartons: returned };
     });
   }
@@ -678,7 +687,7 @@ export class OrdersService {
           if (remaining > 0) await this.stock.move(tx, { flavour: l.flavour, units: -remaining * UNITS_PER_CARTON, kind: 'dispatch', reason: 'redelivery', orderId: id, byId: auth.user.id });
         }
         await tx.update(orders).set({ status: 'at_warehouse', partDeliveryOutcome: 'redeliver' }).where(eq(orders.id, id));
-        await this.notify.toRoles(['warehouse'], { type: 'to_ship', title: `${order.number} to deliver again`, link: '/warehouse' }, tx);
+        await this.notify.send('to_ship_again', { roles: ['warehouse'] }, { order: order.number }, '/warehouse', tx);
       } else {
         await tx.update(orders).set({ partDeliveryOutcome: 'credit_note' }).where(eq(orders.id, id));
       }
@@ -869,7 +878,7 @@ export class OrdersService {
         await tx.update(approvalRequests).set({ status: 'withdrawn' }).where(and(eq(approvalRequests.orderId, id), eq(approvalRequests.status, 'pending')));
         const applied = await this.applyCorrection(tx, auth, id, cartons);
         await this.audit.log(auth, { category: 'orders', action: 'correction_sent', recordType: 'order', recordId: id, recordLabel: order.number, meta: { reason, proforma: applied.number } }, tx);
-        if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'correction', title: `${order.number} was corrected`, body: reason, link: `/sales/${id}` }, tx);
+        if (order.brokerId !== auth.user.id) await this.notify.send('order_corrected', { users: [order.brokerId] }, { order: order.number, reason }, `/sales/${id}`, tx);
         return applied;
       });
       await this.sendCorrectedProforma(r.order, { ...r.data, note: reason }, r.number);
@@ -886,7 +895,7 @@ export class OrdersService {
       const payload = { from: cartonsOf(lines), to: cartons, fromTotalCents: order.totalCents, toTotalCents: calc.totalCents, fromCommissionCents: order.commissionCents, toCommissionCents: calc.commissionCents };
       const [req] = await tx.insert(approvalRequests).values({ type: 'correction', orderId: id, customerId: order.customerId, requestedById: auth.user.id, reason, payload }).returning();
       await this.audit.log(auth, { category: 'orders', action: 'correction_requested', recordType: 'order', recordId: id, recordLabel: order.number, meta: payload }, tx);
-      await this.notify.toRoles(['system_admin', 'admin'], { type: 'approval', title: `Correction for ${order.number}`, body: reason, link: `/home?review=${req.id}` }, tx);
+      await this.notify.send('correction_request', { roles: ['system_admin', 'admin'] }, { order: order.number, reason }, `/home?review=${req.id}`, tx);
       return { id: req.id };
     });
   }
@@ -995,8 +1004,8 @@ export class OrdersService {
       await tx.update(commissionEntries).set({ status: 'void' }).where(and(eq(commissionEntries.orderId, id), inArray(commissionEntries.status, ['coming', 'ready'])));
       await tx.update(approvalRequests).set({ status: 'withdrawn' }).where(and(eq(approvalRequests.orderId, id), eq(approvalRequests.status, 'pending')));
       await this.audit.log(auth, { category: 'orders', action: 'cancelled', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: order.status, to: 'cancelled' } }, meta: { reason, note, paidCents: order.paidCents } }, tx);
-      if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'cancelled', title: `${order.number} was cancelled`, body: reason, link: `/sales/${id}` }, tx);
-      await this.notify.toRoles(['warehouse'], { type: 'cancelled', title: `${order.number} was cancelled`, body: 'Nothing to ship for this order.', link: '/warehouse' }, tx);
+      if (order.brokerId !== auth.user.id) await this.notify.send('cancelled', { users: [order.brokerId] }, { order: order.number, reason }, `/sales/${id}`, tx);
+      await this.notify.send('cancelled_warehouse', { roles: ['warehouse'] }, { order: order.number }, '/warehouse', tx);
       return { order };
     });
   }
@@ -1017,7 +1026,7 @@ export class OrdersService {
         .where(eq(orders.id, id));
       await tx.update(commissionEntries).set({ status: full ? 'ready' : 'coming' }).where(and(eq(commissionEntries.orderId, id), eq(commissionEntries.status, 'void')));
       await this.audit.log(auth, { category: 'orders', action: 'cancel_undone', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: 'cancelled', to: status } } }, tx);
-      if (order.brokerId !== auth.user.id) await this.notify.toUsers([order.brokerId], { type: 'cancel_undone', title: `${order.number} is open again`, body: 'The cancel was undone.', link: `/sales/${id}` }, tx);
+      if (order.brokerId !== auth.user.id) await this.notify.send('cancel_undone', { users: [order.brokerId] }, { order: order.number }, `/sales/${id}`, tx);
       return { ok: true, status };
     });
   }
@@ -1044,7 +1053,7 @@ export class OrdersService {
       await this.audit.log(auth, { category: 'documents', action: 'document_uploaded', recordType: 'order', recordId: id, recordLabel: order.number, meta: { documentId: doc.id, kind, description, fileName: saved.name } }, tx);
       // Every upload is told to the Admins. A proof of payment never confirms the payment: the bank does.
       const admins = (await this.notify.userIdsWithRoles(['system_admin', 'admin'], tx)).filter((u) => u !== auth.user.id);
-      await this.notify.send('broker_upload', { users: admins }, { broker: auth.user.name, doc: kind === 'other' && description ? description : UPLOAD_DOC[kind], order: order.number, customer: c?.name ?? '' }, `/sales/${id}`, tx);
+      await this.notify.send('broker_upload', { users: admins }, { broker: auth.user.name, doc: kind === 'other' && description ? description : UPLOAD_DOC[kind], docKind: kind === 'other' && description ? 'custom' : kind, order: order.number, customer: c?.name ?? '' }, `/sales/${id}`, tx);
       return { id: doc.id };
     });
   }
@@ -1073,7 +1082,7 @@ export class OrdersService {
         if (!(await this.canReserve(tx, lines, id))) throw new ConflictException({ message: `Not enough stock for ${order.number}. Untick it and try again.` });
         await tx.update(orders).set({ status: 'ready_to_send', allocated: true }).where(eq(orders.id, id));
         await this.audit.log(auth, { category: 'stock', action: 'allocated', recordType: 'order', recordId: id, recordLabel: order.number, changes: { status: { from: 'waiting_for_stock', to: 'ready_to_send' } } }, tx);
-        await this.notify.toUsers([order.brokerId], { type: 'allocated', title: `${order.number} has stock`, body: 'Paid · ready to send', link: `/sales/${id}` }, tx);
+        await this.notify.send('allocated', { users: [order.brokerId] }, { order: order.number }, `/sales/${id}`, tx);
         done.push(order.number);
       }
       return { allocated: done };
@@ -1093,7 +1102,7 @@ export class OrdersService {
       await this.db.transaction(async (tx) => {
         await tx.update(orders).set({ allocated: false, reservedUntil: null, holdReleasedAt: now }).where(eq(orders.id, o.id));
         await this.audit.log(null, { category: 'stock', action: 'stock_hold_released', recordType: 'order', recordId: o.id, recordLabel: o.number }, tx);
-        await this.notify.toUsers([o.brokerId], { type: 'hold_released', title: `Stock hold on ${o.number} released`, body: 'The payment did not arrive in time. The order stays open.', link: `/sales/${o.id}` }, tx);
+        await this.notify.send('hold_released', { users: [o.brokerId] }, { order: o.number }, `/sales/${o.id}`, tx);
       });
     }
     return expired.length;
@@ -1108,7 +1117,7 @@ export class OrdersService {
       .where(and(eq(orders.status, 'payment_to_confirm'), isNotNull(orders.paymentDueOn), lt(orders.proformaExpiresAt, now), sql`${orders.proformaReminderAt} is null`));
     for (const o of due) {
       await this.db.update(orders).set({ proformaReminderAt: now }).where(eq(orders.id, o.id));
-      await this.notify.toUsers([o.brokerId], { type: 'proforma_expired', title: `Proforma for ${o.number} expired`, body: 'Follow up with the customer.', link: `/sales/${o.id}` });
+      await this.notify.send('proforma_expired', { users: [o.brokerId] }, { order: o.number }, `/sales/${o.id}`);
     }
     return due.length;
   }
