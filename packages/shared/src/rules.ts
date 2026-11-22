@@ -54,8 +54,14 @@ export interface EmailSettings {
   copyBroker: boolean;
 }
 
+/** Languages a customer document (proforma, invoice, credit note, receipt) can be issued in. */
+export const PROFORMA_LANGUAGES = ['en', 'bg', 'he'] as const;
+export type ProformaLanguage = (typeof PROFORMA_LANGUAGES)[number];
+/** A new customer's document language: Bulgarian in Bulgaria, Hebrew in Israel, English elsewhere. */
+export const defaultProformaLanguage = (country: string | null | undefined): ProformaLanguage => (country === 'BG' ? 'bg' : country === 'IL' ? 'he' : 'en');
+
 export interface DocumentSettings {
-  languages: Array<'en' | 'bg'>;
+  languages: ProformaLanguage[];
   proformaValidityDays: number;
   logoUrl: string | null;
   /** Uploaded logo printed top left on proformas, invoices and credit notes (Settings › Documents). */
@@ -70,7 +76,6 @@ export interface SecuritySettings {
   desktopSessionHours: number;
   phoneSessionDays: number;
   inviteValidityDays: number;
-  passwordMinLength: number;
 }
 
-export const DEFAULT_SECURITY: SecuritySettings = { desktopSessionHours: 8, phoneSessionDays: 30, inviteValidityDays: 7, passwordMinLength: 10 };
+export const DEFAULT_SECURITY: SecuritySettings = { desktopSessionHours: 8, phoneSessionDays: 30, inviteValidityDays: 7 };

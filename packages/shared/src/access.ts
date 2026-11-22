@@ -78,14 +78,14 @@ export const ROLE_DEFAULTS: Record<SystemRole, RoleDefinition> = {
   broker: {
     key: 'broker',
     scope: 'own',
-    twoStepRequired: false,
+    twoStepRequired: true,
     areas: matrix([V, E, E, V, H, H, H, V, V, H, H, H, H, H, H]),
     sensitive: ['see_prices'],
   },
   warehouse: {
     key: 'warehouse',
     scope: 'shipping',
-    twoStepRequired: false,
+    twoStepRequired: true,
     areas: matrix([V, H, H, H, H, H, E, H, H, H, H, H, H, H, H]),
     sensitive: [],
   },

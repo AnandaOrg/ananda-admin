@@ -1,0 +1,20 @@
+#1: prototype alignment, broker rename, design system (274 files changed in total across the three PRs)
+  - Prototype alignment: the admin app now matches the 10 Nov prototype page by page.
+    - Includes the broker profiles, event sales, customer payment terms and postcode, and supplier on documents.
+    - Migration 0003 covers the schema changes.
+  - Broker rename: agent became broker everywhere: UI in EN, BG and HE, code, routes, API, files and database (migration 0004).
+  - Design system: the whole web app follows it, in dark and light mode, EN, BG and HE (with right-to-left), and at all widths.
+    - Covers the generated colour tokens, table rules with the column picker, the shared upload, date and states components, and the RTL fixes.
+  - Local sign-in: the two-step code is 000000 locally and never in production.
+
+#2: Undo toasts
+  - Undo works for broker Mark as paid, expense Mark as paid, customer claimed, customer moved and logo removed.
+  - It lasts 30 minutes, only while the state hasn't changed, and is written to the audit log.
+  - Send to pay and delete draft have no undo.
+
+  #3: delivery progress, alert and translations
+  - Order page: "Delivered X of Y cartons" per flavour, plus a "Part delivered" pill, shown while an order is part delivered.
+  - New late alert: an order delivered in part with an unpaid balance alerts the broker, at most once a week. Orders closed with a credit note are skipped.
+  - Notifications: all 43 notification types are translated into EN, BG and HE. Old-format rows are normalised in the tray, and free-text fields are capped at 500 characters.
+  - Review fixes: the low-stock outline overlap, the date formatting and the typed notification data.
+  - Reorder badge: a fix for a raw common.reorder key that was showing on production.

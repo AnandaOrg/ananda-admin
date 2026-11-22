@@ -252,6 +252,13 @@ html[data-theme="light"] select option { background: var(--surface-1); color: va
   .app .page-head .an-phead .kick { font-size: 13px; }
   .app-main.is-root .page-head .an-phead .kick { display: none; }
   .app .page-head:not(:has(.kick)):not(:has(.pa)), .app-main.is-root .page-head:not(:has(.pa)) { display: none; }
+  /* Tab pages (Overview, Orders, Customers, Collections, More, Warehouse): logo bar, then title and day, then actions. */
+  .topbar .ptop .pbrand { padding: 0; flex: 1; min-width: 0; gap: var(--space-2); color: var(--text); text-decoration: none; }
+  .topbar .ptop .pbrand b { font: 500 14px/20px var(--font-sans); letter-spacing: .25em; }
+  .app .app-main.tab-root .page-head, .app .app-main.tab-root.is-root .page-head:not(:has(.pa)) { display: grid; }
+  .app .app-main.tab-root .page-head .an-phead h1 { display: block; margin: 0; font: 300 28px/34px var(--font-sans); }
+  .app .app-main.tab-root .page-head .an-phead .kick { display: none; }
+  .app .app-main.tab-root .page-head .an-phead .pday { display: block; }
   .app-tabbar { display: block; position: fixed; inset-inline: 0; bottom: 0; z-index: 30; }
   .app-tabbar .an-tabbar { padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom) / 2); }
 }
@@ -259,6 +266,7 @@ html[data-theme="light"] select option { background: var(--surface-1); color: va
 /* ---------- Page structure ---------- */
 .page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--section-gap); align-content: start; }
 .page > .an-phead { margin-bottom: var(--space-2); }
+.an-phead .pday { display: none; font: 400 13px/18px var(--font-sans); color: var(--text-muted); margin-top: var(--space-1); }
 .an-phead { row-gap: var(--space-3); }
 .an-phead .pa { flex-wrap: wrap; justify-content: flex-end; }
 @media (max-width: 767px) {

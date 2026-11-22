@@ -22,7 +22,7 @@ pnpm db:reset       # empty DB, migrate, seed demo data
 pnpm dev            # shared (watch) + api (watch) + web
 ```
 
-Demo users (password `ananda-demo-2026`; two-step code `000000` in development):
+Demo users (sign in with an e-mailed link: locally the page also offers "Open the link", and every e-mail lands in Mailpit; two-step code `000000` in development):
 royi@ (System admin), maya@ (Admin), finance@, warehouse@, ivan@ / petya@ / dimitar@ (brokers) — all `@ananda.bg`.
 
 ## API conventions

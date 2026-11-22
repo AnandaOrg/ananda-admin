@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, type OnModuleInit } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
-import { FLAVOURS, customerPaper, paperPage, type Flavour, type PaperBrand, type PaperDocData } from '@ananda/shared';
+import { FLAVOURS, PROFORMA_LANGUAGES, customerPaper, paperPage, type Flavour, type PaperBrand, type PaperDocData, type ProformaLanguage } from '@ananda/shared';
 import { InjectDb, type Db, type DbOrTx } from '../db/db.module';
 import { customers, documents, orders, users } from '../db/schema';
 import { SettingsService } from '../core/settings.service';
@@ -16,7 +16,7 @@ type DocLine = { flavour: Flavour; cartons: number; units: number; unitPriceCent
 export interface CustomerDocData {
   number: string;
   issuedOn: string;
-  language: 'en' | 'bg';
+  language: ProformaLanguage;
   company: Record<string, string>;
   bank: { bank: string; iban: string; bic: string };
   customer: { companyName: string; vatNumber: string; registeredAddress: string; deliveryAddress: string | null; contactName: string; invoiceEmail: string };
@@ -96,12 +96,12 @@ export class DocumentsService implements OnModuleInit {
 
   /**
    * Document language: Settings › Documents › proforma language. With one language switched on every
-   * customer document is in it; with both, it follows the customer (English or Bulgarian).
+   * customer document is in it; otherwise ("Per customer") it follows the customer: English, Bulgarian or Hebrew.
    */
-  async languageFor(customerLanguage: string, tx?: DbOrTx): Promise<'en' | 'bg'> {
-    const langs = (await this.settings.get('documents', tx)).languages ?? ['en', 'bg'];
+  async languageFor(customerLanguage: string, tx?: DbOrTx): Promise<ProformaLanguage> {
+    const langs = (await this.settings.get('documents', tx)).languages ?? [...PROFORMA_LANGUAGES];
     if (langs.length === 1) return langs[0];
-    return customerLanguage === 'bg' && langs.includes('bg') ? 'bg' : langs.includes('en') ? 'en' : 'bg';
+    return (PROFORMA_LANGUAGES as readonly string[]).includes(customerLanguage) ? (customerLanguage as ProformaLanguage) : 'en';
   }
 
   /** Snapshot of everything a customer document prints. Stored once; issued documents never change. */

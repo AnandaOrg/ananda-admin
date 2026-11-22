@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { useFmt } from '@/lib/format';
+import { formatDay, useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { useMedia } from '@/lib/hooks';
 import { useAsOf } from '@/lib/asof';
@@ -86,12 +86,7 @@ export default function HomePage() {
   const showOk = can('approve') || can('confirm_payment');
   const setup = d.onboarding;
   const doneSteps = setup?.filter((x) => x.done).length ?? 0;
-  const kicker = (() => {
-    const parts = new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : locale === 'bg' ? 'bg-BG' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).formatToParts(new Date(`${d.today}T12:00:00`));
-    const p = (k: string) => parts.find((x) => x.type === k)?.value ?? '';
-    // "Tuesday, 3 November" (en-GB leaves out the comma).
-    return locale === 'en' ? `${p('weekday')}, ${p('day')} ${p('month')}` : parts.map((x) => x.value).join('');
-  })();
+  const kicker = formatDay(d.today, locale);
   const first = (n?: string | null) => (n ?? '').split(' ')[0];
   const flavours = (f?: string[]) => (f ?? []).map((x) => x.toUpperCase()).join(', ');
 
@@ -249,7 +244,20 @@ export default function HomePage() {
       kicker={kicker}
       title={t('title')}
       actions={
-        !phone && !setup ? (
+        setup ? undefined : phone ? (
+          <div className={s.phoneActs}>
+            {canEdit('customers') && (
+              <Button icon={UserPlus} onClick={() => setAdding(true)}>
+                {t('addCustomer')}
+              </Button>
+            )}
+            {canEdit('sales') && (
+              <Button variant="primary" icon={Plus} onClick={() => setSelling(true)}>
+                {tc('newSale')}
+              </Button>
+            )}
+          </div>
+        ) : (
           <>
             {canView('sales') && (
               <Link href="/sales" className="an-btn secondary sm keep">
@@ -268,7 +276,7 @@ export default function HomePage() {
               </Button>
             )}
           </>
-        ) : undefined
+        )
       }
     />
   );
@@ -505,18 +513,6 @@ export default function HomePage() {
   // ---------- phone ----------
   const phoneBody = (
     <>
-      <div className={s.phoneActs}>
-        {canEdit('customers') && (
-          <Button icon={UserPlus} onClick={() => setAdding(true)}>
-            {t('addCustomer')}
-          </Button>
-        )}
-        {canEdit('sales') && (
-          <Button variant="primary" icon={Plus} onClick={() => setSelling(true)}>
-            {tc('newSale')}
-          </Button>
-        )}
-      </div>
       {tiles}
       {setup ? (
         <>

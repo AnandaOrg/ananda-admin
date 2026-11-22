@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, lt, lte, ne, or, sql, type SQL } from 'drizzle-orm';
-import { addDays, addMonths, isoDate } from '@ananda/shared';
+import { addDays, addMonths, defaultProformaLanguage, isoDate, type ProformaLanguage } from '@ananda/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { approvalRequests, auditLog, customerContacts, customers, documents, orders, payments, users } from '../db/schema';
 import { AuditService, UNDO_MINUTES, diff } from '../core/audit.service';
@@ -35,7 +35,7 @@ export interface CustomerFormInput {
   contactName: string;
   phone?: string;
   invoiceEmail: string;
-  proformaLanguage?: 'en' | 'bg';
+  proformaLanguage?: ProformaLanguage;
   paymentTerms?: PaymentTerms;
   paymentTermsDays?: number;
   note?: string;
@@ -353,7 +353,7 @@ export class CustomersService {
           contactName: input.contactName.trim(),
           phone: input.phone?.trim() ?? '',
           invoiceEmail: input.invoiceEmail.trim(),
-          proformaLanguage: input.proformaLanguage ?? (input.country === 'BG' ? 'bg' : 'en'),
+          proformaLanguage: input.proformaLanguage ?? defaultProformaLanguage(input.country),
           paymentTerms: input.paymentTerms ?? 'before_shipping',
           paymentTermsDays: input.paymentTermsDays ?? 7,
           note: input.note || null,

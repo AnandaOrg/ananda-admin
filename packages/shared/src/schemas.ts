@@ -17,18 +17,15 @@ export const cartonsSchema = z
   .strict();
 export const signedCartonsSchema = z.object(Object.fromEntries(FLAVOURS.map((f) => [f, z.number().int().optional()])) as Record<(typeof FLAVOURS)[number], z.ZodOptional<z.ZodNumber>>);
 
-export const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(1),
-  device: z.enum(['desktop', 'phone']).default('desktop'),
+const device = z.enum(['desktop', 'phone']).default('desktop');
+/** Sign-in (client decision, 22 Nov 2026): an e-mailed link or Google, then the two-step code. No passwords. */
+export const signInLinkSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter your e-mail address'),
+  next: z.string().max(500).optional(),
 });
+export const verifyLinkSchema = z.object({ token: z.string().min(20).max(200), device });
 export const twoStepSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code') });
-export const acceptInviteSchema = z.object({ token: z.string().min(10), password: z.string().min(8).max(200) });
-export const changePasswordSchema = z.object({
-  current: z.string().min(1),
-  next: z.string().min(8).max(200),
-  signOutOthers: z.boolean().default(false),
-});
+export const acceptInviteSchema = z.object({ token: z.string().min(10).max(200), device });
 export const profileSchema = z.object({ language: z.enum(['en', 'bg', 'he']).optional(), theme: z.enum(['dark', 'light', 'system']).optional(), name: required().optional() });
 
 export const orderDraftSchema = z.object({
@@ -64,7 +61,7 @@ export const customerSchema = z.object({
   contactName: required(),
   phone: required(40),
   invoiceEmail: z.string().trim().email(),
-  proformaLanguage: z.enum(['en', 'bg']).default('bg'),
+  proformaLanguage: z.enum(['en', 'bg', 'he']).default('bg'),
   paymentTermsDays: z.number().int().min(0).max(120).default(7),
   note: text().optional(),
   submit: z.boolean().default(true),
@@ -163,7 +160,6 @@ export const roleSchema = z.object({
 export const updateMemberSchema = z.object({ roleId: id.optional(), status: z.enum(['active', 'deactivated']).optional() });
 export const settingSchema = z.object({ value: z.unknown() });
 
-export type LoginInput = z.infer<typeof loginSchema>;
 export type OrderDraftInput = z.infer<typeof orderDraftSchema>;
 export type ConfirmPaymentInput = z.infer<typeof confirmPaymentSchema>;
 export type CustomerInput = z.infer<typeof customerSchema>;

@@ -80,6 +80,8 @@ export const users = pgTable('users', {
   status: userStatusEnum('status').notNull().default('invited'),
   totpSecret: text('totp_secret'),
   totpEnabled: boolean('totp_enabled').notNull().default(false),
+  /** Google account id ("sub"), stored at the first Google sign-in; later Google sign-ins must match it. */
+  googleSub: text('google_sub').unique(),
   inviteTokenHash: text('invite_token_hash'),
   inviteExpiresAt: ts('invite_expires_at'),
   invitedById: uuid('invited_by_id'),
@@ -106,6 +108,21 @@ export const sessions = pgTable(
   (t) => [index('sessions_user_idx').on(t.userId)],
 );
 
+/** E-mailed sign-in links: single use, 15 minutes. Only the hash of the token is stored. */
+export const signInLinks = pgTable(
+  'sign_in_links',
+  {
+    id: pk(),
+    userId: uuid('user_id').notNull().references(() => users.id),
+    tokenHash: text('token_hash').notNull().unique(),
+    ip: text('ip'),
+    createdAt: createdAt(),
+    expiresAt: ts('expires_at').notNull(),
+    usedAt: ts('used_at'),
+  },
+  (t) => [index('sign_in_links_user_idx').on(t.userId, t.createdAt)],
+);
+
 // ---------- Customers and sales ----------
 
 export const customers = pgTable(
@@ -123,7 +140,7 @@ export const customers = pgTable(
     contactName: text('contact_name').notNull(),
     phone: text('phone').notNull(),
     invoiceEmail: text('invoice_email').notNull(),
-    proformaLanguage: text('proforma_language').$type<'en' | 'bg'>().notNull().default('bg'),
+    proformaLanguage: text('proforma_language').$type<'en' | 'bg' | 'he'>().notNull().default('bg'),
     paymentTermsDays: integer('payment_terms_days').notNull().default(7),
     /** 'before_shipping' (100% before it ships), 'half_before_shipping' (50% now, 50% before shipping) or 'after_delivery_30' (30 days after delivery). */
     paymentTerms: text('payment_terms').$type<'before_shipping' | 'half_before_shipping' | 'after_delivery_30'>().notNull().default('before_shipping'),

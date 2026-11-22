@@ -18,6 +18,7 @@ import {
   type CartonsByFlavour,
   type Flavour,
   type OrderStatus,
+  type ProformaLanguage,
 } from '@ananda/shared';
 import { InjectDb, type Db, type Tx } from '../db/db.module';
 import {
@@ -492,7 +493,7 @@ export class OrdersService {
       kind: 'payment_request',
       to: [result.customer.invoiceEmail],
       cc: [brokerEmail],
-      subject: result.data.language === 'bg' ? `Проформа ${result.number} · ${result.order.number}` : `Proforma ${result.number} · ${result.order.number}`,
+      subject: subjectFor(result.data.language, 'proforma', result.number, result.order.number),
       body: paymentRequestBody(result.data),
       recordType: 'order',
       recordId: id,
@@ -748,7 +749,7 @@ export class OrdersService {
       kind: 'invoice',
       to: [data.customer.invoiceEmail],
       cc: [await this.emailOf(order.brokerId), email.accounting, ...(await this.notify.emailsWithRoles(['system_admin', 'admin']))],
-      subject: data.language === 'bg' ? `Фактура ${number} · ${order.number}` : `Invoice ${number} · ${order.number}`,
+      subject: subjectFor(data.language, 'invoice', number, order.number),
       body: invoiceBody(data, 'invoice'),
       recordType: 'order',
       recordId: order.id,
@@ -761,7 +762,7 @@ export class OrdersService {
       kind: 'credit_note',
       to: [data.customer.invoiceEmail],
       cc: [await this.emailOf(order.brokerId)],
-      subject: data.language === 'bg' ? `Кредитно известие ${number}` : `Credit note ${number}`,
+      subject: subjectFor(data.language, 'credit_note', number),
       body: invoiceBody(data, 'credit_note'),
       recordType: 'order',
       recordId: order.id,
@@ -959,7 +960,7 @@ export class OrdersService {
       kind: 'corrected_proforma',
       to: [data.customer.invoiceEmail],
       cc: [await this.emailOf(order.brokerId)],
-      subject: data.language === 'bg' ? `Коригирана проформа ${number} · ${order.number}` : `Corrected proforma ${number} · ${order.number}`,
+      subject: subjectFor(data.language, 'corrected_proforma', number, order.number),
       body: paymentRequestBody(data),
       recordType: 'order',
       recordId: order.id,
@@ -972,15 +973,20 @@ export class OrdersService {
     const r = await this.cancelTx(auth, id, reason, note);
     const [c] = r.order.customerId ? await this.db.select().from(customers).where(eq(customers.id, r.order.customerId)) : [];
     if (c) {
-      const bg = c.proformaLanguage === 'bg';
+      const lang = c.proformaLanguage;
+      const n = r.order.number;
+      const extra = note ? ` ${note}` : '';
       await this.mail.send({
         kind: 'order_cancelled',
         to: [c.invoiceEmail],
         cc: [await this.emailOf(r.order.brokerId)],
-        subject: bg ? `Поръчка ${r.order.number} е анулирана` : `Order ${r.order.number} is cancelled`,
-        body: bg
-          ? [`Здравейте, ${c.contactName},`, '', `Поръчка ${r.order.number} е анулирана.${note ? ` ${note}` : ''}`, 'Проформата към нея вече не е валидна.', '', 'ANANDA'].join('\n')
-          : [`Hello ${c.contactName},`, '', `Order ${r.order.number} is cancelled.${note ? ` ${note}` : ''}`, 'Its proforma is no longer valid.', '', 'ANANDA'].join('\n'),
+        subject: lang === 'bg' ? `Поръчка ${n} е анулирана` : lang === 'he' ? `הזמנה ${n} בוטלה` : `Order ${n} is cancelled`,
+        body: (lang === 'bg'
+          ? [`Здравейте, ${c.contactName},`, '', `Поръчка ${n} е анулирана.${extra}`, 'Проформата към нея вече не е валидна.', '', 'ANANDA']
+          : lang === 'he'
+            ? [`שלום ${c.contactName},`, '', `הזמנה ${n} בוטלה.${extra}`, 'חשבון העסקה שלה כבר לא בתוקף.', '', 'ANANDA']
+            : [`Hello ${c.contactName},`, '', `Order ${n} is cancelled.${extra}`, 'Its proforma is no longer valid.', '', 'ANANDA']
+        ).join('\n'),
         recordType: 'order',
         recordId: id,
       });
@@ -1142,11 +1148,34 @@ export function lateDays(dueOn: string | null, outstandingCents: number, status:
   return Math.floor((new Date(today).getTime() - new Date(dueOn).getTime()) / 86_400_000);
 }
 
-function money(cents: number, lang: 'en' | 'bg' = 'en') {
+function money(cents: number, lang: ProformaLanguage = 'en') {
   return formatMoney(cents, lang);
 }
 
+/** Subject of a customer e-mail, in the document's language. */
+function subjectFor(lang: ProformaLanguage, kind: 'proforma' | 'corrected_proforma' | 'invoice' | 'credit_note', number: string, order?: string): string {
+  const what = {
+    en: { proforma: 'Proforma', corrected_proforma: 'Corrected proforma', invoice: 'Invoice', credit_note: 'Credit note' },
+    bg: { proforma: 'Проформа', corrected_proforma: 'Коригирана проформа', invoice: 'Фактура', credit_note: 'Кредитно известие' },
+    he: { proforma: 'חשבון עסקה', corrected_proforma: 'חשבון עסקה מתוקן', invoice: 'חשבונית מסחרית', credit_note: 'הודעת זיכוי' },
+  }[lang][kind];
+  return order ? `${what} ${number} · ${order}` : `${what} ${number}`;
+}
+
 function paymentRequestBody(d: Awaited<ReturnType<DocumentsService['customerDocData']>>) {
+  if (d.language === 'he') {
+    return [
+      `שלום ${d.customer.contactName},`,
+      '',
+      `מצורף חשבון עסקה ${d.number} להזמנה ${d.orderNumber}.`,
+      `סכום כולל מע״מ: ${money(d.totalCents, 'he')}. לתשלום עד ${formatDate(d.dueOn, 'he')}.`,
+      `IBAN ${d.bank.iban} · BIC ${d.bank.bic} · אסמכתא: ${d.number}`,
+      '',
+      'נשלח את הסחורה לאחר קבלת התשלום המלא.',
+      '',
+      d.company.name,
+    ].join('\n');
+  }
   if (d.language === 'bg') {
     return [
       `Здравейте, ${d.customer.contactName},`,
@@ -1175,6 +1204,10 @@ function paymentRequestBody(d: Awaited<ReturnType<DocumentsService['customerDocD
 
 function invoiceBody(d: Awaited<ReturnType<DocumentsService['customerDocData']>>, type: 'invoice' | 'credit_note') {
   const bg = d.language === 'bg';
+  if (d.language === 'he') {
+    const what = type === 'invoice' ? 'חשבונית מסחרית' : 'הודעת זיכוי';
+    return [`שלום ${d.customer.contactName},`, '', `מצורפת ${what} ${d.number} להזמנה ${d.orderNumber}: ${money(d.totalCents, 'he')} כולל מע״מ.`, '', d.company.name].join('\n');
+  }
   const what = type === 'invoice' ? (bg ? 'фактура' : 'invoice') : bg ? 'кредитно известие' : 'credit note';
   return bg
     ? [`Здравейте, ${d.customer.contactName},`, '', `Прилагаме ${what} ${d.number} за поръчка ${d.orderNumber}: ${money(d.totalCents, 'bg')} с ДДС.`, '', d.company.name].join('\n')

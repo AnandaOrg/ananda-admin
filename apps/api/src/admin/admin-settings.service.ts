@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { isoDate, type BusinessRules, type DocumentSettings, type SystemRole } from '@ananda/shared';
+import { PROFORMA_LANGUAGES, isoDate, type BusinessRules, type ProformaLanguage, type DocumentSettings, type SystemRole } from '@ananda/shared';
 import { InjectDb, type Db, type Tx } from '../db/db.module';
 import { auditLog, customers, orders, roles, settings as settingsTable, users } from '../db/schema';
 import { AuditService, UNDO_MINUTES, diff } from '../core/audit.service';
@@ -45,7 +45,7 @@ const prefix = z
 
 export const cardSchemas = {
   docs: z.object({
-    proformaLanguage: z.enum(['per_customer', 'en', 'bg']),
+    proformaLanguage: z.enum(['per_customer', ...PROFORMA_LANGUAGES]),
     proformaValidityDays: ruleSchemas.proformaValidityDays,
     prefixes: z.object({ order: prefix, invoice: prefix, credit_note: prefix }),
     nextInvoice: z.number().int().min(1, 'Enter a number').max(99_999_999),
@@ -67,8 +67,9 @@ export type CardKey = keyof typeof cardSchemas;
 const LOGO_TYPES = new Set(['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp']);
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
-const languagesFor = (v: 'per_customer' | 'en' | 'bg'): Array<'en' | 'bg'> => (v === 'per_customer' ? ['en', 'bg'] : [v]);
-const proformaLanguageOf = (langs: Array<'en' | 'bg'>): 'per_customer' | 'en' | 'bg' => (langs.length === 1 ? langs[0] : 'per_customer');
+/** "Per customer" switches every document language on; each customer's own language then decides. */
+const languagesFor = (v: 'per_customer' | ProformaLanguage): ProformaLanguage[] => (v === 'per_customer' ? [...PROFORMA_LANGUAGES] : [v]);
+const proformaLanguageOf = (langs: ProformaLanguage[]): 'per_customer' | ProformaLanguage => (langs.length === 1 ? langs[0] : 'per_customer');
 const signOutOf = (s: { desktopSessionHours: number; phoneSessionDays: number }): SignOutPreset =>
   (Object.entries(SIGN_OUT_PRESETS).find(([, p]) => p.desktopSessionHours === s.desktopSessionHours && p.phoneSessionDays === s.phoneSessionDays)?.[0] as SignOutPreset | undefined) ?? 'custom';
 
@@ -319,16 +320,9 @@ export class AdminSettingsService {
 
   // ---------- Profile & devices (everyone, for themselves) ----------
 
-  /** When the password was last set, and whether the person's role requires two-step sign-in. */
+  /** How the person signs in (e-mail link, plus Google once linked) and whether their role requires two-step sign-in. */
   async profile(auth: AuthContext) {
-    const [row] = await this.db
-      .select({ at: auditLog.at })
-      .from(auditLog)
-      .where(and(eq(auditLog.recordType, 'user'), eq(auditLog.recordId, auth.user.id), inArray(auditLog.action, ['password_changed', 'invitation_accepted'])))
-      .orderBy(desc(auditLog.at))
-      .limit(1);
-    const [u] = await this.db.select({ createdAt: users.createdAt, required: roles.twoStepRequired }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).where(eq(users.id, auth.user.id));
-    const security = await this.settings.get('security');
-    return { passwordChangedAt: row?.at ?? u?.createdAt ?? null, twoStepRequired: !!u?.required, passwordMinLength: security.passwordMinLength };
+    const [u] = await this.db.select({ googleSub: users.googleSub, required: roles.twoStepRequired }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).where(eq(users.id, auth.user.id));
+    return { googleLinked: !!u?.googleSub, twoStepRequired: !!u?.required };
   }
 }

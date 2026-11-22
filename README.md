@@ -38,14 +38,23 @@ pnpm db:reset     # empty database, run migrations, load demo data
 pnpm dev          # API on http://localhost:4010, web on http://localhost:3010
 ```
 
-Open http://localhost:3010. Every e-mail the app sends (proformas, invoices, reminders,
+Open http://localhost:3010. Every e-mail the app sends (sign-in links, proformas, invoices, reminders,
 invitations) lands in Mailpit at http://localhost:8026.
+
+### Sign-in
+
+There are no passwords. People sign in with a link we e-mail them (single use, 15 minutes, at most 5
+per person in 15 minutes) or with Google, then enter the code from their authenticator app. Two-step
+sign-in is required for every role (Settings › Bank and sign-in can change that per policy). An invited
+person accepts the invitation from its e-mail, which signs them in, then sets up the authenticator.
+Google sign-in matches the Google account's verified e-mail to an existing or invited ANANDA account;
+it never creates accounts.
 
 ### Demo sign-ins
 
-Password for all: `ananda-demo-2026`. Admin, System admin and Finance need a two-step code;
-in development `000000` works (set by `DEV_TWO_STEP_CODE`; never accepted in production).
-The seed also prints a real authenticator secret.
+Enter one of the e-mails below and open the link from Mailpit. Locally the "Check your e-mail" page also
+offers "Open the link" (and the API returns the token), never on a real server. The two-step code
+`000000` works in development (set by `DEV_TWO_STEP_CODE`; never accepted in production).
 
 | E-mail | Role |
 |---|---|
@@ -71,12 +80,14 @@ first-party and the services need no bindings. What changes on Vercel:
 - **Database:** Neon from the Vercel Marketplace, with a separate database (branch) for preview
   deployments. Migrations run when the API container starts. Set `SEED_DEMO=true` on the Preview environment to
   load demo data into empty preview databases; the seed never sends e-mail.
-- **Sign-in:** the demo code `000000` does not work on Vercel; Admin, System admin and Finance use an
-  authenticator app (the seed prints the key in the build log).
+- **Sign-in:** e-mailed links need working SMTP. The demo code `000000` and the "Open the link" shortcut
+  do not work on Vercel; everyone uses an authenticator app. Add `GOOGLE_CLIENT_ID` and
+  `GOOGLE_CLIENT_SECRET` to show "Continue with Google" (redirect URI `<domain>/api/auth/google/callback`).
 
 Environment variables (Project → Settings → Environment Variables): `DATABASE_URL` (added by the Neon
 integration), `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` (`true` for port 465), `SMTP_USER`, `SMTP_PASS`,
-`MAIL_FROM`, `CRON_SECRET` (a long random string), optional `ANTHROPIC_API_KEY`, and
+`MAIL_FROM`, `CRON_SECRET` (a long random string), optional `ANTHROPIC_API_KEY`, optional
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and
 `ENABLE_EXPERIMENTAL_COREPACK=1` so the build uses the pnpm version pinned in `package.json`. Do not set
 `DEV_TWO_STEP_CODE`, `ALLOW_DEV_TWO_STEP_CODE` or `COOKIE_SECURE` there. Blob credentials are added when
 a private Blob store is connected to the project.
@@ -100,6 +111,17 @@ realtime, documents) and the layout of each app.
 on drafted e-mails, using Claude Opus 5.5 with server-side refusal fallback).
 
 `apps/web`: `API_URL` (default `http://localhost:4010`) — the web app proxies `/api/*` to it.
+
+## Client decisions (22 Nov 2026)
+
+- **Sign-in:** an e-mailed link or Google, then the two-step code; no passwords (migration 0005 turns
+  two-step on for every role).
+- **Confirming a payment** (and every other action that needs a code: commission payouts, supplier
+  payments, rule changes) takes two steps: confirm the form, then enter the two-step code.
+- **Phone:** every tab page has the same top: the logo bar (ANANDA, bell, profile picture), then the page
+  title and the day, then the page's buttons. Overview follows it like the others.
+- **Proformas** and every customer document and e-mail that follows the proforma language come in
+  English, Bulgarian or Hebrew (right to left). New customers in Israel default to Hebrew.
 
 ## Open decisions
 

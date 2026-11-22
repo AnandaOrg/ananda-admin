@@ -7,7 +7,6 @@ process.env.SMTP_HOST ??= 'localhost';
 process.env.SEEDING = '1';
 
 import { NestFactory } from '@nestjs/core';
-import bcrypt from 'bcryptjs';
 import { eq, inArray, sql } from 'drizzle-orm';
 import {
   FLAVOURS,
@@ -31,7 +30,6 @@ import { NumberingService } from '../core/numbering.service';
 import type { AuthContext } from '../common/context';
 import { BrokerSetupService } from '../brokers/setup.service';
 
-const PASSWORD = 'ananda-demo-2026';
 const ROLE_NAMES: Record<SystemRole, [string, string]> = {
   system_admin: ['System admin', 'Everything, including users, roles and settings.'],
   admin: ['Admin', 'Approvals, payments, warehouse, invoices, all reports.'],
@@ -68,7 +66,6 @@ async function main() {
       .returning();
     roleIds[key] = r.id;
   }
-  const hash = await bcrypt.hash(PASSWORD, 11);
   const people: Array<{ key: string; name: string; email: string; role: SystemRole; phone?: string; language?: string }> = [
     { key: 'royi', name: 'Royi Levi', email: 'royi@ananda.bg', role: 'system_admin', language: 'en' },
     { key: 'maya', name: 'Maya Petrova', email: 'maya@ananda.bg', role: 'admin', language: 'bg' },
@@ -86,7 +83,7 @@ async function main() {
   for (const p of people) {
     const [u] = await db
       .insert(s.users)
-      .values({ name: p.name, email: p.email, phone: p.phone, passwordHash: hash, roleId: roleIds[p.role], language: p.language ?? 'en', status: 'active' })
+      .values({ name: p.name, email: p.email, phone: p.phone, roleId: roleIds[p.role], language: p.language ?? 'en', status: 'active' })
       .returning();
     uid[p.key] = u.id;
   }
@@ -332,9 +329,9 @@ async function main() {
 
   await app.close();
   console.log('\nSeeded ANANDA demo data.');
-  console.log(`Sign in with any of these (password: ${PASSWORD}):`);
+  console.log('Sign in with any of these: enter the e-mail, then open the sign-in link from the inbox (Mailpit locally):');
   for (const p of people) console.log(`  ${p.email.padEnd(24)} ${ROLE_NAMES[p.role][0]}`);
-  console.log('System admin, Admin and Finance set up two-step sign-in at their first sign-in: scan the QR code, then confirm a code.');
+  console.log('Everyone sets up two-step sign-in at their first sign-in: scan the QR code, then confirm a code (000000 works locally).');
 }
 
 main().catch((e) => {

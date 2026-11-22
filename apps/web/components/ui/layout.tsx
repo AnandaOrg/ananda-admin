@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useDelayed } from '@/lib/hooks';
+import { useAsOf } from '@/lib/asof';
+import { formatDay } from '@/lib/format';
 import { useMedia } from '@/lib/media';
 import { CaretRight, Check, CheckCircle, Columns, Icon, Info, Lock, WarningCircle } from './icon';
 import { Button, MenuButton, Tooltip, Trunc } from './controls';
@@ -14,17 +16,21 @@ import { DefaultPageSkeleton, LoadError, LoadingLive, PageState, SkeletonCards, 
 
 /**
  * Page title row. `crumbs` go to the header row of the shell (desktop: "⌂ Overview / Sales & orders / S-0008");
- * on the phone the title moves into the top bar (with a back button on pages below the tabs), the kicker
- * stays under it.
+ * on the phone, pages below the tabs show back + title in the top bar and the kicker here; tab pages show
+ * the logo bar on top and the title, the day and the actions here, the same on every tab.
  */
 export function PageHeader({ crumbs, kicker, title, actions }: { crumbs?: { label: string; href?: string }[]; kicker?: ReactNode; title: ReactNode; actions?: ReactNode }) {
   useRegisterPage({ crumbs, title });
+  const locale = useLocale();
+  const { day } = useAsOf();
   return (
     <header className="stack tight page-head">
       <div className="an-phead">
         <div className="grow">
           {kicker && <div className="kick">{kicker}</div>}
           <h1>{title}</h1>
+          {/* Phone, tab pages: the logo bar is on top, so the title and the day sit here (client, 22 Nov). */}
+          <div className="pday">{formatDay(day, locale)}</div>
         </div>
         {actions && <div className="pa">{actions}</div>}
       </div>

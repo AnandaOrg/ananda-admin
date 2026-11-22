@@ -97,7 +97,7 @@ export function Select({ label, help, error, className, options, placeholder, ..
 }
 
 /** Six-digit code from the authenticator app, for sensitive actions. */
-export function TwoStepField({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
+export function TwoStepField({ value, onChange, error, autoFocus }: { value: string; onChange: (v: string) => void; error?: string; autoFocus?: boolean }) {
   const t = useTranslations('common');
   return (
     <TextField
@@ -110,6 +110,7 @@ export function TwoStepField({ value, onChange, error }: { value: string; onChan
       autoComplete="one-time-code"
       className="code"
       maxLength={6}
+      autoFocus={autoFocus}
     />
   );
 }

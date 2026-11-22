@@ -1,30 +1,28 @@
 'use client';
 
 import { use, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
-import { ActionError, Button, Card, NotFound, TextField } from '@/components/ui';
+import { signInDevice, useFinishSignIn, type TwoStep } from '@/lib/sign-in';
+import { iso } from '@/lib/format';
+import { ActionError, Button, Card, NotFound } from '@/components/ui';
 
+/** The invitation e-mail's link proves the address, so accepting it signs the person in; then the two-step set-up. */
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const t = useTranslations('auth');
-  const router = useRouter();
+  const finish = useFinishSignIn();
   const info = useQuery({ queryKey: ['invite', token], queryFn: () => api.get<{ name: string; email: string }>(`/auth/invite/${token}`), retry: false });
-  const [password, setPassword] = useState('');
-  const [repeat, setRepeat] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const weak = password.length > 0 && (password.length < 10 || !/[A-Za-z]/.test(password) || !/\d/.test(password));
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (password !== repeat) return setError(t('passwordsDiffer'));
+  async function accept() {
     setBusy(true);
+    setError(null);
     try {
-      await api.post('/auth/invite/accept', { token, password });
-      router.replace('/login?invited=1');
+      const r = await api.post<{ twoStep: TwoStep }>('/auth/invite/accept', { token, device: signInDevice() });
+      await finish(r.twoStep, { invited: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('failed'));
       setBusy(false);
@@ -34,15 +32,14 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
   if (info.error) return <NotFound back={{ label: t('signIn'), href: '/login' }} />;
   return (
     <Card title={t('inviteTitle', { name: info.data?.name ?? '' })}>
-      <form className="stack" onSubmit={submit}>
-        <p className="muted">{t('inviteText', { email: info.data?.email ?? '' })}</p>
-        <TextField label={t('newPassword')} type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} help={t('passwordRule')} error={weak ? t('passwordRule') : undefined} required />
-        <TextField label={t('repeatPassword')} type="password" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(e.target.value)} required />
+      <div className="stack">
+        <p className="muted">{t('inviteText', { email: iso(info.data?.email ?? '') })}</p>
         <ActionError error={error} message={error} />
-        <Button variant="primary" type="submit" busy={busy} disabled={weak || !password} block size="lg">
-          {t('setPassword')}
+        <Button variant="primary" busy={busy} disabled={!info.data} block size="lg" onClick={accept}>
+          {t('acceptInvite')}
         </Button>
-      </form>
+        <p className="caption muted">{t('inviteLater')}</p>
+      </div>
     </Card>
   );
 }

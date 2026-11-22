@@ -82,7 +82,12 @@
   },
   "twoStep": {
     "label": "Two-step code",
-    "help": "Enter the 6-digit code from your authenticator app."
+    "help": "Enter the 6-digit code from your authenticator app.",
+    "stepTitle": "Enter your two-step code",
+    "stepText": "Open your authenticator app and enter the 6-digit code to confirm.",
+    "noApp": "Set up two-step sign-in first",
+    "noAppText": "This needs a code from an authenticator app, and your account has none yet.",
+    "noAppAction": "Open profile"
   },
   "preview": {
     "title": "Previewing as {role}",

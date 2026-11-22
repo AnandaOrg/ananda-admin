@@ -4,13 +4,13 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useAction, useMedia } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { meQueryKey, useSession } from '@/lib/session';
 import { setLocaleCookie } from '@/components/shell/AppShell';
 import { applyThemePref, readThemePref, type ThemePref } from '@/lib/theme';
-import { ActionError, Button, Card, Count, Globe, LoadError, Icon, Pill, Chips, Sheet, Skeleton, SquaresFour, TextField, TwoStepField } from '@/components/ui';
+import { Button, Card, Count, Globe, LoadError, Icon, Pill, Chips, Skeleton, SquaresFour } from '@/components/ui';
 import css from './profile.module.css';
 
 interface SessionRow {
@@ -24,9 +24,8 @@ interface SessionRow {
 }
 
 interface ProfileInfo {
-  passwordChangedAt: string | null;
+  googleLinked: boolean;
   twoStepRequired: boolean;
-  passwordMinLength: number;
 }
 
 type DeviceKind = 'mac' | 'windows' | 'iphone' | 'ipad' | 'android' | 'linux' | 'desktop' | 'phone';
@@ -48,7 +47,6 @@ export function ProfileDevices() {
   const { me } = useSession();
   const { dateShort } = useFmt();
   const phone = useMedia('(max-width: 767px)');
-  const [pwOpen, setPwOpen] = useState(false);
   const info = useQuery({ queryKey: ['profile', 'info'], queryFn: () => api.get<ProfileInfo>('/profile') });
   const sessions = useQuery({ queryKey: ['profile', 'sessions'], queryFn: () => api.get<SessionRow[]>('/auth/sessions') });
   const signOut = useAction((id: string) => api.del(`/auth/sessions/${id}`), { success: (_r) => t('profile.devices.signedOut'), errorToast: true });
@@ -117,12 +115,9 @@ export function ProfileDevices() {
           <div className={css.group}>
           <div className={css.row}>
             <span className={css.lbl}>
-              {t('profile.password')}
-              <span className={css.sub}>{info.data?.passwordChangedAt ? t('profile.passwordChanged', { date: dateShort(info.data.passwordChangedAt) }) : t('profile.passwordHelp')}</span>
+              {t('profile.signIn')}
+              <span className={css.sub}>{info.data?.googleLinked ? t('profile.signInGoogle') : t('profile.signInLink')}</span>
             </span>
-            <Button size="sm" onClick={() => setPwOpen(true)}>
-              {t('profile.change')}
-            </Button>
           </div>
           <div className={css.row}>
             <span className={css.lbl}>
@@ -181,52 +176,6 @@ export function ProfileDevices() {
           </Button>
         )}
       </Card>
-      <PasswordSheet open={pwOpen} onClose={() => setPwOpen(false)} needsCode={u.twoStepEnabled} min={info.data?.passwordMinLength ?? 10} />
     </div>
-  );
-}
-
-function PasswordSheet({ open, onClose, needsCode, min }: { open: boolean; onClose: () => void; needsCode: boolean; min: number }) {
-  const t = useTranslations('admin');
-  const [current, setCurrent] = useState('');
-  const [next, setNext] = useState('');
-  const [repeat, setRepeat] = useState('');
-  const [code, setCode] = useState('');
-  useEffect(() => {
-    if (!open) return;
-    setCurrent('');
-    setNext('');
-    setRepeat('');
-    setCode('');
-  }, [open]);
-  const save = useAction((v: { current: string; next: string; code?: string }) => api.post('/auth/password', { current: v.current, next: v.next, signOutOthers: true }, { code: v.code }), {
-    success: t('profile.pwd.saved'),
-    onDone: onClose,
-  });
-  const weak = next.length > 0 && (next.length < min || !/[A-Za-z]/.test(next) || !/\d/.test(next));
-  const mismatch = repeat.length > 0 && repeat !== next;
-  const err = save.error instanceof ApiError ? save.error : null;
-  const codeError = err?.code?.startsWith('step_up') ? err.message : undefined;
-  const f = save.fields;
-  const ready = !!current && !!next && !weak && repeat === next && (!needsCode || code.length === 6);
-  return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      dirty={!!(current || next)}
-      title={t('profile.pwd.title')}
-      footer={
-        <Button variant="primary" block busy={save.isPending} disabled={!ready} onClick={() => save.mutate({ current, next, code: needsCode ? code : undefined })}>
-          {t('profile.pwd.save')}
-        </Button>
-      }
-    >
-      <TextField label={t('profile.pwd.current')} type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} error={f.current} />
-      <TextField label={t('profile.pwd.new')} type="password" autoComplete="new-password" placeholder={t('profile.pwd.newPlaceholder', { n: min })} value={next} onChange={(e) => setNext(e.target.value)} error={f.next ?? (weak ? t('profile.pwd.weak', { n: min }) : undefined)} />
-      <TextField label={t('profile.pwd.repeat')} type="password" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(e.target.value)} error={mismatch ? t('profile.pwd.mismatch') : undefined} />
-      {needsCode && <TwoStepField value={code} onChange={setCode} error={codeError} />}
-      <p className="muted body-sm">{t('profile.pwd.note')}</p>
-      {!codeError && !Object.keys(f).length && <ActionError action={save} />}
-    </Sheet>
   );
 }

@@ -14,9 +14,9 @@ import { webOrigin } from '../core/origin';
 
 
 const INVITE_COPY = {
-  en: { subject: 'You are invited to ANANDA', hello: 'Hello', body: (by: string) => `${by} invited you to ANANDA, the operations and finance app.`, cta: 'Set your password here', valid: (d: string) => `The link works until ${d}.` },
-  bg: { subject: 'Покана за ANANDA', hello: 'Здравейте', body: (by: string) => `${by} ви покани в ANANDA, приложението за операции и финанси.`, cta: 'Задайте паролата си тук', valid: (d: string) => `Връзката е валидна до ${d}.` },
-  he: { subject: 'הוזמנת ל-ANANDA', hello: 'שלום', body: (by: string) => `${by} הזמין/ה אותך ל-ANANDA, אפליקציית התפעול והכספים.`, cta: 'הגדרת סיסמה', valid: (d: string) => `הקישור בתוקף עד ${d}.` },
+  en: { subject: 'You are invited to ANANDA', hello: 'Hello', body: (by: string) => `${by} invited you to ANANDA, the operations and finance app.`, cta: 'Accept the invitation and sign in', valid: (d: string) => `The link works until ${d}.` },
+  bg: { subject: 'Покана за ANANDA', hello: 'Здравейте', body: (by: string) => `${by} ви покани в ANANDA, приложението за операции и финанси.`, cta: 'Приемете поканата и влезте', valid: (d: string) => `Връзката е валидна до ${d}.` },
+  he: { subject: 'הוזמנת ל-ANANDA', hello: 'שלום', body: (by: string) => `${by} הזמין/ה אותך ל-ANANDA, אפליקציית התפעול והכספים.`, cta: 'קבלת ההזמנה וכניסה', valid: (d: string) => `הקישור בתוקף עד ${d}.` },
 } as const;
 
 /** Team, invitations and member changes (FR-ADM-1, FR-AUTH-5). */
@@ -136,7 +136,7 @@ export class UsersService {
     const result = await this.db.transaction(async (tx) => {
       const [user] = await tx.select().from(users).where(eq(users.id, id)).for('update');
       if (!user) throw new NotFoundException({ message: 'Member not found' });
-      if (user.passwordHash || (user.status !== 'invited' && user.status !== 'deactivated')) throw new ConflictException({ message: 'This person has already set a password' });
+      if (user.lastSignInAt || (user.status !== 'invited' && user.status !== 'deactivated')) throw new ConflictException({ message: 'This person has already signed in' });
       const { token, hash, expiresAt } = await this.issueToken(tx);
       await tx.update(users).set({ status: 'invited', inviteTokenHash: hash, inviteExpiresAt: expiresAt, invitedById: auth.user.id }).where(eq(users.id, id));
       await this.audit.log(auth, { category: 'users_access', action: 'invitation_resent', recordType: 'user', recordId: id, recordLabel: `${user.name} · ${user.email}`, changes: user.status !== 'invited' ? { status: { from: user.status, to: 'invited' } } : undefined, meta: { expiresAt: expiresAt.toISOString() } }, tx);

@@ -13,3 +13,29 @@
   text-align: center;
   word-break: break-all;
 }
+
+/* "or" between the e-mail link and Google */
+.or {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font: 400 13px/18px var(--font-sans);
+}
+
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line-soft);
+}
+
+.center {
+  text-align: center;
+}
+
+.opening {
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+}

@@ -24,7 +24,10 @@ class Client {
     return { status: res.status, data: text.startsWith('{') || text.startsWith('[') ? JSON.parse(text) : null };
   }
   async login(email: string) {
-    const r = await this.req('POST', '/auth/login', { email, password: 'ananda-demo-2026' });
+    // Sign-in link (the API returns the token locally), then the two-step code.
+    const link = await this.req('POST', '/auth/link', { email });
+    assert.ok(link.data?.devToken, `sign-in link for ${email}`);
+    const r = await this.req('POST', '/auth/link/verify', { token: link.data.devToken, device: 'desktop' });
     assert.equal(r.status, 200, `login ${email}`);
     if (r.data.twoStep === 'setup') assert.equal((await this.req('POST', '/auth/two-step/setup')).status, 201);
     if (r.data.twoStep !== 'none') assert.equal((await this.req('POST', '/auth/two-step/verify', { code: CODE })).status, 200);

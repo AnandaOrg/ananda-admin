@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useFmt, iso } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { ActionError, Bank, Button, CaretRight, EnvelopeSimple, FileText, Icon, Pill, Sheet, Signature, Skeleton, TextField, TwoStepField, Users } from '@/components/ui';
+import { ActionError, Bank, Button, CaretRight, EnvelopeSimple, FileText, Icon, Pill, Sheet, Signature, Skeleton, TextField, Users, CodeStep, StepUpButtons, useStepUp } from '@/components/ui';
 import { PolishableText } from './MailDraft';
 import type { BrokerDetail, BrokerRow, BrokerSetup, BrokersOverview, Earnings } from './types';
 import s from '../brokers.module.css';
@@ -20,75 +20,80 @@ const first = (name: string) => name.trim().split(/\s+/)[0];
 export function SendToPaySheet({ broker, accountingEmail, perUnitCents, onClose }: { broker: BrokerRow | null; accountingEmail: string | null; perUnitCents: number; onClose: () => void }) {
   const t = useTranslations('brokers');
   const { money, date, unit } = useFmt();
-  const [code, setCode] = useState('');
   const [note, setNote] = useState('');
-  useEffect(() => {
-    setCode('');
-    setNote('');
-  }, [broker?.id]);
-  const act = useAction(() => api.post<{ amountCents: number }>(`/brokers/${broker!.id}/send-to-pay`, { note: note.trim() || undefined }, { code }), {
+  const act = useAction((code: string) => api.post<{ amountCents: number }>(`/brokers/${broker!.id}/send-to-pay`, { note: note.trim() || undefined }, { code }), {
     success: () => t('pay.sent', { name: iso(first(broker?.name ?? '')) }),
     onDone: onClose,
   });
+  const step = useStepUp(act);
+  const { reset } = step;
+  useEffect(() => {
+    reset();
+    setNote('');
+  }, [broker?.id, reset]);
   if (!broker) return null;
   const sum = broker.readyCents;
   const vat = vatOf(sum);
+  const totals = (
+    <div className={s.box}>
+      <div className={s.tot}>
+        <span>{t('pay.broker')}</span>
+        <span>{broker.name}</span>
+      </div>
+      <div className={s.tot}>
+        <span>{t('pay.commission')}</span>
+        <bdi>{money(sum)}</bdi>
+      </div>
+      <div className={s.tot}>
+        <span>{t('pay.vat')}</span>
+        <bdi>{money(vat)}</bdi>
+      </div>
+      <div className={s.rule} />
+      <div className={`${s.tot} ${s.big}`}>
+        <span>{t('pay.toPay')}</span>
+        <bdi>{money(sum + vat)}</bdi>
+      </div>
+    </div>
+  );
   return (
     <Sheet
       open
       onClose={onClose}
       title={t('pay.sendTitle', { name: first(broker.name) })}
       sub={t('pay.sendSub', { name: first(broker.name) })}
-      footer={
-        <Button variant="primary" block icon={EnvelopeSimple} busy={act.busy} disabled={code.length !== 6 || !accountingEmail || sum <= 0} onClick={() => act.mutate(undefined)}>
-          {t('pay.send')}
-        </Button>
-      }
+      footer={<StepUpButtons step={step} block label={t('pay.send')} icon={EnvelopeSimple} disabled={!accountingEmail || sum <= 0} onSubmit={() => act.mutate(step.code)} />}
     >
-      <TextField label={t('pay.to')} value={accountingEmail ?? t('pay.noEmail')} readOnly />
-      <div className={s.box}>
-        <div className={s.tot}>
-          <span>{t('pay.broker')}</span>
-          <span>{broker.name}</span>
-        </div>
-        <div className={s.tot}>
-          <span>{t('pay.commission')}</span>
-          <bdi>{money(sum)}</bdi>
-        </div>
-        <div className={s.tot}>
-          <span>{t('pay.vat')}</span>
-          <bdi>{money(vat)}</bdi>
-        </div>
-        <div className={s.rule} />
-        <div className={`${s.tot} ${s.big}`}>
-          <span>{t('pay.toPay')}</span>
-          <bdi>{money(sum + vat)}</bdi>
-        </div>
-      </div>
-      <div>
-        <div className={s.sgrp}>{t('pay.attached')}</div>
-        <div className={s.doc}>
-          <span className={s.ico}>
-            <Icon as={FileText} />
-          </span>
-          <span>
-            <b>{t('pay.statement', { name: broker.name })}</b>
-            <span>{t('pay.statementSub', { perUnit: unit(perUnitCents) })}</span>
-          </span>
-        </div>
-        <div className={s.doc}>
-          <span className={s.ico}>
-            <Icon as={Bank} />
-          </span>
-          <span>
-            <b>{t('pay.bank')}</b>
-            <span>{broker.bank ? <bdi>{t('pay.bankSub', { holder: broker.bank.accountHolder ?? broker.name, iban: broker.bank.iban })}</bdi> : t('pay.noBank')}</span>
-          </span>
-        </div>
-      </div>
-      <TextField label={t('pay.note')} placeholder={t('pay.notePh')} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
-      <TwoStepField value={code} onChange={setCode} error={act.error?.code?.startsWith('step_up') ? (act.errorText ?? undefined) : undefined} />
-      {!act.error?.code?.startsWith('step_up') && <ActionError action={act} />}
+      {step.onCode ? (
+        <CodeStep step={step} summary={totals} />
+      ) : (
+        <>
+          <TextField label={t('pay.to')} value={accountingEmail ?? t('pay.noEmail')} readOnly />
+          {totals}
+          <div>
+            <div className={s.sgrp}>{t('pay.attached')}</div>
+            <div className={s.doc}>
+              <span className={s.ico}>
+                <Icon as={FileText} />
+              </span>
+              <span>
+                <b>{t('pay.statement', { name: broker.name })}</b>
+                <span>{t('pay.statementSub', { perUnit: unit(perUnitCents) })}</span>
+              </span>
+            </div>
+            <div className={s.doc}>
+              <span className={s.ico}>
+                <Icon as={Bank} />
+              </span>
+              <span>
+                <b>{t('pay.bank')}</b>
+                <span>{broker.bank ? <bdi>{t('pay.bankSub', { holder: broker.bank.accountHolder ?? broker.name, iban: broker.bank.iban })}</bdi> : t('pay.noBank')}</span>
+              </span>
+            </div>
+          </div>
+          <TextField label={t('pay.note')} placeholder={t('pay.notePh')} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} error={act.fields.note} />
+          {step.formError && <ActionError action={act} />}
+        </>
+      )}
     </Sheet>
   );
 }
@@ -98,65 +103,70 @@ export function MarkPaidSheet({ broker, onClose }: { broker: BrokerRow | null; o
   const t = useTranslations('brokers');
   const tc = useTranslations('common');
   const { money, date, num } = useFmt();
-  const [code, setCode] = useState('');
-  useEffect(() => setCode(''), [broker?.id]);
   const detail = useQuery({ queryKey: ['brokers', 'earnings', broker?.id], queryFn: () => api.get<Earnings>(`/brokers/${broker!.id}/earnings`), enabled: !!broker });
   const undo = useAction((v: { brokerId: string; entryIds: string[] }) => api.post(`/brokers/${v.brokerId}/mark-paid/undo`, { entryIds: v.entryIds }), { success: t('pay.paidUndone'), errorToast: true });
-  const act = useAction(() => api.post<{ amountCents: number; entryIds: string[] }>(`/brokers/${broker!.id}/mark-paid`, {}, { code }).then((r) => ({ ...r, brokerId: broker!.id })), {
+  const act = useAction((code: string) => api.post<{ amountCents: number; entryIds: string[] }>(`/brokers/${broker!.id}/mark-paid`, {}, { code }).then((r) => ({ ...r, brokerId: broker!.id })), {
     success: (r) => t('pay.paid', { name: iso(broker?.name ?? ''), amount: iso(money(r.amountCents)) }),
     successAction: (r) => ({ label: tc('undo'), onClick: () => undo.mutate({ brokerId: r.brokerId, entryIds: r.entryIds }) }),
     onDone: onClose,
   });
+  const step = useStepUp(act);
+  const { reset } = step;
+  useEffect(() => reset(), [broker?.id, reset]);
   if (!broker) return null;
   const status = broker.sentCents > 0 ? 'sent' : 'ready';
   const entries = (detail.data?.entries ?? []).filter((e) => e.status === status);
   const sum = status === 'sent' ? broker.sentCents : broker.readyCents;
+  const totals = (
+    <div className={s.box}>
+      <div className={s.tot}>
+        <span>{t('pay.commission')}</span>
+        <bdi>{money(sum)}</bdi>
+      </div>
+      <div className={s.tot}>
+        <span>{t('pay.vat')}</span>
+        <bdi>{money(vatOf(sum))}</bdi>
+      </div>
+      <div className={s.rule} />
+      <div className={`${s.tot} ${s.big}`}>
+        <span>{t('pay.toPay')}</span>
+        <bdi>{money(sum + vatOf(sum))}</bdi>
+      </div>
+    </div>
+  );
   return (
     <Sheet
       open
       onClose={onClose}
       title={t('pay.paidTitle', { name: first(broker.name) })}
       sub={t('pay.paidText', { name: first(broker.name) })}
-      footer={
-        <Button variant="primary" block busy={act.busy} disabled={code.length !== 6 || sum <= 0} onClick={() => act.mutate(undefined)}>
-          {t('markPaid')}
-        </Button>
-      }
+      footer={<StepUpButtons step={step} block label={t('markPaid')} disabled={sum <= 0} onSubmit={() => act.mutate(step.code)} />}
     >
-      <div className={s.box}>
-        <div className={s.tot}>
-          <span>{t('pay.commission')}</span>
-          <bdi>{money(sum)}</bdi>
-        </div>
-        <div className={s.tot}>
-          <span>{t('pay.vat')}</span>
-          <bdi>{money(vatOf(sum))}</bdi>
-        </div>
-        <div className={s.rule} />
-        <div className={`${s.tot} ${s.big}`}>
-          <span>{t('pay.toPay')}</span>
-          <bdi>{money(sum + vatOf(sum))}</bdi>
-        </div>
-      </div>
-      {detail.isLoading ? (
-        <Skeleton h={80} />
+      {step.onCode ? (
+        <CodeStep step={step} summary={totals} />
       ) : (
-        <div>
-          <div className={s.sgrp}>{t('pay.entries', { n: entries.length })}</div>
-          {entries.map((e) => (
-            <div key={e.id} className={s.tot} style={{ paddingBlock: 'var(--space-1)' }}>
-              <span>
-                {e.orderId ? <bdi>{e.orderNumber}</bdi> : t('pay.eventSale')}
-                {e.orderId ? e.customerName && ` · ${e.customerName}` : e.eventName && ` · ${e.eventName}`} · {tc('unitsCount', { n: num(e.units) })}
-                {e.amountCents < 0 && ` · ${t('pay.offset')}`}
-              </span>
-              <bdi>{money(e.amountCents)}</bdi>
+        <>
+          {totals}
+          {detail.isLoading ? (
+            <Skeleton h={80} />
+          ) : (
+            <div>
+              <div className={s.sgrp}>{t('pay.entries', { n: entries.length })}</div>
+              {entries.map((e) => (
+                <div key={e.id} className={s.tot} style={{ paddingBlock: 'var(--space-1)' }}>
+                  <span>
+                    {e.orderId ? <bdi>{e.orderNumber}</bdi> : t('pay.eventSale')}
+                    {e.orderId ? e.customerName && ` · ${e.customerName}` : e.eventName && ` · ${e.eventName}`} · {tc('unitsCount', { n: num(e.units) })}
+                    {e.amountCents < 0 && ` · ${t('pay.offset')}`}
+                  </span>
+                  <bdi>{money(e.amountCents)}</bdi>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          {step.formError && <ActionError action={act} />}
+        </>
       )}
-      <TwoStepField value={code} onChange={setCode} error={act.error?.code?.startsWith('step_up') ? (act.errorText ?? undefined) : undefined} />
-      {!act.error?.code?.startsWith('step_up') && <ActionError action={act} />}
     </Sheet>
   );
 }

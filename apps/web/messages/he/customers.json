@@ -120,6 +120,7 @@
     "minimumValue": "{n, plural, one {קרטון אחד} other {{n} קרטונים}}",
     "bulgarian": "בולגרית",
     "english": "אנגלית",
+    "hebrew": "עברית",
     "before_shipping": "100% לפני משלוח",
     "half_before_shipping": "50% עכשיו, 50% לפני משלוח",
     "after_delivery_30": "30 ימים לאחר אספקה"
@@ -213,6 +214,7 @@
     "email": "אימייל לחשבונות עסקה",
     "terms": "תנאי תשלום",
     "chooseTerms": "בחירת תנאי תשלום",
+    "languageHelp": "חשבונות עסקה, חשבוניות והודעות זיכוי יוצאים בשפה הזו.",
     "chooseBroker": "בחירת ברוקר",
     "noBroker": "בלי ברוקר (לקוח של הבית)",
     "noBrokerDetail": "בלי עמלה על ההזמנות שלו",

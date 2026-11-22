@@ -10,7 +10,8 @@ import { useAction } from '@/lib/hooks';
 import { useUndoOwner } from '@/app/(app)/customers/useUndoOwner';
 import { useFmt, iso } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { ActionError, Button, Check, Clock, Icon, MagnifyingGlass, Pill, Sheet, ShieldCheck, TextField, Warning } from '@/components/ui';
+import { PROFORMA_LANGUAGES, defaultProformaLanguage, type ProformaLanguage } from '@ananda/shared';
+import { ActionError, Button, Check, Chips, Clock, Icon, MagnifyingGlass, Pill, Sheet, ShieldCheck, TextField, Warning } from '@/components/ui';
 import { DropdownField } from './Dropdown';
 import s from './customers.module.css';
 
@@ -19,6 +20,8 @@ export const COUNTRIES = ['BG', 'GR', 'RO', 'CY', 'DE', 'AT', 'IT', 'NL', 'FR', 
 export const EU = ['BG', 'GR', 'RO', 'CY', 'DE', 'AT', 'IT', 'NL', 'FR', 'ES'];
 const PREFIX: Record<string, string> = { BG: 'BG', EL: 'GR', GR: 'GR', RO: 'RO', CY: 'CY', DE: 'DE', AT: 'AT', IT: 'IT', NL: 'NL', FR: 'FR', ES: 'ES' };
 export const PAYMENT_TERMS = ['before_shipping', 'half_before_shipping', 'after_delivery_30'] as const;
+/** Message keys (customers.terms.*) for each document language. */
+export const LANG_KEY: Record<ProformaLanguage, 'english' | 'bulgarian' | 'hebrew'> = { en: 'english', bg: 'bulgarian', he: 'hebrew' };
 
 interface Duplicate {
   id: string;
@@ -45,7 +48,7 @@ interface VatResult {
 }
 type St = 'idle' | 'checking' | 'fmt' | 'nf' | 'down' | 'found';
 type Key = 'name' | 'country' | 'street' | 'pc' | 'city' | 'dstreet' | 'contact' | 'phone' | 'email' | 'broker';
-const EMPTY = { vat: '', name: '', country: 'BG', street: '', pc: '', city: '', dsame: true, dstreet: '', contact: '', phone: '', email: '', terms: 'before_shipping', broker: '' };
+const EMPTY = { vat: '', name: '', country: 'BG', street: '', pc: '', city: '', dsame: true, dstreet: '', contact: '', phone: '', email: '', terms: 'before_shipping', broker: '', lang: '' as ProformaLanguage | '' };
 
 const normVat = (v: string) => v.toUpperCase().replace(/[\s.\-]/g, '');
 const vatFmt = (v: string) => /^[A-Z]{2}[0-9A-Z]{8,12}$/.test(v) && !!PREFIX[v.slice(0, 2)];
@@ -161,6 +164,7 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
         phone: f.phone || undefined,
         invoiceEmail: f.email,
         paymentTerms: f.terms,
+        proformaLanguage: docLang,
         brokerId: isBroker ? undefined : f.broker,
         submit: true,
       }),
@@ -208,6 +212,8 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
   const fieldErr = (k: Key, server?: string) => err[k] ?? server;
   const nErr = Object.values(err).filter(Boolean).length;
   const eu = EU.includes(f.country);
+  // Documents follow the country (BG → Bulgarian, IL → Hebrew, else English) until someone picks a language.
+  const docLang: ProformaLanguage = f.lang || defaultProformaLanguage(f.country);
   const vatNote = f.country === 'BG' || f.country === 'XX' ? null : eu && st === 'found' ? t('add.vatNote.reverse') : eu ? t('add.vatNote.eu') : t('add.vatNote.export');
   const busy = st === 'checking';
   const found = st === 'found';
@@ -411,6 +417,11 @@ export function AddCustomerSheet({ open, onClose }: { open: boolean; onClose: ()
               options={PAYMENT_TERMS.map((k) => ({ value: k, label: t(`terms.${k}`), detail: t(`termsDetail.${k}`) }))}
               onChange={(v) => set('terms', v)}
             />
+            <div className="an-field">
+              <label>{t('fields.proformaLanguage')}</label>
+              <Chips label={t('fields.proformaLanguage')} value={docLang} onChange={(v) => set('lang', v)} options={PROFORMA_LANGUAGES.map((l) => ({ value: l, label: t(`terms.${LANG_KEY[l]}`) }))} />
+              <span className="an-help">{t('add.languageHelp')}</span>
+            </div>
             {!isBroker && (
               <DropdownField
                 label={tc('broker')}

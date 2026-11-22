@@ -13,6 +13,8 @@ export interface MailInput {
   recordType?: string;
   recordId?: string;
   attachments?: { filename: string; content: string | Buffer; contentType?: string }[];
+  /** What the e-mail log keeps instead of the body, when the body holds a secret (a sign-in link). */
+  logBody?: string;
 }
 
 /** Sender is the company address; replies go to the System admin (PRD §8.2). Every send is logged. */
@@ -56,7 +58,7 @@ export class MailService {
       error = (e as Error).message;
       this.log.warn(`Mail "${input.subject}" failed: ${error}`);
     }
-    await this.db.insert(emailLog).values({ to, cc, subject: input.subject, body: input.body, kind: input.kind, recordType: input.recordType, recordId: input.recordId, status, error });
+    await this.db.insert(emailLog).values({ to, cc, subject: input.subject, body: input.logBody ?? input.body, kind: input.kind, recordType: input.recordType, recordId: input.recordId, status, error });
   }
 }
 

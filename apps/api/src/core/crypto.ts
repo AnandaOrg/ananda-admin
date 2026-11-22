@@ -20,21 +20,23 @@ export function totpUri(email: string, secret: string): string {
 }
 
 /**
- * Checks an authenticator code. DEV_TWO_STEP_CODE is also accepted in development, or in a
- * production build only when ALLOW_DEV_TWO_STEP_CODE=true (local demo containers; never on a real server).
+ * Local shortcuts (the demo two-step code, the sign-in link returned in the API response): in development,
+ * or in a production build only when ALLOW_DEV_TWO_STEP_CODE=true (local demo containers; never on a real server).
  */
+export function devShortcutsAllowed(): boolean {
+  return process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEV_TWO_STEP_CODE === 'true';
+}
+
 /** True when the local demo code is allowed and matches (never on a real server). */
 export function isDevTwoStepCode(code: string | undefined): boolean {
   const dev = process.env.DEV_TWO_STEP_CODE;
-  const devAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEV_TWO_STEP_CODE === 'true';
-  return !!code && !!dev && devAllowed && code === dev;
+  return !!code && !!dev && devShortcutsAllowed() && code === dev;
 }
 
+/** Checks an authenticator code. DEV_TWO_STEP_CODE is also accepted where local shortcuts are allowed. */
 export function verifyTotp(secret: string | null, code: string | undefined): boolean {
   if (!code) return false;
-  const dev = process.env.DEV_TWO_STEP_CODE;
-  const devAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEV_TWO_STEP_CODE === 'true';
-  if (dev && devAllowed && code === dev) return true;
+  if (isDevTwoStepCode(code)) return true;
   if (!secret) return false;
   try {
     return authenticator.check(code, secret);

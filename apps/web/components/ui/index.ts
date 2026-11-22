@@ -8,3 +8,4 @@ export * from './states';
 export * from './table-config';
 export * from './upload';
 export * from './date-field';
+export * from './step-up';

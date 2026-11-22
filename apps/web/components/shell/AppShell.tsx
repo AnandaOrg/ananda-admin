@@ -410,7 +410,7 @@ function Shell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className={`app-main ${navRoot ? 'is-root' : ''}`} id="main">
+      <main className={`app-main ${navRoot ? 'is-root' : ''} ${isRoot ? 'tab-root' : ''}`} id="main">
         <div className="topbar">
           {/* desktop: breadcrumb + chips */}
           <nav className="crumb only-wide" aria-label={t('breadcrumb')}>
@@ -430,7 +430,15 @@ function Shell({ children }: { children: ReactNode }) {
                 <Icon as={ArrowLeft} />
               </Link>
             )}
-            <span className="t">{phoneTitle}</span>
+            {isRoot ? (
+              // Tab pages: the logo bar; the title, the day and the actions follow in the page (PageHeader).
+              <Link href={isWarehouse ? '/warehouse' : '/home'} className="an-brand pbrand" aria-label="ANANDA">
+                <span className="mk">A</span>
+                <b>ANANDA</b>
+              </Link>
+            ) : (
+              <span className="t">{phoneTitle}</span>
+            )}
             {isRoot && (
               <>
                 <button type="button" className="an-bell" aria-label={unread ? `${t('notifications.title')}, ${unread}` : t('notifications.title')} onClick={() => setLayer('nt')}>

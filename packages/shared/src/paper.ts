@@ -4,7 +4,7 @@
 import { FLAVOURS, UNITS_PER_CARTON, type Flavour } from './domain';
 import { formatDate, formatMoney, formatNumber, formatUnitPrice } from './format';
 
-export type PaperLang = 'en' | 'bg';
+export type PaperLang = 'en' | 'bg' | 'he';
 
 export interface PaperSpec {
   lang: PaperLang;
@@ -70,6 +70,9 @@ export function dueBeforeShippingCents(terms: string | null | undefined, totalCe
 export function depositOf(totalCents: number): number {
   return Math.ceil(totalCents / 2);
 }
+
+/** Hebrew papers run right to left: IBANs, numbers, amounts and codes are isolated so they keep their own order. */
+const iso = (v: string) => `\u2068${v}\u2069`;
 
 const LABELS = {
   en: {
@@ -186,10 +189,67 @@ const LABELS = {
     proformaN: (n: string) => `Проформа ${n}`,
     customerBank: '[Сметка на клиента]',
   },
+  he: {
+    proforma: 'חשבון עסקה',
+    invoice: 'חשבונית מסחרית',
+    credit_note: 'הודעת זיכוי',
+    delivery_note: 'תעודת משלוח',
+    warehouse: 'הזמנת מחסן',
+    payment: 'התשלום התקבל',
+    upload: 'קובץ שהועלה',
+    no: 'מס׳',
+    date: 'תאריך',
+    order: 'הזמנה',
+    item: 'פריט',
+    qty: 'כמות',
+    price: 'מחיר',
+    amount: 'סכום',
+    cartons: 'קרטונים',
+    units: 'יחידות',
+    method: 'אמצעי תשלום',
+    reference: 'אסמכתא',
+    billTo: 'לכבוד',
+    deliveredTo: 'נמסר אל',
+    deliverTo: 'משלוח אל',
+    pickFrom: 'איסוף מ',
+    receivedFrom: 'התקבל מ',
+    paidInto: 'שולם לחשבון',
+    net: 'סה״כ לפני מע״מ',
+    vat: 'מע״מ 20%',
+    total: 'סה״כ',
+    totalCredit: 'סה״כ זיכוי',
+    received: 'התקבל',
+    stillToPay: 'נותר לתשלום',
+    balance: 'יתרה',
+    paid: 'שולם',
+    vatNo: 'מס׳ מע״מ',
+    product: (f: string) => iso(`ANANDA ${f} · 250 ml`),
+    replaces: (n: string) => `מחליפה את ${iso(n)}`,
+    replacedBy: (n: string) => `הוחלפה ב־${iso(n)}`,
+    credits: (n: string, r: string) => `זיכוי לחשבונית ${iso(n)} · סיבה: ${r}`,
+    payTo: (iban: string, ref: string) => `לתשלום לחשבון ${iso(iban)} · אסמכתא ${iso(ref)} · 100% לפני המשלוח`,
+    payBy: (d: string) => `לתשלום עד ${d}`,
+    payToDeposit: (iban: string, ref: string, dep: string) => `לתשלום לחשבון ${iso(iban)} · אסמכתא ${iso(ref)} · מקדמה של 50% עכשיו: ${iso(dep)}, היתרה לפני המשלוח`,
+    afterDelivery: 'תשלום: 30 יום לאחר אספקה, לפי החשבונית המסחרית',
+    payToInvoice: (iban: string, ref: string) => `לתשלום לחשבון ${iso(iban)} · אסמכתא ${iso(ref)}`,
+    validUntil: (d: string) => `בתוקף עד ${d}`,
+    paidInFull: (method: string, ref: string) => `שולם במלואו (${method}), אסמכתא ${iso(ref)}. תודה רבה.`,
+    receivedBy: 'התקבל על ידי: [חתימה]',
+    nameDate: 'שם ותאריך',
+    priceAdj: 'תיקון מחיר, כמוסכם',
+    creditFoot: { returned: 'הקרטונים שהוחזרו חוזרים למלאי הזמין.', damaged: 'קרטונים פגומים נמחקים מהמלאי ולא חוזרים אליו.', price: 'תיקון מחיר מוסכם. המלאי לא משתנה.' },
+    reasons: { returned: 'קרטונים שהוחזרו', damaged: 'נפגם במשלוח', price_error: 'תיקון מחיר', price_adjustment: 'תיקון מחיר', other: 'אחר' } as Record<string, string>,
+    methods: { bank_transfer: 'העברה בנקאית', cash: 'מזומן', card: 'כרטיס אשראי', other: 'אחר' } as Record<string, string>,
+    warehouseName: 'מחסן ANANDA',
+    warehouseFoot: 'שולם במלואו, מוכן למשלוח. המחירים לא נשלחים למחסן.',
+    paymentFoot: (who: string, d: string) => `אושר על ידי ${who} ב־${d}.`,
+    proformaN: (n: string) => `חשבון עסקה ${iso(n)}`,
+    customerBank: '[חשבון הבנק של הלקוח]',
+  },
 };
 
 export function paperLang(l: string | null | undefined): PaperLang {
-  return l === 'bg' ? 'bg' : 'en';
+  return l === 'bg' || l === 'he' ? l : 'en';
 }
 
 export function paperLabels(lang: string) {
@@ -198,9 +258,14 @@ export function paperLabels(lang: string) {
 
 const cap = (f: string) => f.charAt(0).toUpperCase() + f.slice(1);
 
-function companyOf(d: { company: Record<string, string> }) {
+/** Wraps a left-to-right value (number, IBAN, address in Latin or Cyrillic) on a Hebrew paper; unchanged otherwise. */
+const ltrOn = (lang: PaperLang) => (v: string | null | undefined) => (lang === 'he' && v ? iso(v) : (v ?? ''));
+
+function companyOf(d: { company: Record<string, string> }, lang: PaperLang = 'en') {
   const c = d.company ?? {};
-  return { name: c.name || 'ANANDA', lines: [[c.name, c.address].filter(Boolean).join(' · '), c.vatNumber ? `VAT ${c.vatNumber}` : ''].filter(Boolean) };
+  const x = ltrOn(lang);
+  const vat = lang === 'he' ? `${LABELS.he.vatNo} ${x(c.vatNumber)}` : `VAT ${c.vatNumber}`;
+  return { name: c.name || 'ANANDA', lines: [x([c.name, c.address].filter(Boolean).join(' · ')), c.vatNumber ? vat : ''].filter(Boolean) };
 }
 
 function priceRows(lines: PaperDocData['lines'], lang: PaperLang, neg = false) {
@@ -227,8 +292,9 @@ export function customerPaper(type: 'proforma' | 'invoice' | 'credit_note', d: P
 function customerPaperBody(type: 'proforma' | 'invoice' | 'credit_note', d: PaperDocData, extra: { replacedBy?: string | null }): PaperSpec {
   const lang = paperLang(d.language);
   const L = LABELS[lang];
-  const bill = { label: L.billTo, name: d.customer.companyName, sub: [d.customer.registeredAddress, d.customer.vatNumber && `${L.vatNo} ${d.customer.vatNumber}`].filter(Boolean).join(' · ') };
-  const base = { lang, company: companyOf(d), no: d.number, date: formatDate(d.issuedOn, lang), ref: `${L.order} ${d.orderNumber}`, cols: [L.item, L.qty, L.price, L.amount] };
+  const x = ltrOn(lang);
+  const bill = { label: L.billTo, name: d.customer.companyName, sub: [x(d.customer.registeredAddress), d.customer.vatNumber && `${L.vatNo} ${x(d.customer.vatNumber)}`].filter(Boolean).join(' · ') };
+  const base = { lang, company: companyOf(d, lang), no: d.number, date: formatDate(d.issuedOn, lang), ref: `${L.order} ${x(d.orderNumber)}`, cols: [L.item, L.qty, L.price, L.amount] };
   if (type === 'proforma') {
     const note = extra.replacedBy ? L.replacedBy(extra.replacedBy) : d.replaces ? L.replaces(d.replaces) : null;
     const iban = d.bank?.iban || '[IBAN]';
@@ -239,7 +305,7 @@ function customerPaperBody(type: 'proforma' | 'invoice' | 'credit_note', d: Pape
     return { ...base, type: L.proforma, note, parties: [bill], rows: priceRows(d.lines, lang), sum: vatSum(d, lang), foot };
   }
   if (type === 'invoice') {
-    const parties = [bill, { label: L.deliveredTo, name: d.customer.companyName, sub: [d.customer.deliveryAddress || d.customer.registeredAddress, d.deliveredOn && formatDate(d.deliveredOn, lang)].filter(Boolean).join(' · ') }];
+    const parties = [bill, { label: L.deliveredTo, name: d.customer.companyName, sub: [x(d.customer.deliveryAddress || d.customer.registeredAddress), d.deliveredOn && formatDate(d.deliveredOn, lang)].filter(Boolean).join(' · ') }];
     const sum = vatSum(d, lang);
     if (d.paidCents != null) {
       sum.push({ label: d.paidOn ? `${L.paid} ${formatDate(d.paidOn, lang)}` : L.paid, value: '−' + formatMoney(d.paidCents, lang) });
@@ -260,15 +326,16 @@ export function warehousePaper(o: PaperBrand & { lang: string; company: Record<s
   const L = LABELS[lang];
   const lines = FLAVOURS.flatMap((f) => o.lines.filter((l) => l.flavour === f && l.cartons > 0));
   const cartons = lines.reduce((s, l) => s + l.cartons, 0);
+  const x = ltrOn(lang);
   return {
     lang,
-    company: companyOf(o),
+    company: companyOf(o, lang),
     type: L.warehouse,
     no: o.orderNumber.replace(/^S-/, 'WO-'),
     date: formatDate(o.date, lang),
-    ref: `${L.order} ${o.orderNumber}`,
+    ref: `${L.order} ${x(o.orderNumber)}`,
     parties: [
-      { label: L.deliverTo, name: o.customerName, sub: [o.address, o.contact].filter(Boolean).join(' · ') },
+      { label: L.deliverTo, name: o.customerName, sub: [x(o.address), x(o.contact)].filter(Boolean).join(' · ') },
       { label: L.pickFrom, name: L.warehouseName, sub: '' },
     ],
     cols: [L.item, L.cartons, L.units],
@@ -298,19 +365,20 @@ export function paymentPaper(p: PaperBrand & {
 }): PaperSpec {
   const lang = paperLang(p.lang);
   const L = LABELS[lang];
+  const x = ltrOn(lang);
   return {
     lang,
-    company: companyOf(p),
+    company: companyOf(p, lang),
     type: L.payment,
     no: p.no,
     date: formatDate(p.receivedOn, lang),
-    ref: `${L.order} ${p.orderNumber}`,
+    ref: `${L.order} ${x(p.orderNumber)}`,
     parties: [
       { label: L.receivedFrom, name: p.customerName, sub: L.customerBank },
-      { label: L.paidInto, name: p.company.name || 'ANANDA', sub: [p.bank.bank, p.bank.iban].filter(Boolean).join(' · ') },
+      { label: L.paidInto, name: p.company.name || 'ANANDA', sub: [x(p.bank.bank), x(p.bank.iban)].filter(Boolean).join(' · ') },
     ],
     cols: [L.item, L.method, L.reference, L.amount],
-    rows: [[p.proforma ? L.proformaN(p.proforma) : `${L.order} ${p.orderNumber}`, L.methods[p.method] ?? p.method, p.reference || '—', formatMoney(p.amountCents, lang)]],
+    rows: [[p.proforma ? L.proformaN(p.proforma) : `${L.order} ${x(p.orderNumber)}`, L.methods[p.method] ?? p.method, p.reference || '—', formatMoney(p.amountCents, lang)]],
     sum: [
       { label: L.received, value: formatMoney(p.amountCents, lang), total: true },
       { label: L.stillToPay, value: formatMoney(Math.max(0, p.stillToPayCents), lang) },
@@ -336,19 +404,24 @@ export const PAPER_CSS = `.pp{direction:ltr;text-align:left;background:var(--pap
 .pp .pp-f{color:var(--paper-muted,#6B6A64);font-size:12px;border-top:1px solid var(--paper-line,#D8D6CC);padding-top:8px}
 .pp .pp-up{display:grid;justify-items:center;text-align:center;gap:8px;padding:24px 8px;background:var(--paper-panel,#ECEBE4);border-radius:8px}.pp .pp-up span{color:var(--paper-muted,#6B6A64)}.pp .pp-up b{word-break:break-all}
 .pp .pp-up img{max-width:100%;max-height:420px;border-radius:6px}
-.pp .pp-logoimg{display:block;max-height:40px;max-width:180px;object-fit:contain;margin-bottom:4px}.pp .pp-cf{color:var(--paper-muted,#6B6A64);font-size:11px;text-align:center}`;
+.pp .pp-logoimg{display:block;max-height:40px;max-width:180px;object-fit:contain;margin-bottom:4px}.pp .pp-cf{color:var(--paper-muted,#6B6A64);font-size:11px;text-align:center}
+.pp[dir=rtl]{direction:rtl;text-align:right}.pp[dir=rtl] .pp-t{text-align:left}.pp[dir=rtl] th,.pp[dir=rtl] td{text-align:left}
+.pp[dir=rtl] th:first-child,.pp[dir=rtl] td:first-child{text-align:right;padding-right:0;padding-left:8px}.pp[dir=rtl] td+td,.pp[dir=rtl] th+th{padding-left:0;padding-right:8px}`;
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /** The paper as HTML (inner markup of the .pp element's parent). Every value is escaped. */
 export function paperHtml(d: PaperSpec): string {
-  const L = LABELS[d.lang];
-  return `<div class="pp" lang="${d.lang}">
-<div class="pp-h"><div>${d.logo ? `<img class="pp-logoimg" src="${esc(d.logo)}" alt="${esc(d.company.name)}">` : '<b class="pp-logo">ANANDA</b>'}${d.company.lines.map((l) => `<span>${esc(l)}</span>`).join('')}</div><div class="pp-t"><b>${esc(d.type)}</b><span>${esc(L.no)} ${esc(d.no)}</span><span>${esc(L.date)} ${esc(d.date)}</span>${d.ref ? `<span>${esc(d.ref)}</span>` : ''}</div></div>
+  const L = LABELS[paperLang(d.lang)];
+  const rtl = d.lang === 'he';
+  // Hebrew: numbers, amounts and codes sit in their own isolate so a minus or € stays in place.
+  const v = (s: unknown) => (rtl ? `<bdi>${esc(s)}</bdi>` : esc(s));
+  return `<div class="pp" lang="${d.lang}"${rtl ? ' dir="rtl"' : ''}>
+<div class="pp-h"><div>${d.logo ? `<img class="pp-logoimg" src="${esc(d.logo)}" alt="${esc(d.company.name)}">` : '<b class="pp-logo">ANANDA</b>'}${d.company.lines.map((l) => `<span>${esc(l)}</span>`).join('')}</div><div class="pp-t"><b>${esc(d.type)}</b><span>${esc(L.no)} ${v(d.no)}</span><span>${esc(L.date)} ${esc(d.date)}</span>${d.ref ? `<span>${esc(d.ref)}</span>` : ''}</div></div>
 ${d.note ? `<div class="pp-note">${esc(d.note)}</div>` : ''}
 <div class="pp-parties">${d.parties.map((p) => `<div class="pp-bill"><span>${esc(p.label)}</span><b>${esc(p.name)}</b>${p.sub ? `<span>${esc(p.sub)}</span>` : ''}</div>`).join('')}</div>
-<table><thead><tr>${d.cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${d.rows.map((r) => `<tr>${r.map((v) => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>
-<div class="pp-sum">${d.sum.map((s) => `<div${s.total ? ' class="t"' : ''}><span>${esc(s.label)}</span><span>${esc(s.value)}</span></div>`).join('')}</div>
+<table><thead><tr>${d.cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${d.rows.map((r) => `<tr>${r.map((c, i) => `<td>${i ? v(c) : esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+<div class="pp-sum">${d.sum.map((s) => `<div${s.total ? ' class="t"' : ''}><span>${esc(s.label)}</span><span>${v(s.value)}</span></div>`).join('')}</div>
 ${d.sign ? `<div class="pp-sign"><span>${esc(d.sign.left)}</span><span>${esc(d.sign.right)}</span></div>` : ''}
 ${d.foot ? `<div class="pp-f">${esc(d.foot)}</div>` : ''}
 ${d.footer ? `<div class="pp-cf">${esc(d.footer)}</div>` : ''}
@@ -357,7 +430,7 @@ ${d.footer ? `<div class="pp-cf">${esc(d.footer)}</div>` : ''}
 
 /** A full printable page: used for Download PDF (print) and as the e-mail attachment. */
 export function paperPage(d: PaperSpec, opts: { title: string; autoPrint?: boolean }): string {
-  return `<!doctype html><html lang="${d.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(opts.title)}</title>
+  return `<!doctype html><html lang="${d.lang}"${d.lang === 'he' ? ' dir="rtl"' : ''}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(opts.title)}</title>
 <style>body{margin:0;padding:32px 16px;background:#E9E8E2}main{max-width:720px;margin:auto}${PAPER_CSS}@media print{body{background:#fff;padding:0}.pp{box-shadow:none}}</style></head>
 <body><main>${paperHtml(d)}</main>${opts.autoPrint ? '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},200)})</script>' : ''}</body></html>`;
 }

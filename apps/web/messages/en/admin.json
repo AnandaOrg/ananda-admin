@@ -386,6 +386,7 @@
     "actions": {
       "signed_in": "Signed in",
       "sign_in_failed": "Sign-in failed",
+      "sign_in_link_sent": "Sign-in link sent",
       "signed_out_device": "Signed out a device",
       "signed_out_other_devices": "Signed out other devices",
       "two_step_enabled": "Turned on two-step sign-in",
@@ -470,6 +471,7 @@
     "say": {
       "signed_in": "Signed in",
       "sign_in_failed": "Failed sign-in",
+      "sign_in_link_sent": "Asked for a sign-in link",
       "signed_out_device": "Signed out a device",
       "signed_out_other_devices": "Signed out all other devices",
       "two_step_enabled": "Turned on two-factor sign-in",
@@ -604,9 +606,10 @@
       }
     },
     "lang": {
-      "per_customer": "Per customer (English or Bulgarian)",
+      "per_customer": "Per customer (English, Bulgarian or Hebrew)",
       "en": "Always English",
-      "bg": "Always Bulgarian"
+      "bg": "Always Bulgarian",
+      "he": "Always Hebrew"
     },
     "cards": {
       "docs": {
@@ -668,7 +671,9 @@
       "aCustomer": "a customer",
       "noOrderSince": "No order since {date}.",
       "getsText": "If {customer} doesn't order by {date}, {end, select, stay_with_broker {it stays with the broker until an Admin moves it} other {it becomes free for any broker to claim}}. Push notification and e-mail.",
-      "getsTextNone": "If the customer doesn't order by then, {end, select, stay_with_broker {it stays with the broker until an Admin moves it} other {it becomes free for any broker to claim}}. Push notification and e-mail."
+      "getsTextNone": "If the customer doesn't order by then, {end, select, stay_with_broker {it stays with the broker until an Admin moves it} other {it becomes free for any broker to claim}}. Push notification and e-mail.",
+      "now": "Now",
+      "next": "New"
     },
     "cardPanel": {
       "saved": "Settings saved",
@@ -722,10 +727,6 @@
     "themeSub": "How the app looks for you",
     "dark": "Dark",
     "light": "Light",
-    "password": "Password",
-    "passwordChanged": "Changed {date}",
-    "passwordHelp": "Change it if you think someone else knows it.",
-    "change": "Change",
     "twoStep": "Two-step verification",
     "twoStepRequired": "Required for your role · authenticator app",
     "twoStepOptional": "Optional for your role · authenticator app",
@@ -752,17 +753,8 @@
       "signedOut": "Device signed out",
       "signedOutAll": "Other devices signed out"
     },
-    "pwd": {
-      "title": "Change password",
-      "current": "Current password",
-      "new": "New password",
-      "newPlaceholder": "At least {n} characters",
-      "weak": "Use at least {n} characters with letters and numbers",
-      "repeat": "Repeat new password",
-      "mismatch": "The passwords don't match",
-      "note": "Other devices are signed out after the change.",
-      "save": "Change password",
-      "saved": "Password changed"
-    }
+    "signIn": "Sign-in",
+    "signInLink": "With a link we e-mail you, then your two-step code",
+    "signInGoogle": "With Google or a link we e-mail you, then your two-step code"
   }
 }

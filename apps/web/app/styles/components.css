@@ -231,6 +231,13 @@
 .an-banner .sub { display: block; font: 400 12px/16px var(--font-sans); color: var(--text-muted); }
 .an-banner .an-btn { margin-inline-start: auto; align-self: center; }
 
+/* Step-up: stage 2 of an action that needs a fresh two-step code (confirm, then the code). */
+.step-up-h { display: flex; align-items: flex-start; gap: var(--space-3); }
+.step-up-h b { display: block; font: 500 16px/24px var(--font-sans); }
+.step-up-h .sub { display: block; font: 400 14px/20px var(--font-sans); color: var(--text-muted); }
+.step-up-ic { display: grid; place-items: center; flex: none; width: var(--control-sm); height: var(--control-sm); border-radius: var(--radius-md); background: var(--accent-soft); color: var(--accent); }
+.step-up-btns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--space-2); width: 100%; }
+
 /* Tab bar (phone) */
 .an-tabbar { display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); border-top: 1px solid var(--line-soft); background: var(--surface-1); padding: var(--space-2) var(--space-1) var(--space-6); }
 .an-tab { display: grid; justify-items: center; gap: var(--space-1); min-height: var(--control-lg); padding: 0; border: 0; background: none; color: var(--text-muted); font: 400 12px/16px var(--font-sans); cursor: pointer; }

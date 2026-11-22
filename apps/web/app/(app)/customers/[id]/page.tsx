@@ -36,7 +36,7 @@ import {
 } from '@/components/ui';
 import { ChangeBrokerSheet } from '../ChangeBrokerSheet';
 import { NewSaleSheet } from '../../sales/NewSaleSheet';
-import { useCountryName } from '../AddCustomerSheet';
+import { LANG_KEY, useCountryName } from '../AddCustomerSheet';
 import { STATUS_TONE } from '../status';
 import s from '../customers.module.css';
 
@@ -295,7 +295,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
           <dt>{t('terms.minimum')}</dt>
           <dd>{t('terms.minimumValue', { n: num(minCartons) })}</dd>
           <dt>{t('fields.proformaLanguage')}</dt>
-          <dd>{cu.proformaLanguage === 'bg' ? t('terms.bulgarian') : t('terms.english')}</dd>
+          <dd>{t(`terms.${LANG_KEY[cu.proformaLanguage as keyof typeof LANG_KEY] ?? 'english'}`)}</dd>
         </dl>
         {cu.note && <p className="body-sm muted">{cu.note}</p>}
       </Card>

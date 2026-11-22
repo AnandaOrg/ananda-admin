@@ -36,7 +36,10 @@ import {
   Tag,
   TextField,
   Truck,
-  TwoStepField,
+  Totals,
+  CodeStep,
+  StepUpButtons,
+  useStepUp,
   UploadSimple,
   DateField,
 } from '@/components/ui';
@@ -160,7 +163,6 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const [amountCents, setAmountCents] = useState<number | null>(null);
   const [method, setMethod] = useState<string>('bank_transfer');
   const [bankReference, setBankReference] = useState('');
-  const [code, setCode] = useState('');
   useEffect(() => {
     if (q.data && amountCents == null) {
       const x = q.data.order;
@@ -171,14 +173,16 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   }, [q.data, amountCents]);
 
   const sendRequest = useAction(() => api.post(`/orders/${id}/send`), { success: t('flow.toast.sent'), errorToast: true });
-  const confirm = useAction(() => api.post<{ full: boolean }>(`/orders/${id}/confirm-payment`, { receivedOn, amountCents, method, bankReference: bankReference || undefined }, { code }), {
+  const confirm = useAction((code: string) => api.post<{ full: boolean }>(`/orders/${id}/confirm-payment`, { receivedOn, amountCents, method, bankReference: bankReference || undefined }, { code }), {
     success: (r) => (r.full ? (q.data?.order.paymentTerms === 'after_delivery_30' ? t('flow.toast.paidAfter') : t('flow.toast.paid')) : t('flow.toast.partPaid')),
     onDone: () => {
-      setCode('');
+      pay.reset();
       setAmountCents(null);
       setBankReference('');
     },
   });
+  // Two steps: Confirm payment, then the two-step code.
+  const pay = useStepUp(confirm);
   const toWarehouse = useAction(() => api.post(`/orders/${id}/send-to-warehouse`), { success: t('flow.toast.sentWh'), errorToast: true });
   const invoice = useAction(() => api.post<{ invoice: string }>(`/orders/${id}/invoice`), { success: (r) => t('flow.toast.invoiced', { number: iso(r.invoice) }), errorToast: true });
   const uncancel = useAction(() => api.post(`/orders/${id}/uncancel`), { success: t('order.undone', { number: q.data?.order.number ?? '' }), errorToast: true });
@@ -229,19 +233,34 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const invoiceDoc = d.documents.find((x) => x.type === 'invoice');
   const methodOptions = PAYMENT_METHODS.map((m) => ({ value: m, label: t(`method.${m}`), sub: t(`flow.${METHOD_SUB[m]}`) }));
 
-  const confirmForm = (
+  const confirmButtons = <StepUpButtons step={pay} block label={t('flow.confirm')} disabled={!amountCents || amountCents <= 0} onSubmit={() => confirm.mutate(pay.code)} />;
+  const confirmForm = pay.onCode ? (
+    <div className="act">
+      <CodeStep
+        step={pay}
+        summary={
+          <Totals
+            lines={[
+              [t('flow.dateReceived'), date(receivedOn)],
+              [t('flow.paidBy'), t(`method.${method}`)],
+              ...(bankReference.trim() ? [[t('flow.reference'), bankReference.trim()] as [string, string]] : []),
+            ]}
+            big={[t('flow.amount'), money(amountCents ?? 0)]}
+          />
+        }
+      />
+      {confirmButtons}
+    </div>
+  ) : (
     <div className="act">
       <div className="sales-grid2">
         <DateField label={t('flow.dateReceived')} value={receivedOn} max={isoDate()} onChange={setReceivedOn} />
         <MoneyField label={t('flow.amount')} cents={amountCents} onCents={setAmountCents} error={confirm.fields.amountCents} />
       </div>
       <Picker label={t('flow.paidBy')} value={method} options={methodOptions} placeholder={t('flow.paidBy')} onChange={setMethod} />
-      <TextField label={t('flow.reference')} placeholder={t('flow.referencePh')} value={bankReference} onChange={(e) => setBankReference(e.target.value)} />
-      <TwoStepField value={code} onChange={setCode} error={confirm.fields.code} />
-      <Button variant="primary" block disabled={code.length !== 6 || !amountCents} busy={confirm.isPending} onClick={() => confirm.mutate(undefined)}>
-        {t('flow.confirm')}
-      </Button>
-      <ActionError action={confirm} />
+      <TextField label={t('flow.reference')} placeholder={t('flow.referencePh')} value={bankReference} onChange={(e) => setBankReference(e.target.value)} error={confirm.fields.bankReference} />
+      {confirmButtons}
+      {pay.formError && !Object.keys(confirm.fields).length && <ActionError action={confirm} />}
     </div>
   );
 

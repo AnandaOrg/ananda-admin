@@ -120,6 +120,7 @@
     "minimumValue": "{n, plural, one {{n} carton} other {{n} cartons}}",
     "bulgarian": "Bulgarian",
     "english": "English",
+    "hebrew": "Hebrew",
     "before_shipping": "100% before shipping",
     "half_before_shipping": "50% now, 50% before shipping",
     "after_delivery_30": "30 days after delivery"
@@ -213,6 +214,7 @@
     "email": "E-mail for proformas",
     "terms": "Payment terms",
     "chooseTerms": "Choose payment terms",
+    "languageHelp": "Proformas, invoices and credit notes go out in this language.",
     "chooseBroker": "Choose a broker",
     "noBroker": "No broker (house customer)",
     "noBrokerDetail": "No commission on its orders",

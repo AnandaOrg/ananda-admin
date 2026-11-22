@@ -21,7 +21,10 @@ class Client {
     return { status: res.status, data: text ? JSON.parse(text) : null };
   }
   async login(email: string) {
-    const r = await this.req('POST', '/auth/login', { email, password: 'ananda-demo-2026' });
+    // Sign-in link (the API returns the token locally), then the two-step code.
+    const link = await this.req('POST', '/auth/link', { email });
+    assert.ok(link.data?.devToken, `sign-in link for ${email}`);
+    const r = await this.req('POST', '/auth/link/verify', { token: link.data.devToken, device: 'desktop' });
     assert.equal(r.status, 200, `login ${email}`);
     // First sign-in shows the QR code (setup) before a code can confirm it.
     if (r.data.twoStep === 'setup') assert.equal((await this.req('POST', '/auth/two-step/setup')).status, 201);
@@ -111,10 +114,31 @@ test('record scope: brokers cannot see other brokers’ orders; hidden areas are
 
 test('two-step sign-in is required for admins before anything else', async () => {
   const c = new Client();
-  await c.req('POST', '/auth/login', { email: 'maya@ananda.bg', password: 'ananda-demo-2026' });
+  const link = await c.req('POST', '/auth/link', { email: 'maya@ananda.bg' });
+  await c.req('POST', '/auth/link/verify', { token: link.data.devToken, device: 'desktop' });
   const r = await c.req('GET', '/home');
   assert.equal(r.status, 401);
   assert.equal(r.data.code, 'two_step_required');
+});
+
+test('a sign-in link works once, and passwords are gone', async () => {
+  const c = new Client();
+  const link = await c.req('POST', '/auth/link', { email: 'ivan@ananda.bg' });
+  assert.equal(link.status, 200);
+  assert.equal((await c.req('POST', '/auth/link/verify', { token: link.data.devToken, device: 'phone' })).status, 200);
+  const again = await new Client().req('POST', '/auth/link/verify', { token: link.data.devToken, device: 'phone' });
+  assert.equal(again.status, 400);
+  assert.equal(again.data.code, 'link_expired');
+  // Unknown addresses get the same answer, without a link.
+  const nobody = await new Client().req('POST', '/auth/link', { email: 'nobody@example.com' });
+  assert.equal(nobody.status, 200);
+  assert.equal(nobody.data.devToken, undefined);
+  assert.equal((await new Client().req('POST', '/auth/login', { email: 'ivan@ananda.bg', password: 'ananda-demo-2026' })).status, 404);
+  // A new link replaces the one before it.
+  const first = await new Client().req('POST', '/auth/link', { email: 'petya@ananda.bg' });
+  const second = await new Client().req('POST', '/auth/link', { email: 'petya@ananda.bg' });
+  assert.equal((await new Client().req('POST', '/auth/link/verify', { token: first.data.devToken, device: 'desktop' })).status, 400);
+  assert.equal((await new Client().req('POST', '/auth/link/verify', { token: second.data.devToken, device: 'desktop' })).status, 200);
 });
 
 test('Owed to us is the same figure on Home and Collections', async () => {

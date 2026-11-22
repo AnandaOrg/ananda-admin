@@ -1,5 +1,6 @@
 import { Body, Controller, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
+import { PROFORMA_LANGUAGES } from '@ananda/shared';
 import { Access, Auth, type AuthContext } from '../common/context';
 import { ZodPipe } from '../common/zod.pipe';
 import { CustomersService, PAYMENT_TERMS, type PaymentTerms } from './customers.service';
@@ -21,7 +22,7 @@ const formSchema = z.object({
   contactName: req(200),
   phone: opt(40),
   invoiceEmail: z.string().trim().email('That e-mail address looks incomplete.'),
-  proformaLanguage: z.enum(['en', 'bg']).optional(),
+  proformaLanguage: z.enum(PROFORMA_LANGUAGES).optional(),
   paymentTerms: z.enum(PAYMENT_TERMS as [PaymentTerms, ...PaymentTerms[]]).optional(),
   paymentTermsDays: z.number().int().min(0).max(120).optional(),
   note: opt(2000),

@@ -29,6 +29,8 @@ export {
   DownloadSimple,
   EnvelopeOpen,
   EnvelopeSimple,
+  GoogleLogo,
+  LinkBreak,
   Eye,
   FileText,
   Gear,

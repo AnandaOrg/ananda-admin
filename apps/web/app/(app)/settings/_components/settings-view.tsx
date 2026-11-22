@@ -5,11 +5,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { PRICE_TIERS, type BankSettings, type BusinessRules, type CompanyProfile, type EmailSettings } from '@ananda/shared';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { ActionError, Banner, Button, Chips, FileUpload, Card, Clock, Icon, IconButton, MoneyField, PageHeader, PageState, Plus, Select, Sheet, TextField, TwoStepField, UploadSimple, X } from '@/components/ui';
+import { ActionError, Banner, Button, Chips, FileUpload, Card, Clock, Icon, IconButton, MoneyField, PageHeader, PageState, Plus, Select, Sheet, TextField, Totals, CodeStep, StepUpButtons, useStepUp, UploadSimple, X } from '@/components/ui';
 import { ProfileDevices } from '../../profile/_components/profile-devices';
 import { SettingsTabs, type SettingsTab } from './settings-tabs';
 import css from '../settings.module.css';
@@ -23,7 +23,7 @@ export const CARDS = ['docs', 'mail', 'bank'] as const;
 type CardKey = (typeof CARDS)[number];
 type Open = { kind: 'rule'; key: Rule } | { kind: 'card'; key: CardKey } | null;
 
-type ProformaLanguage = 'per_customer' | 'en' | 'bg';
+type ProformaLanguage = 'per_customer' | 'en' | 'bg' | 'he';
 type TwoStepPolicy = 'admins_finance' | 'everyone' | 'optional' | 'custom';
 type SignOut = 'short' | 'standard' | 'never' | 'custom';
 
@@ -245,16 +245,16 @@ function RuleSheet({ rule, data, editable, onClose }: { rule: Rule; data: Settin
   const words = useRuleWords();
   const r = data.rules;
   const [draft, setDraft] = useState<BusinessRules>(r);
-  const [code, setCode] = useState('');
-  useEffect(() => {
-    setDraft(r);
-    setCode('');
-  }, [rule]); // eslint-disable-line react-hooks/exhaustive-deps
   const key = { ownership: 'ownership', stockHold: 'stockHoldDays', priceList: 'minOrderCartons', commission: 'commissionPerUnitCents' }[rule as 'ownership'] as keyof BusinessRules | undefined;
   const save = useAction((v: { value: unknown; code: string }) => api.patch(`/settings/rules/${key}`, { value: v.value }, { code: v.code }), { success: t('settings.rulePanel.saved'), onDone: onClose });
+  // Two steps: Save rule, then the two-step code.
+  const step = useStepUp(save);
+  const { reset } = step;
+  useEffect(() => {
+    setDraft(r);
+    reset();
+  }, [rule]); // eslint-disable-line react-hooks/exhaustive-deps
   const dirty = !!key && JSON.stringify(r[key]) !== JSON.stringify(draft[key]);
-  const err = save.error instanceof ApiError ? save.error : null;
-  const codeError = err?.code?.startsWith('step_up') ? err.message : undefined;
   const fe = (k?: string) => save.fields[k ? `value.${k}` : 'value'];
   const valid = rule === 'ownership' ? Number.isFinite(draft.ownership.months) : key ? Number.isFinite(draft[key] as number) : true;
   const w = words(rule, valid ? draft : r);
@@ -270,9 +270,7 @@ function RuleSheet({ rule, data, editable, onClose }: { rule: Rule; data: Settin
       sub={w.text}
       footer={
         editable ? (
-          <Button variant="primary" block busy={save.isPending} disabled={!dirty || !valid || code.length !== 6} onClick={() => key && save.mutate({ value: draft[key], code })}>
-            {t('settings.rulePanel.save')}
-          </Button>
+          <StepUpButtons step={step} block label={t('settings.rulePanel.save')} disabled={!dirty || !valid} onSubmit={() => key && save.mutate({ value: draft[key], code: step.code })} />
         ) : (
           <Button block onClick={onClose}>
             {tc('close')}
@@ -280,23 +278,40 @@ function RuleSheet({ rule, data, editable, onClose }: { rule: Rule; data: Settin
         )
       }
     >
-      {rule === 'ownership' ? (
-        <NumberField label={t('settings.rulePanel.months')} value={draft.ownership.months} onChange={(n) => set('ownership', { ...draft.ownership, months: n })} disabled={!editable} error={fe('months')} />
-      ) : rule === 'stockHold' ? (
-        <NumberField label={t('settings.rulePanel.holdDays')} value={draft.stockHoldDays} onChange={(n) => set('stockHoldDays', n)} disabled={!editable} error={fe()} />
-      ) : rule === 'priceList' ? (
+      {step.onCode ? (
+        <CodeStep
+          step={step}
+          summary={
+            <>
+              <span className="overline">{t(`settings.rule.${rule}.title`)}</span>
+              <Totals
+                lines={[
+                  [t('settings.rulePanel.now'), words(rule, r).value],
+                  [t('settings.rulePanel.next'), w.value],
+                ]}
+              />
+            </>
+          }
+        />
+      ) : (
         <>
-          <dl className={css.kv}>
-            {PRICE_TIERS.map((x) => (
-              <div key={x.minCartons} className={css.kvRow}>
-                <dt>{t('settings.rulePanel.tier', { from: num(x.minCartons), to: num(x.maxCartons) })}</dt>
-                <dd>
-                  <bdi>{money(x.unitPriceCents)}</bdi>
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <NumberField label={t('settings.rulePanel.minOrder')} value={draft.minOrderCartons} onChange={(n) => set('minOrderCartons', n)} disabled={!editable} error={fe()} help={t('settings.rulePanel.tiersFixed')} />
+          {rule === 'ownership' ? (
+            <NumberField label={t('settings.rulePanel.months')} value={draft.ownership.months} onChange={(n) => set('ownership', { ...draft.ownership, months: n })} disabled={!editable} error={fe('months')} />
+          ) : rule === 'stockHold' ? (
+            <NumberField label={t('settings.rulePanel.holdDays')} value={draft.stockHoldDays} onChange={(n) => set('stockHoldDays', n)} disabled={!editable} error={fe()} />
+          ) : rule === 'priceList' ? (
+            <>
+              <dl className={css.kv}>
+                {PRICE_TIERS.map((x) => (
+                  <div key={x.minCartons} className={css.kvRow}>
+                    <dt>{t('settings.rulePanel.tier', { from: num(x.minCartons), to: num(x.maxCartons) })}</dt>
+                    <dd>
+                      <bdi>{money(x.unitPriceCents)}</bdi>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <NumberField label={t('settings.rulePanel.minOrder')} value={draft.minOrderCartons} onChange={(n) => set('minOrderCartons', n)} disabled={!editable} error={fe()} help={t('settings.rulePanel.tiersFixed')} />
         </>
       ) : rule === 'commission' ? (
         <MoneyField label={t('settings.rulePanel.commission')} cents={draft.commissionPerUnitCents} onCents={(c) => set('commissionPerUnitCents', c ?? NaN)} disabled={!editable} error={fe()} />
@@ -331,8 +346,9 @@ function RuleSheet({ rule, data, editable, onClose }: { rule: Rule; data: Settin
           </div>
         </>
       )}
-      {editable && <TwoStepField value={code} onChange={setCode} error={codeError} />}
-      {!codeError && !Object.keys(save.fields).length && <ActionError action={save} />}
+      {step.formError && !Object.keys(save.fields).length && <ActionError action={save} />}
+        </>
+      )}
     </Sheet>
   );
 }
@@ -353,16 +369,16 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
   const tc = useTranslations('common');
   const init = initialDraft(card, data);
   const [v, setV] = useState<Record<string, unknown>>(init as unknown as Record<string, unknown>);
-  const [code, setCode] = useState('');
-  useEffect(() => {
-    setV(initialDraft(card, data) as unknown as Record<string, unknown>);
-    setCode('');
-  }, [card]); // eslint-disable-line react-hooks/exhaustive-deps -- a refetch (e.g. after a logo upload) keeps what was typed
   const title = t(`settings.cards.${card}.title`);
   const save = useAction((x: { value: unknown; code?: string }) => api.patch(`/settings/cards/${card}`, { value: x.value }, { code: x.code }), { success: t('settings.cardPanel.saved', { card: title }), onDone: onClose });
+  // A new IBAN or proforma validity takes two steps: Save, then the two-step code.
+  const step = useStepUp(save);
+  const { reset } = step;
+  useEffect(() => {
+    setV(initialDraft(card, data) as unknown as Record<string, unknown>);
+    reset();
+  }, [card]); // eslint-disable-line react-hooks/exhaustive-deps -- a refetch (e.g. after a logo upload) keeps what was typed
   const f = save.fields;
-  const err = save.error instanceof ApiError ? save.error : null;
-  const codeError = err?.code?.startsWith('step_up') ? err.message : undefined;
   const dirty = JSON.stringify(v) !== JSON.stringify(init);
   const needsCode = card === 'docs' ? Number(v.proformaValidityDays) !== data.documents.proformaValidityDays : card === 'bank' ? String(v.iban ?? '').replace(/\s+/g, '').toUpperCase() !== data.bank.iban : false;
   const set = (k: string, val: unknown) => setV((x) => ({ ...x, [k]: val }));
@@ -370,7 +386,7 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
     <TextField key={k} label={label} value={String(v[k] ?? '')} onChange={(e) => set(k, e.target.value)} disabled={!editable} error={f[`value.${k}`]} {...extra} />
   );
 
-  const submit = () => {
+  const submit = (code?: string) => {
     let value: unknown = v;
     if (card === 'docs') {
       const digits = String(v.nextInvoice ?? '').match(/(\d+)\s*$/);
@@ -379,6 +395,29 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
     if (card === 'bank') value = { ...v, accounts: ((v.accounts as string[]) ?? []).map((a) => a.trim()).filter(Boolean) };
     save.mutate({ value, code: needsCode ? code : undefined });
   };
+  const newIban = String(v.iban ?? '').replace(/\s+/g, '').toUpperCase();
+  const codeSummary =
+    card === 'bank' ? (
+      <>
+        <span className="overline">{t('settings.cards.bank.iban')}</span>
+        <Totals
+          lines={[
+            [t('settings.rulePanel.now'), data.bank.iban || '—'],
+            [t('settings.rulePanel.next'), newIban],
+          ]}
+        />
+      </>
+    ) : (
+      <>
+        <span className="overline">{t('settings.cardPanel.validDays')}</span>
+        <Totals
+          lines={[
+            [t('settings.rulePanel.now'), String(data.documents.proformaValidityDays)],
+            [t('settings.rulePanel.next'), String(v.proformaValidityDays)],
+          ]}
+        />
+      </>
+    );
 
   let body: ReactNode = null;
   if (card === 'docs') {
@@ -389,7 +428,7 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
     const cf = (k: keyof CompanyProfile, extra: Partial<Parameters<typeof TextField>[0]> = {}) => <TextField key={k} label={t(`settings.fields.${k}`)} value={c[k] ?? ''} onChange={setC(k)} disabled={!editable} error={f[`value.company.${k}`]} {...extra} />;
     body = (
       <>
-        <Select label={t('settings.cardPanel.proformaLanguage')} value={String(v.proformaLanguage)} onChange={(e) => set('proformaLanguage', e.target.value)} disabled={!editable} options={(['per_customer', 'en', 'bg'] as const).map((o) => ({ value: o, label: t(`settings.lang.${o}`) }))} />
+        <Select label={t('settings.cardPanel.proformaLanguage')} value={String(v.proformaLanguage)} onChange={(e) => set('proformaLanguage', e.target.value)} disabled={!editable} options={(['per_customer', 'en', 'bg', 'he'] as const).map((o) => ({ value: o, label: t(`settings.lang.${o}`) }))} />
         <NumberField label={t('settings.cardPanel.validDays')} value={Number(v.proformaValidityDays)} onChange={(n) => set('proformaValidityDays', n)} disabled={!editable} error={f['value.proformaValidityDays']} />
         <TextField label={t('settings.cardPanel.orderPrefix')} value={p.order} onChange={setP('order')} disabled={!editable} error={f['value.prefixes.order']} />
         <TextField label={t('settings.cardPanel.invoicePrefix')} value={p.invoice} onChange={setP('invoice')} disabled={!editable} error={f['value.prefixes.invoice']} />
@@ -473,12 +512,15 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
       title={title}
       footer={
         editable ? (
-          <>
-            <Button onClick={onClose}>{tc('cancel')}</Button>
-            <Button variant="primary" busy={save.isPending} disabled={!dirty || (needsCode && code.length !== 6)} onClick={submit}>
-              {tc('save')}
-            </Button>
-          </>
+          <StepUpButtons
+            step={step}
+            label={tc('save')}
+            secondary={<Button onClick={onClose}>{tc('cancel')}</Button>}
+            disabled={!dirty}
+            busy={save.isPending}
+            onConfirm={needsCode ? step.ask : () => submit()}
+            onSubmit={() => submit(step.code)}
+          />
         ) : (
           <Button block onClick={onClose}>
             {tc('close')}
@@ -486,12 +528,17 @@ function CardSheet({ card, data, editable, onClose }: { card: CardKey; data: Set
         )
       }
     >
-      {body}
-      <p className="muted body-sm">
-        {t(`settings.cardPanel.note.${card}`)} {t('settings.cardPanel.logged')}
-      </p>
-      {editable && needsCode && <TwoStepField value={code} onChange={setCode} error={codeError} />}
-      {!codeError && !Object.keys(f).length && <ActionError action={save} />}
+      {step.onCode ? (
+        <CodeStep step={step} summary={codeSummary} />
+      ) : (
+        <>
+          {body}
+          <p className="muted body-sm">
+            {t(`settings.cardPanel.note.${card}`)} {t('settings.cardPanel.logged')}
+          </p>
+          {step.formError && !Object.keys(f).length && <ActionError action={save} />}
+        </>
+      )}
     </Sheet>
   );
 }

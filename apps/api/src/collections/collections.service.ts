@@ -132,7 +132,7 @@ export class CollectionsService {
     if (!row) throw new NotFoundException({ message: 'Order not found' });
     const proforma = await this.proforma(orderId);
     const [company, bank] = await Promise.all([this.settings.get('company'), this.settings.get('bank')]);
-    const lang = row.c.proformaLanguage === 'bg' ? 'bg' : 'en';
+    const lang = row.c.proformaLanguage === 'bg' || row.c.proformaLanguage === 'he' ? row.c.proformaLanguage : 'en';
     const owed = Math.max(0, row.o.totalCents - row.o.paidCents - row.o.creditedCents);
     const days = lateDays(row.o.paymentDueOn, owed, row.o.status, isoDate());
     const doc = proforma?.number ?? row.o.number;
@@ -142,6 +142,11 @@ export class CollectionsService {
       const about = days ? `Здравейте, приятелско напомняне, че падежът на проформа ${doc} за ${amount} беше преди ${days} дни.` : `Здравейте, приятелско напомняне за проформа ${doc} за ${amount}.`;
       const pay = proforma ? 'Данните за плащане са в прикачената проформа.' : `Данни за плащане: IBAN ${bank.iban} · BIC ${bank.bic} · Основание ${doc}.`;
       return { to: row.c.invoiceEmail, subject: `Напомняне за плащане · ${doc}`, message: `${about} ${pay} Благодарим, ${sign}`, attached: !!proforma };
+    }
+    if (lang === 'he') {
+      const about = days ? `שלום, תזכורת ידידותית: מועד התשלום של חשבון עסקה ${doc} על סך ${amount} עבר לפני ${days} ימים.` : `שלום, תזכורת ידידותית לגבי חשבון עסקה ${doc} על סך ${amount}.`;
+      const pay = proforma ? 'פרטי התשלום מופיעים בחשבון העסקה המצורף.' : `פרטי תשלום: IBAN ${bank.iban} · BIC ${bank.bic} · אסמכתא ${doc}.`;
+      return { to: row.c.invoiceEmail, subject: `תזכורת תשלום · ${doc}`, message: `${about} ${pay} תודה, ${sign}`, attached: !!proforma };
     }
     const about = days ? `Hello, a friendly reminder that proforma ${doc} for ${amount} was due ${days} days ago.` : `Hello, a friendly reminder about proforma ${doc} for ${amount}.`;
     const pay = proforma ? 'Payment details are in the attached proforma.' : `Payment details: IBAN ${bank.iban} · BIC ${bank.bic} · Reference ${doc}.`;

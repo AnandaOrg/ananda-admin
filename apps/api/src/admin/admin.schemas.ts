@@ -1,6 +1,6 @@
 // Request bodies owned by the Admin module (FR-ADM-1, FR-ADM-3).
 import { z } from 'zod';
-import { roleSchema } from '@ananda/shared';
+import { PROFORMA_LANGUAGES, roleSchema } from '@ananda/shared';
 
 const text = (max = 200) => z.string().trim().max(max);
 const email = z.string().trim().toLowerCase().email('Enter a valid e-mail');
@@ -76,7 +76,7 @@ export const settingSchemas = {
     copyBroker: z.boolean(),
   }),
   documents: z.object({
-    languages: z.array(z.enum(['en', 'bg'])).min(1, 'Pick at least one language'),
+    languages: z.array(z.enum(PROFORMA_LANGUAGES)).min(1, 'Pick at least one language'),
     logoUrl: z
       .string()
       .trim()
@@ -89,7 +89,6 @@ export const settingSchemas = {
     desktopSessionHours: z.number().int().min(1, 'At least 1 hour').max(72, 'At most 72 hours'),
     phoneSessionDays: z.number().int().min(1, 'At least 1 day').max(90, 'At most 90 days'),
     inviteValidityDays: z.number().int().min(1, 'At least 1 day').max(30, 'At most 30 days'),
-    passwordMinLength: z.number().int().min(8, 'At least 8 characters').max(64),
   }),
 } as const;
 export type EditableSettingKey = keyof typeof settingSchemas;

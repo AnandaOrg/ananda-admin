@@ -49,7 +49,7 @@ div.prow { cursor: default; }
 .prow .r { text-align: end; font-variant-numeric: tabular-nums; }
 .prow .s { font: 400 13px/18px var(--font-sans); color: var(--text-muted); }
 .hlText { color: var(--text); }
-.phoneActs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.phoneActs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); width: 100%; }
 
 /* tile value with a small word after it ("€0 confirmed") */
 .small { font-size: 14px; letter-spacing: 0; color: var(--text-muted); }
