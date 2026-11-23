@@ -6,6 +6,7 @@ import {
   ORDER_UPLOAD_KINDS,
   ORDER_UPLOAD_MAX_BYTES,
   depositOf,
+  docNumber,
   type OrderUploadKind,
   UNITS_PER_CARTON,
   addDays,
@@ -160,6 +161,22 @@ export class OrdersService {
       items: rows.map((r) => ({ ...r, outstandingCents: Number(r.outstandingCents), daysLate: lateDays(r.paymentDueOn, Number(r.outstandingCents), r.status, today) })),
       counts: counts[0],
     };
+  }
+
+  /**
+   * The order an address points at: its id, or its number ("S-0026", typed or from an old link).
+   * Anything else, or a number the user can't see or that no longer exists, is not found (never a 400).
+   */
+  async resolveRef(auth: AuthContext, ref: string): Promise<string> {
+    const raw = ref.trim();
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return raw.toLowerCase();
+    if (raw && raw.length <= 40) {
+      const m = /^s-?(\d{1,8})$/i.exec(raw);
+      const numbers = [...new Set([raw.toUpperCase(), ...(m ? [docNumber('S', Number(m[1]))] : [])])];
+      const [hit] = await this.db.select({ id: orders.id }).from(orders).where(and(inArray(orders.number, numbers), orderScope(auth))).limit(1);
+      if (hit) return hit.id;
+    }
+    throw new NotFoundException({ message: 'Order not found' });
   }
 
   /** Loads an order the user may see, or fails as not found (scope is never revealed). */

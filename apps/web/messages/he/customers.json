@@ -86,6 +86,7 @@
   },
   "vatRegime": { "domestic": "בולגרי 20%", "eu_reverse_charge": "חיוב הפוך 0%", "eu_vat": "בולגרי 20%", "export": "בלי מע״מ בולגרי" },
   "tabs": {
+    "label": "חלקי הלקוח",
     "orders": "הזמנות",
     "payments": "תשלומים וזיכויים",
     "contacts": "אנשי קשר ותנאים",

@@ -15,6 +15,7 @@ import {
   Button,
   Card,
   CaretRight,
+  Icon,
   Check,
   CheckCircle,
   Count,
@@ -197,7 +198,7 @@ export default function PurchasePage() {
     { key: 'broker', header: t('waiting.broker'), render: (o) => <bdi>{o.brokerName ?? '—'}</bdi> },
     { key: 'cartons', header: tc('cartons'), type: 'count', render: (o) => <bdi>{num(o.cartons)}</bdi> },
     { key: 'status', header: tc('status'), type: 'status', render: (o) => <Pill tone="mute">{o.since ? t('waiting.since', { date: dateShort(o.since) }) : t('waiting.waiting')}</Pill> },
-    { key: 'go', header: <span className="sr-only" />, type: 'amount', render: () => <CaretRight className="an-ic sm subtle" aria-hidden /> },
+    { key: 'go', header: <span className="sr-only" />, type: 'amount', render: () => <Icon as={CaretRight} size="sm" className="subtle" /> },
   ];
 
   const fileIcon: Record<PurchaseFile['kind'], typeof FileText> = { purchase_order: FileText, supplier_invoice: FileText, carrier_invoice: Truck, received_note: CheckCircle, payment: Bank, upload: DownloadSimple };

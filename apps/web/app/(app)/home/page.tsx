@@ -11,7 +11,6 @@ import { useSession } from '@/lib/session';
 import { useMedia } from '@/lib/hooks';
 import { useAsOf } from '@/lib/asof';
 import {
-  ActionError,
   ArrowCounterClockwise,
   Bank,
   Button,
@@ -48,6 +47,7 @@ import { ReviewPanel } from './ReviewPanel';
 import { SetupBanner } from '../brokers/_components/SetupBanner';
 import { BrokerEmailSheet, BankSheet, LatePurchaseSheet, NoInvoiceSheet, OverdueSheet } from './HomeSheets';
 import { useDecision } from './useDecision';
+import { HomeSkeleton } from './HomeSkeleton';
 import type { Attention, HomeData, OkRow, Step } from './types';
 import s from './home.module.css';
 
@@ -78,7 +78,7 @@ export default function HomePage() {
     if (isWarehouse) router.replace('/warehouse');
   }, [isWarehouse, router]);
 
-  if (!home.data) return <PageState query={home} />;
+  if (!home.data) return <PageState query={home} skeleton={<HomeSkeleton phone={phone} />} />;
   const d = home.data;
   const setReview = (id: string | null) => router.replace(id ? `/home?review=${id}` : '/home', { scroll: false });
   const attention = (k: string) => d.attention.find((a) => a.kind === k) ?? null;
@@ -145,11 +145,6 @@ export default function HomePage() {
             </>
           )}
         </div>
-        {approve.variables === r.id && approve.error && (
-          <div className={s.arErr}>
-            <ActionError action={approve} message={t('review.approveFailedFor', { name: r.customerName ?? r.orderNumber ?? '' })} />
-          </div>
-        )}
       </div>
     );
   };
@@ -285,7 +280,7 @@ export default function HomePage() {
     const tm = d.tiles;
     if (setup) {
       return (
-        <div className="kpis">
+        <div className={`kpis ${s.tiles}`}>
           <KpiTile label={t('tiles.salesMonth')} value={money(0, true)} sub={t('tiles.firstSale')} />
           <KpiTile label={t('tiles.owed')} value={money(0, true)} sub={t('tiles.nothingToCollect')} />
           <KpiTile label={t('tiles.salesYear')} value={money(0, true)} />
@@ -354,7 +349,7 @@ export default function HomePage() {
       );
     }
     return (
-      <div className="kpis">
+      <div className={`kpis ${s.tiles}`}>
         <KpiTile
           label={t('tiles.salesMonth')}
           value={
@@ -363,7 +358,7 @@ export default function HomePage() {
             </>
           }
           sub={could}
-          link={{ href: '#what-to-do', label: t('whatToDo.title') }}
+          link={{ href: '#what-to-do', label: t('tiles.go.whatToDo') }}
           linkAccent
           onClick={() => setPanel('todo')}
         />
@@ -372,7 +367,7 @@ export default function HomePage() {
           value={money(tm.owed.cents, true)}
           sub={tm.owed.lateCents > 0 ? t('tiles.lateOfIt', { amount: money(tm.owed.lateCents, true) }) : t('tiles.nothingLate')}
           subTone={tm.owed.lateCents > 0 ? 'bad' : undefined}
-          link={canView('collections') ? { href: '/collections', label: t('tiles.openCollections') } : undefined}
+          link={canView('collections') ? { href: '/collections', label: t('tiles.go.collections') } : undefined}
           onClick={canView('collections') ? () => router.push('/collections') : undefined}
         />
         {isBroker && tm.commission ? (
@@ -386,7 +381,7 @@ export default function HomePage() {
               label={t('tiles.salesYear')}
               value={money(tm.salesYear.cents, true)}
               sub={yearSub}
-              link={canView('pnl') ? { href: '/money/pnl', label: t('tiles.byMonth') } : undefined}
+              link={canView('pnl') ? { href: '/money/pnl', label: t('tiles.go.byMonth') } : undefined}
               onClick={canView('pnl') ? () => router.push('/money/pnl') : undefined}
             />
             {tm.dealProfitYear && (
@@ -395,7 +390,7 @@ export default function HomePage() {
                 value={money(tm.dealProfitYear.cents, true)}
                 valueTone={tm.dealProfitYear.cents >= 0 ? 'good' : 'bad'}
                 sub={t('tiles.paidDealsOnly')}
-                link={{ href: '/money/deal-profit', label: tc('nav.deal_profit') }}
+                link={{ href: '/money/deal-profit', label: t('tiles.go.dealProfit') }}
                 onClick={() => router.push('/money/deal-profit')}
               />
             )}
@@ -416,7 +411,7 @@ export default function HomePage() {
         {t('stock.title')}
         {canView('inventory') && (
           <span className={s.go}>
-            {t('stock.inventory')} <Icon as={CaretRight} size="sm" className="flip" />
+            {t('stock.inventory')} <Icon as={CaretRight} size="sm" />
           </span>
         )}
       </span>
@@ -672,7 +667,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="page">
+    <div className={`page ${phone || setup ? '' : s.fit}`}>
       {isBroker && <SetupBanner />}
       {header}
       {phone ? (

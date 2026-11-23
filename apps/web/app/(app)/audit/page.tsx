@@ -358,7 +358,7 @@ export default function AuditPage() {
               <bdi>{f.sentence(open)}</bdi>
             </h4>
             <span>{typePill(open)}</span>
-            <dl className="an-kv">
+            <dl className={`an-kv ${css.kv}`}>
               <dt>{t('audit.entry.when')}</dt>
               <dd>
                 {date(open.at)} · <bdi>{time(open.at)}</bdi>

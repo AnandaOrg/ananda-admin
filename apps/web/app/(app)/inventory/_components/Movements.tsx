@@ -6,7 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { FLAVOURS, type Flavour } from '@ananda/shared';
 import { api, qs } from '@/lib/api';
 import { useFmt } from '@/lib/format';
-import { Button, Card, ClockCounterClockwise, EmptyState, ErrorState, ListCard, Skeleton, Table, type Column } from '@/components/ui';
+import { Button, Card, ClockCounterClockwise, EmptyState, ErrorState, Skeleton, Table, type Column } from '@/components/ui';
+import css from '../inventory.module.css';
 
 export interface Movement {
   id: string;
@@ -103,26 +104,18 @@ export function Movements() {
       <Card flush className="only-wide">
         <Table columns={cols} rows={items} rowKey={(m) => m.id} />
       </Card>
-      <div className="list-cards only-phone">
+      {/* phone: a plain list (design): the reason and the units, then date · flavour · who. Rows don't open anything. */}
+      <ul className={`only-phone ${css.moves}`}>
         {items.map((m) => (
-          <ListCard
-            key={m.id}
-            title={why(m)}
-            amount={<span className={m.units < 0 ? 'bad' : 'good'}>{signed(m.units)}</span>}
-            sub={
-              <>
-                {date(m.at)} · {flavours(m)}
-                {m.by && (
-                  <>
-                    {' · '}
-                    <bdi>{m.by}</bdi>
-                  </>
-                )}
-              </>
-            }
-          />
+          <li key={m.id} className={css.move}>
+            <span className={css.moveWhy}>{why(m)}</span>
+            <bdi className={`${css.moveUnits} ${m.units < 0 ? 'bad' : 'good'}`}>{signed(m.units)}</bdi>
+            <span className={css.moveSub}>
+              <bdi>{date(m.at)}</bdi> · {flavours(m)} · {m.by ? <bdi>{m.by}</bdi> : t('movements.system')}
+            </span>
+          </li>
         ))}
-      </div>
+      </ul>
       {q.data?.next && limit < 500 && (
         <div className="row end">
           <Button busy={q.isFetching} onClick={() => setLimit(limit + 100)}>

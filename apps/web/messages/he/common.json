@@ -327,7 +327,7 @@
       "body": "{order} · {customer}"
     },
     "broker_signed": {
-      "title": "{broker} חתם/ה על הסכם הברוקר",
+      "title": "{broker} חתם/ה על ההסכם",
       "body": "פרטי החברה והבנק הוזנו. יש לחתום גם כדי להשלים את ההגדרה."
     },
     "delivered": {

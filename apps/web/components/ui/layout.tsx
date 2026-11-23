@@ -155,8 +155,9 @@ export interface Column<T> {
   /** Cut long text with … and show the full text in a tooltip (true, or the max width). */
   trunc?: boolean | number | string;
   /**
-   * The main text column (name, description): takes the leftover width and wraps to 2 lines. Defaults
+   * The main text column (name, description): wraps to 2 lines when the columns don't fit. Defaults
    * to the first text column. Every other column fits its content and never wraps, unless `wrap` is set.
+   * When everything fits, each column is as wide as its content plus an equal share of the spare width.
    */
   main?: boolean;
   /** Let this (non-main) text column wrap, e.g. a long description next to the name. */
@@ -285,6 +286,57 @@ function useColumnPicker<T>(columns: Column<T>[], opts: ColumnPickerOptions | un
 }
 
 /**
+ * Prototype ("evenCols"): every column as wide as its content and the spare width shared equally
+ * between the columns. Measures each column at max-content (nothing wraps) and, when they all fit,
+ * gives every column but the last the same extra end padding (`--tbl-extra`, see app.css). When they
+ * don't fit, the extra is 0 and the main column wraps (2 lines). Re-measures on every render and when
+ * the table's box resizes. Exported for hand-made `.an-tbl` tables (audit day list).
+ */
+export function useEvenColumns(table: React.RefObject<HTMLTableElement | null>, enabled = true) {
+  const [tick, setTick] = useState(0);
+  useLayoutEffect(() => {
+    const tb = table.current;
+    if (!tb) return;
+    const set = (v: number) => {
+      const next = v > 0 ? `${v}px` : '';
+      if (tb.style.getPropertyValue('--tbl-extra') !== next) {
+        if (next) tb.style.setProperty('--tbl-extra', next);
+        else tb.style.removeProperty('--tbl-extra');
+      }
+    };
+    const head = tb.tHead?.rows[0];
+    const n = head?.cells.length ?? 0;
+    if (!enabled || !head || n < 2 || tb.classList.contains('measuring')) return set(0);
+    tb.classList.add('fit0');
+    const avail = tb.getBoundingClientRect().width;
+    tb.classList.add('fit');
+    let total = 0;
+    for (const c of head.cells) total += c.getBoundingClientRect().width;
+    tb.classList.remove('fit', 'fit0');
+    // floor to 1/100 px so rounding never pushes the table past its box
+    set(avail > 0 && total < avail ? Math.floor(((avail - total) / (n - 1)) * 100) / 100 : 0);
+  });
+  useEffect(() => {
+    const tb = table.current;
+    const box = tb?.parentElement;
+    if (!box) return;
+    let last = box.clientWidth;
+    const ro = new ResizeObserver(() => {
+      const w = box.clientWidth;
+      if (Math.abs(w - last) > 0.5) {
+        last = w;
+        setTick((x) => x + 1);
+      }
+    });
+    ro.observe(box);
+    // web fonts change every width once they arrive
+    document.fonts?.ready.then(() => setTick((x) => x + 1)).catch(() => {});
+    return () => ro.disconnect();
+  }, [table]);
+  return tick;
+}
+
+/**
  * Data table inside a card: counts centred, amounts end-aligned, tabular figures, sticky header.
  * `loading` shows six skeleton rows (after ~300 ms); `error` shows "Couldn't load this list" with
  * Try again (`onRetry`) in place of the rows. `picker` adds the 768–1023 column picker.
@@ -319,6 +371,8 @@ export function Table<T>({
   const tbl = useRef<HTMLTableElement>(null);
   const late = useDelayed(!!loading);
   const { visible, picker: pk } = useColumnPicker(columns, picker, wrap, tbl, rows.length);
+  // skeleton, error and empty rows span the table: nothing to share out
+  useEvenColumns(tbl, !loading && !error && rows.length > 0);
   const mainKey = (columns.find((c) => c.main) ?? columns.find((c) => (c.type ?? 'text') === 'text' && c.header !== '' && c.header != null))?.key;
   const cls = (c: Column<T>) => `${c.type === 'count' ? 'num' : c.type === 'amount' ? 'amt' : c.type === 'date' ? 'dt' : c.type === 'status' ? 'st' : ''} ${c.key === mainKey ? 'c-main' : c.wrap ? 'c-wrap' : ''} ${c.className ?? ''}`;
   const cell = (c: Column<T>, r: T) => {

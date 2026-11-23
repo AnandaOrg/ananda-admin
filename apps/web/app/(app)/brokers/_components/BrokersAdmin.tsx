@@ -10,7 +10,6 @@ import { useSession } from '@/lib/session';
 import {
   Briefcase,
   Button,
-  RowActions,
   CaretRight,
   Card,
   EmptyState,
@@ -74,7 +73,7 @@ export function BrokersAdmin() {
     </Button>
   ) : undefined;
 
-  // Pay buttons on the row: Send to pay (or "With the accountant") and Mark as paid.
+  // Pay buttons on the row, as the prototype: Send to pay (or "With the accountant") and Mark as paid side by side.
   const payButtons = (a: BrokerRow, phone = false) => {
     if (!mayPay || a.setup !== 'done') return null;
     const sent = a.sentCents > 0;
@@ -94,22 +93,6 @@ export function BrokersAdmin() {
       </>
     );
   };
-  // Desktop row: Send to pay and Mark as paid share one menu button.
-  const payMenu = (a: BrokerRow) => {
-    if (!mayPay || a.setup !== 'done') return null;
-    const sent = a.sentCents > 0;
-    if (!sent && a.readyCents <= 0) return null;
-    if (sent) return payButtons(a);
-    return (
-      <RowActions
-        label={t('table.actions')}
-        actions={[
-          { key: 'send', label: t('sendToPay'), icon: EnvelopeSimple, onSelect: () => setSend(a) },
-          { key: 'paid', label: t('markPaid'), icon: Money, onSelect: () => setPaid(a) },
-        ]}
-      />
-    );
-  };
   const countersignButton = (a: BrokerRow, phone = false) =>
     a.setup === 'countersign' && mayEdit ? (
       <Button size={phone ? 'md' : 'sm'} variant="primary" icon={Signature} onClick={() => setCounter(a.id)}>
@@ -117,7 +100,18 @@ export function BrokersAdmin() {
       </Button>
     ) : null;
   const ready = (a: BrokerRow) => (a.paidTodayCents > 0 && a.readyCents === 0 && a.sentCents === 0 ? <Pill tone="good">{t('table.paidToday')}</Pill> : <bdi>{money(a.readyCents)}</bdi>);
-  const role = (a: BrokerRow) => t('table.role', { status: t(`table.status.${a.status === 'invited' ? 'invited' : a.setup}`) });
+  // A new broker waiting to be countersigned reads "{company} · New broker", not as an active broker (prototype).
+  const role = (a: BrokerRow) =>
+    a.setup === 'countersign'
+      ? a.companyName
+        ? t('table.newBroker', { company: a.companyName })
+        : t('table.newBrokerNoCompany')
+      : t('table.role', { status: t(`table.status.${a.status === 'invited' ? 'invited' : a.setup}`) });
+  // Brokers still setting up aren't expected to sell yet: "–" instead of a (red) zero.
+  const settingUp = (a: BrokerRow) => a.setup !== 'done';
+  // The new broker's row opens the countersign panel (prototype); every other row the broker panel.
+  const openRow = (a: BrokerRow) => (a.setup === 'countersign' && mayEdit ? setCounter(a.id) : setDetail(a));
+  const count = (a: BrokerRow, n: number, red = false) => (settingUp(a) && n === 0 ? <span>–</span> : <span className={red && n === 0 ? s.zero : ''}>{n}</span>);
 
   const columns: Column<BrokerRow>[] = [
     {
@@ -130,8 +124,8 @@ export function BrokersAdmin() {
         </>
       ),
     },
-    { key: 'customers', header: t('table.customers'), type: 'count', render: (a) => a.customers },
-    { key: 'orders', header: t('table.ordersThisMonth'), type: 'count', render: (a) => <span className={a.ordersThisMonth === 0 ? s.zero : ''}>{a.ordersThisMonth}</span> },
+    { key: 'customers', header: t('table.customers'), type: 'count', render: (a) => count(a, a.customers) },
+    { key: 'orders', header: t('table.ordersThisMonth'), type: 'count', render: (a) => count(a, a.ordersThisMonth, true) },
     { key: 'ready', header: t('table.ready'), type: 'amount', render: ready },
     { key: 'coming', header: t('table.coming'), type: 'amount', render: (a) => <bdi>{money(a.comingCents)}</bdi> },
     {
@@ -140,7 +134,7 @@ export function BrokersAdmin() {
       render: (a) => (
         <span className={s.acts} onClick={(e) => e.stopPropagation()}>
           {countersignButton(a)}
-          {payMenu(a)}
+          {payButtons(a)}
         </span>
       ),
     },
@@ -234,14 +228,14 @@ export function BrokersAdmin() {
       )}
 
       <Card flush className="only-wide" id="brokers-table">
-        <Table columns={columns} rows={d.brokers} rowKey={(a) => a.id} onRow={(a) => setDetail(a)} picker={{ id: 'brokers', locked: ['broker', 'coming', 'act'], priority: ['customers', 'orders', 'ready'] }} />
+        <Table columns={columns} rows={d.brokers} rowKey={(a) => a.id} onRow={openRow} rowClass={(a) => (a.setup === 'countersign' ? s.nbRow : '')} picker={{ id: 'brokers', locked: ['broker', 'coming', 'act'], priority: ['customers', 'orders', 'ready'] }} />
         <div className={s.foot}>{t('table.foot', { perUnit })}</div>
       </Card>
 
       <div className="list-cards only-phone">
         {d.brokers.map((a) => (
           <div key={a.id} className={s.pcard}>
-            <button type="button" className={s.phead} onClick={() => setDetail(a)}>
+            <button type="button" className={s.phead} onClick={() => openRow(a)}>
               <span className="row between">
                 <span className={s.pname}>
                   {a.name}
@@ -253,7 +247,7 @@ export function BrokersAdmin() {
                   <Icon as={CaretRight} size="sm" />
                 </span>
               </span>
-              <span className={s.psub}>{t('table.phoneSub', { n: a.customers, last: lastOrder(a) })}</span>
+              <span className={s.psub}>{a.setup === 'countersign' ? role(a) : t('table.phoneSub', { n: a.customers, last: lastOrder(a) })}</span>
             </button>
             <div className={s.prow}>
               <span>{t('table.ready')}</span>
@@ -265,7 +259,7 @@ export function BrokersAdmin() {
             </div>
             <div className={s.prow}>
               <span>{t('table.ordersThisMonth')}</span>
-              <span className={a.ordersThisMonth === 0 ? s.zero : ''}>{a.ordersThisMonth}</span>
+              {count(a, a.ordersThisMonth, true)}
             </div>
             {(payButtons(a, true) || countersignButton(a, true)) && (
               <div className={s.pbtns}>

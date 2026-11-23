@@ -61,6 +61,8 @@ html[data-theme="light"] select option { background: var(--surface-1); color: va
 .app-side .an-ni .nlbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-side .an-ni > :not(.nlbl) { flex: none; }
 .app-side .an-ni[aria-current="page"] { font-weight: 400; }
+/* the current page also gets a small accent dot at the end of its row (prototype .ni .dt); a fill only, edged in light */
+.app-side .an-ni .ni-dot { margin-inline-start: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent-edge); }
 .app-side .an-me { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: var(--space-3); margin: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-2); cursor: pointer; flex: none; transition: background-color 120ms; }
 .app-side .an-me:hover, .app-side .an-me.on { background: var(--surface-3); }
 .app-side .an-me:focus-visible { outline: var(--focus-ring) solid var(--accent); outline-offset: 2px; }
@@ -193,7 +195,11 @@ html[data-theme="light"] select option { background: var(--surface-1); color: va
 /* Phone sheets (notifications, calendar, profile, More) */
 .an-psheet { position: fixed; inset-inline: 0; bottom: 0; z-index: 51; background: var(--surface-1); border-top: 1px solid var(--line-soft); border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 88dvh; overflow-y: auto; display: grid; align-content: start; padding-bottom: env(safe-area-inset-bottom); }
 .an-psheet > .an-grab { margin-top: var(--space-2); }
-.an-psheet.pop-nt { grid-template-rows: auto auto auto minmax(0, 1fr) auto; overflow: hidden; }
+/* Notifications on phone (prototype 17 Nov): grab, title, tabs, list, footer, one track each and never wider than the
+   phone; All / Unread and "Mark all as read" share one row (a long label wraps at the end) above the first day label. */
+.an-psheet.pop-nt { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr) auto; overflow: hidden; }
+.an-psheet.pop-nt .nt-tabs > .an-tabx { flex: none; }
+.an-psheet.pop-nt .nt-tabs > .nt-link { flex: 0 1 auto; min-width: 0; margin-inline-start: auto; text-align: end; }
 .an-psheet:not(.pop-nt):not(.pop-cal) { padding: var(--space-2) var(--space-4) var(--space-6); gap: var(--space-2); }
 .an-psheet .ps-x { position: absolute; top: var(--space-3); inset-inline-end: var(--space-3); }
 .an-psheet .ps-head { display: flex; gap: var(--space-3); align-items: center; padding-top: var(--space-2); }
@@ -219,6 +225,7 @@ html[data-theme="light"] select option { background: var(--surface-1); color: va
   .app-side:not(.open) .an-brand .mk { background: none; color: var(--text); font-size: 22px; line-height: 1; box-shadow: none; }
   .app-side:not(.open) .side-scroll { padding: var(--space-1) var(--space-2); }
   .app-side:not(.open) .an-ni { justify-content: center; padding-inline: 0; gap: 0; }
+  .app-side:not(.open) .an-ni .ni-dot { position: absolute; top: var(--space-2); inset-inline-end: 10px; margin: 0; }
   .app-side:not(.open) .an-ni .an-count { position: absolute; top: var(--space-1); inset-inline-end: var(--space-1); min-width: 16px; height: 16px; padding-inline: var(--space-1); margin: 0; }
   .app-side:not(.open) .an-nav .g { height: 1px; padding: 0; margin: var(--space-2) var(--space-3); background: var(--line-soft); font-size: 0; overflow: hidden; }
   .app-side:not(.open) .an-me { justify-content: center; padding: var(--space-2) 0; background: none; }
@@ -335,6 +342,14 @@ html[data-theme="light"] select option { background: var(--surface-1); color: va
 .chips-measure { position: absolute; width: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
 .chips-measure .an-chips { width: max-content; }
 .an-chips { overflow: hidden; }
+/* Phone: a chip row that doesn't fit scrolls sideways with no scrollbar (prototype CHIPROW); one placed
+   directly in the page runs to the screen edge, its first chip still on the page margin. */
+@media (max-width: 767px) {
+  .chips-wrap > .an-chips.scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .chips-wrap > .an-chips.scroll::-webkit-scrollbar { display: none; }
+  .chips-wrap > .an-chips.scroll > .an-chip { flex: none; }
+  .page > .chips-wrap > .an-chips.scroll { margin-inline: calc(-1 * var(--page-margin-phone)); padding-inline: var(--page-margin-phone); scroll-padding-inline: var(--page-margin-phone); }
+}
 .an-chip .c { color: inherit; font-variant-numeric: tabular-nums; white-space: pre; }
 .toolbar { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .toolbar .an-search { flex: 1; min-width: 220px; width: auto; }
@@ -345,8 +360,7 @@ html[data-theme="light"] select option { background: var(--surface-1); color: va
 .an-input:is(select) { appearance: none; background-image: none; padding-inline-end: calc(var(--space-8) + var(--space-1)); }
 .an-select-wrap { position: relative; display: block; }
 .an-select-wrap > .an-select-caret { position: absolute; inset-inline-end: var(--space-3); top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); display: grid; }
-.an-money { padding-inline-end: 0; }
-.an-money > input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; color: inherit; font: inherit; outline: none; font-variant-numeric: tabular-nums; }
+.an-money { font-variant-numeric: tabular-nums; }
 textarea.an-area::placeholder { color: var(--text-muted); }
 .an-field.code .an-input { letter-spacing: .4em; text-align: center; font-size: 22px; line-height: 28px; }
 
@@ -472,21 +486,26 @@ html[data-looking-back] .an-btn.primary:disabled:not(.keep) { background: var(--
 @media (prefers-reduced-motion: reduce) { .toasts .an-toast { animation: none; } }
 
 /* ---------- Tables (README: Tables) ----------
-   Columns fit their content; the main text column takes the leftover space and wraps to 2 lines. Numbers, amounts, dates,
+   Columns fit their content and share the spare width equally; when they don't fit, the main text column wraps to 2 lines. Numbers, amounts, dates,
    headers and status pills never wrap. Counts are centred, amounts end-aligned. */
 .an-tbl thead th { position: sticky; top: 0; z-index: 2; background: linear-gradient(var(--line-soft), var(--line-soft)) bottom / 100% 1px no-repeat var(--surface-1); border-bottom: 0; }
 .an-tbl td.amt, .an-tbl td.num, .an-tbl td.dt, .an-tbl td.st, .an-tbl td .an-pill, .an-tbl td .an-btn { white-space: nowrap; }
 .an-tbl td .an-pill { vertical-align: middle; }
-.an-tbl td.c-main, .an-tbl th.c-main { width: 100%; }
 .an-tbl td.c-main { white-space: normal; }
-/* while the column picker measures the narrowest table, the main column's 100% must not inflate it */
-.an-tbl.measuring :is(th, td).c-main { width: auto; }
+/* every column fits its content and the spare width is shared equally (prototype "evenCols"): useEvenColumns
+   sets --tbl-extra, added to the end padding of every column but the last. Measuring (.fit0, .fit, the column
+   picker's .measuring) is done without it; .fit lays the table out at max-content with nothing wrapping. */
+.an-tbl { --tbl-pe: var(--space-4); }
+.an-tbl :is(th, td):not(:last-child) { padding-inline-end: calc(var(--tbl-pe) + var(--tbl-extra, 0px)); }
+.an-tbl:is(.fit0, .fit, .measuring) { --tbl-extra: 0px !important; }
+.an-tbl.fit { width: max-content !important; min-width: 0 !important; max-width: none !important; }
+.an-tbl.fit :is(th, td), .an-tbl.fit :is(th, td) * { white-space: nowrap !important; }
 .an-tbl.measuring .clamp2, .an-tbl.measuring .clamp2 > .nm { display: block; }
 /* the main column wraps (2 lines) even if a page marked the name nowrap */
 .an-tbl td.c-main .nowrap { white-space: normal; }
 @media (min-width: 1024px) { .an-tbl td.c-main { min-width: 160px; } }
 /* 768–1023: the defaults of the column picker fit in Bulgarian, so cells give up a little side padding */
-@media (min-width: 768px) and (max-width: 1023px) { .an-tbl :is(th, td):not(:first-child):not(:last-child) { padding-inline: var(--space-2); } .an-tbl :is(th, td):first-child { padding-inline-end: var(--space-2); } }
+@media (min-width: 768px) and (max-width: 1023px) { .an-tbl { --tbl-pe: var(--space-2); } .an-tbl :is(th, td):not(:first-child):not(:last-child) { padding-inline-start: var(--space-2); } }
 /* the main text wraps to 2 lines; with a name and a sub-line (.nm + .sb) the name takes the 2 lines and the sub-line stays */
 .an-tbl .clamp2 { display: block; overflow-wrap: anywhere; }
 .an-tbl .clamp2:not(:has(> .nm)), .an-tbl .clamp2 > .nm { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
@@ -535,7 +554,6 @@ html[data-looking-back] .an-btn.primary:disabled:not(.keep) { background: var(--
 .an-dd-btn.on { border-color: var(--accent); }
 .an-dd-btn .an-ic { color: var(--text-muted); }
 .chips-wrap .menu-wrap { display: inline-block; }
-@media (max-width: 767px) { .chips-wrap .menu-wrap, .chips-wrap .an-dd-btn { display: flex; width: 100%; } .an-dd-btn { height: var(--control-md); } }
 
 /* Search: closest matches drop down under the bar */
 .an-ddl { position: absolute; top: calc(100% + calc(var(--space-1) * 1.5)); inset-inline: 0; z-index: 30; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-1); display: grid; gap: 2px; box-shadow: var(--shadow-popover); min-width: 260px; }

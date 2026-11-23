@@ -1,6 +1,7 @@
 // Numbers, money and dates per language (design system: Numbers, money and dates).
-// EN/HE: €6,822.72 · 3 Nov 2026. BG: €6 822,72 · 03.11.2026 (euro sign first, space groups
-// thousands even in four-digit numbers), which Intl.NumberFormat('bg-BG') does not produce.
+// EN/HE: €6,822.72 · 3 Nov 2026. BG: 6822,72 € · 36 635 € · 03.11.2026 — the euro sign goes after the
+// amount with a space (Bulgarian National Bank guidance), the decimal mark is a comma, and thousands
+// get a (non-breaking) space only from five digits on, as Bulgarian browsers write it.
 
 export const LOCALES = ['en', 'bg', 'he'] as const;
 export type Locale = (typeof LOCALES)[number];
@@ -8,6 +9,9 @@ export type Locale = (typeof LOCALES)[number];
 export function isRtl(locale: string): boolean {
   return locale === 'he';
 }
+
+/** Non-breaking space: BG thousands groups and the space before the euro sign never break across lines. */
+const NBSP = '\u00a0';
 
 function group(intPart: string, sep: string): string {
   return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
@@ -18,21 +22,55 @@ export function formatNumber(value: number, locale: Locale | string = 'en', deci
   const fixed = Math.abs(value).toFixed(decimals);
   const [i, d] = fixed.split('.');
   const bg = locale === 'bg';
-  const out = group(i, bg ? ' ' : ',') + (d ? (bg ? ',' : '.') + d : '');
-  return (neg ? '−' : '') + out;
+  // BG: 3708 but 36 338 (no group separator in four-digit numbers).
+  const int = bg ? (i.length > 4 ? group(i, NBSP) : i) : group(i, ',');
+  const out = int + (d ? (bg ? ',' : '.') + d : '');
+  return (neg && Number(fixed) !== 0 ? '−' : '') + out;
+}
+
+/** Puts the euro sign where the language writes it: EN/HE "€6,822.72", BG "6822,72 €". */
+function withEuro(body: string, locale: Locale | string): string {
+  return locale === 'bg' ? body + NBSP + '€' : '€' + body;
 }
 
 /** Money from cents. `whole` drops the cents (KPI tiles). */
 export function formatMoney(cents: number, locale: Locale | string = 'en', opts: { whole?: boolean } = {}): string {
   const euros = cents / 100;
-  const neg = euros < 0;
   const body = formatNumber(Math.abs(euros), locale, opts.whole ? 0 : 2);
-  return (neg ? '−' : '') + '€' + body;
+  const neg = euros < 0 && /[1-9]/.test(body);
+  return (neg ? '−' : '') + withEuro(body, locale);
 }
 
 /** Unit prices may carry fractional cents (landed cost); shown with 2–4 decimals. */
 export function formatUnitPrice(cents: number, locale: Locale | string = 'en', decimals = 2): string {
-  return '€' + formatNumber(cents / 100, locale, decimals);
+  const body = formatNumber(Math.abs(cents) / 100, locale, decimals);
+  return (cents < 0 && /[1-9]/.test(body) ? '−' : '') + withEuro(body, locale);
+}
+
+/**
+ * Reads a typed amount back into cents (money inputs). Accepts what formatMoney writes in the
+ * language ("€10,382.40", "10 382,40 €") and plain typing ("10382.4", "10382,40"). BG: a comma or a
+ * dot is the decimal mark. EN/HE: the dot is; a comma groups thousands unless it ends the number
+ * with one or two digits ("10,5"). Null when there is no number.
+ */
+export function parseMoney(input: string, locale: Locale | string = 'en'): number | null {
+  const neg = /[−-]/.test(input);
+  let s = input.replace(/[^\d.,]/g, '');
+  if (!/\d/.test(s)) return null;
+  if (locale === 'bg') {
+    const at = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
+    s = at < 0 ? s : s.slice(0, at).replace(/[.,]/g, '') + '.' + s.slice(at + 1).replace(/[.,]/g, '');
+  } else if (!s.includes('.') && /,\d{1,2}$/.test(s)) {
+    const at = s.lastIndexOf(',');
+    s = s.slice(0, at).replace(/,/g, '') + '.' + s.slice(at + 1);
+  } else {
+    const at = s.lastIndexOf('.');
+    s = at < 0 ? s.replace(/,/g, '') : s.slice(0, at).replace(/[.,]/g, '') + '.' + s.slice(at + 1).replace(/[.,]/g, '');
+  }
+  const n = parseFloat(s);
+  if (!Number.isFinite(n)) return null;
+  const cents = Math.round(n * 100);
+  return neg ? -cents : cents;
 }
 
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];

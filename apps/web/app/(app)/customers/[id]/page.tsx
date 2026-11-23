@@ -192,7 +192,7 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
           { key: 'd', header: tc('created'), render: (o) => date(o.requestSentAt ?? o.createdAt) },
           { key: 't', header: tc('totalInclVat'), type: 'amount', render: (o) => money(o.totalCents) },
           { key: 's', header: tc('status'), type: 'status', render: (o) => <OrderStatusPill status={o.status} daysLate={late(o)} /> },
-          { key: 'go', header: '', width: 40, render: () => <Icon as={CaretRight} size="sm" className="subtle flip" /> },
+          { key: 'go', header: '', width: 40, render: () => <Icon as={CaretRight} size="sm" className="subtle" /> },
         ]}
       />
     </Card>
@@ -523,6 +523,8 @@ export default function CustomerPage({ params }: { params: Promise<{ id: string 
         <KpiTile label={t('tiles.vat')} value={vatLabel} sub={vatSub} subTone={cu.vatValid === false ? 'bad' : undefined} />
       </div>
       <Chips
+        fill={false}
+        label={t('tabs.label')}
         value={tab}
         onChange={setTab}
         options={[

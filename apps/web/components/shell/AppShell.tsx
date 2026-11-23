@@ -392,6 +392,8 @@ function Shell({ children }: { children: ReactNode }) {
                       <span className="nlbl">{label(i.key)}</span>
                       {i.key === 'home' && !!badges.data?.home ? (
                         <span className="an-count">{badges.data.home}</span>
+                      ) : isActive(pathname, i.href) ? (
+                        <span className="ni-dot" aria-hidden />
                       ) : null}
                     </Link>
                   ))}

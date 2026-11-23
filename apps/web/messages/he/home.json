@@ -7,6 +7,7 @@
   "daysLate": "{n, plural, one {יום אחד} other {{n} ימים}} באיחור",
   "issuedAll": "{n, plural, one {חשבונית אחת נשלחה} other {# חשבוניות נשלחו}}",
   "tiles": {
+    "go": { "whatToDo": "מה לעשות", "collections": "פרטים", "byMonth": "לפי חודש", "dealProfit": "עסקאות" },
     "salesMonth": "מכירות החודש",
     "confirmed": "אושר",
     "couldClose": "{amount} יכולות להיסגר",
@@ -15,11 +16,9 @@
     "lateOfIt": "{amount} מתוכו באיחור",
     "late": "{amount} באיחור",
     "nothingLate": "אין פריטים באיחור",
-    "openCollections": "פתיחת גבייה",
     "salesYear": "מכירות השנה",
     "vsLastYear": "{pct}% לעומת השנה שעברה",
     "salesYearSub": "{n, plural, one {עסקה אחת ששולמה} other {# עסקאות ששולמו}}, ללא מע״מ",
-    "byMonth": "לפי חודש",
     "dealProfit": "רווחיות עסקאות השנה",
     "paidDealsOnly": "רק עסקאות ששולמו",
     "awaiting": "{n} ממתינים לתשלום",
@@ -239,6 +238,6 @@
     "alreadyDeclinedBy": "{name} כבר דחה את זה",
     "alreadyDecided": "מישהו כבר החליט על כך",
     "undone": "ההחלטה בוטלה",
-    "approveFailedFor": "{name} לא אושר. אפשר לנסות שוב."
+    "approveFailed": "לא אושר"
   }
 }

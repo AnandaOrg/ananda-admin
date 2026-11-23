@@ -86,6 +86,7 @@
   },
   "vatRegime": { "domestic": "Bulgarian 20%", "eu_reverse_charge": "Reverse charge 0%", "eu_vat": "Bulgarian 20%", "export": "No Bulgarian VAT" },
   "tabs": {
+    "label": "Customer sections",
     "orders": "Orders",
     "payments": "Payments & credits",
     "contacts": "Contacts & terms",

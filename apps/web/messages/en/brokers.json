@@ -27,6 +27,8 @@
     "coming": "Coming",
     "actions": "Actions",
     "role": "{status} · Broker",
+    "newBroker": "{company} · New broker",
+    "newBrokerNoCompany": "New broker",
     "status": {
       "invited": "Invited",
       "company": "Setting up",

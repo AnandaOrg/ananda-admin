@@ -16,7 +16,7 @@ import {
  * Locale-aware formatters (design system: Numbers, money and dates).
  * - `date`: every date that is the data (table cells, invoices, documents, exports, detail rows): EN "3 Nov 2026", BG "03.11.2026".
  * - `dateShort`: compact controls and sub-lines (date chips, range buttons, "As of"): EN "3 Nov", BG "03.11.26" (DD.MM.YY).
- * - Money/number: `money`, `unit`, `num` (BG "€6 822,72"). Wrap amounts, codes and Latin names in <bdi> in the TSX.
+ * - Money/number: `money`, `unit`, `num` (BG "6822,72 €", "36 635 €"). Wrap amounts, codes and Latin names in <bdi> in the TSX.
  */
 export function useFmt() {
   const locale = useLocale() as Locale;

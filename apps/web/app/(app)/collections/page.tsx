@@ -18,11 +18,9 @@ import {
   Table,
   TABLE_PICKERS,
   type Column,
-  Bell,
   CaretDown,
   EnvelopeSimple,
   Phone,
-  RowActions,
   CaretRight,
   Card,
   Chips,
@@ -106,21 +104,27 @@ function useReminder(row: Row, copyBroker: boolean, onDone: () => void) {
   return { draft, text, setText, send };
 }
 
-/** Row actions as one menu: Get in touch with Call, Email and Remind (every width). */
-function GetInTouch({ row, onRemind, block }: { row: Row; onRemind: () => void; block?: boolean }) {
+/** Row actions as two direct buttons, Call and Reminder (prototype: the common action is one tap). */
+function ContactButtons({ row, onRemind, block }: { row: Row; onRemind: () => void; block?: boolean }) {
   const t = useTranslations('collections');
   const tc = useTranslations('common');
+  const size = block ? '' : 'sm';
   return (
-    <RowActions
-      label={t('getInTouch')}
-      block={block}
-      size={block ? 'md' : 'sm'}
-      actions={[
-        { key: 'call', label: tc('call'), icon: Phone, href: telHref(row.phone) },
-        { key: 'email', label: t('emailAction'), icon: EnvelopeSimple, href: `mailto:${row.email}` },
-        { key: 'remind', label: t('remindAction'), icon: Bell, onSelect: onRemind },
-      ]}
-    />
+    <span className={block ? s.actsBlock : s.acts}>
+      {row.phone ? (
+        <a className={`an-btn secondary keep ${size}`} href={telHref(row.phone)}>
+          <Icon as={Phone} size={block ? 'md' : 'sm'} />
+          {tc('call')}
+        </a>
+      ) : (
+        <Button size={block ? 'md' : 'sm'} icon={Phone} disabled>
+          {tc('call')}
+        </Button>
+      )}
+      <Button size={block ? 'md' : 'sm'} icon={EnvelopeSimple} onClick={onRemind}>
+        {t('remind')}
+      </Button>
+    </span>
   );
 }
 
@@ -231,7 +235,7 @@ export default function CollectionsPage() {
         r.remindedToday ? (
           <span className={`body-sm ${s.sent}`}>{copyBroker ? t('sentToday', { name: first(r.brokerName) }) : t('sentTodayNoCopy')}</span>
         ) : (
-          <GetInTouch row={r} onRemind={() => toggle(r)} />
+          <ContactButtons row={r} onRemind={() => toggle(r)} />
         ),
     },
   ];
@@ -297,6 +301,7 @@ export default function CollectionsPage() {
       ) : (
         <>
           <Chips
+            fill={false}
             label={tc('nav.collections')}
             value={filter}
             onChange={pick}
@@ -356,8 +361,8 @@ export default function CollectionsPage() {
                     {copyBroker ? t('sentTodayCard', { name: first(r.brokerName) }) : t('sentTodayCardNoCopy')}
                   </span>
                 ) : (
-                  <div className={`row ${s.cardActs}`}>
-                    <GetInTouch row={r} block onRemind={() => toggle(r)} />
+                  <div className={s.cardActs}>
+                    <ContactButtons row={r} block onRemind={() => toggle(r)} />
                   </div>
                 )}
               </div>

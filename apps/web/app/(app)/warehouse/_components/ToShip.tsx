@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useFmt } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { Button, Camera, Card, EmptyState, ErrorState, FlavourName, Icon, ListCard, PageHeader, PageSkeleton, Phone, Pill } from '@/components/ui';
+import { Button, Camera, Card, Check, EmptyState, ErrorState, FlavourName, Icon, ListCard, Package, PageHeader, PageSkeleton, Phone, Pill } from '@/components/ui';
 import { PartDeliverySheet, SignedNoteSheet } from './DeliverySheets';
 import { daysAgo, mapsUrl, type ShipCard } from './types';
 import css from '../warehouse.module.css';
@@ -84,9 +85,13 @@ function OpenOrder({ o, onToggle, onNote, onPart, canAct }: { o: ShipCard; onTog
   );
 }
 
-/** Phone · To ship (FR-WH-2): the warehouse desk. One order open at a time; never prices or stock values. */
-export function ToShip() {
+/**
+ * Phone · To ship (FR-WH-2): the warehouse desk. One order open at a time; never prices or stock values.
+ * `links`: Admins on the phone have no warehouse tab bar, so Delivered and Stock count are links here.
+ */
+export function ToShip({ links }: { links?: boolean }) {
   const t = useTranslations('warehouse');
+  const tc = useTranslations('common');
   const { canEdit, readOnly } = useSession();
   const when = useWhen();
   const list = useQuery({ queryKey: ['warehouse', 'to-ship'], queryFn: () => api.get<ShipCard[]>('/warehouse/to-ship') });
@@ -101,6 +106,18 @@ export function ToShip() {
   return (
     <div className="page" style={{ maxWidth: 640 }}>
       <PageHeader title={t('toShipTitle', { n: rows.length })} />
+      {links && (
+        <div className="row">
+          <Link href="/warehouse/delivered" className={`an-btn secondary sm ${css.share}`}>
+            <Icon as={Check} size="sm" />
+            {tc('tabs.delivered')}
+          </Link>
+          <Link href="/warehouse/count" className={`an-btn secondary sm ${css.share}`}>
+            <Icon as={Package} size="sm" />
+            {tc('tabs.count')}
+          </Link>
+        </div>
+      )}
       {list.error ? (
         <ErrorState error={list.error} retry={() => list.refetch()} />
       ) : rows.length === 0 ? (

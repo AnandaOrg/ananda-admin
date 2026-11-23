@@ -127,11 +127,11 @@ export default function PurchasesPage() {
           <div className="kpis only-wide" style={{ ['--n' as string]: 3 }}>
             <KpiTile label={t('tiles.onTheWay')} value={num(tiles.onTheWayUnits)} sub={tiles.onTheWayUnits ? t('tiles.unitsCartons', { n: num(tiles.onTheWayCartons) }) : t('tiles.nothingOnTheWay')} />
             <KpiTile label={t('tiles.toPay')} value={money(tiles.toPaySuppliersCents)} sub={<bdi>{toPaySub}</bdi>} />
-            <KpiTile label={t('tiles.late')} value={num(tiles.late)} valueTone={tiles.late > 0 ? 'bad' : undefined} sub={<bdi>{lateSub}</bdi>} onClick={openLate} />
+            <KpiTile label={t('tiles.late')} value={num(tiles.late)} valueTone={tiles.late > 0 ? 'bad' : undefined} sub={<bdi>{lateSub}</bdi>} onClick={openLate} chevron={!!openLate} />
           </div>
           <div className="kpis only-phone">
             <KpiTile label={t('tiles.onTheWay')} value={num(tiles.onTheWayUnits)} sub={tiles.onTheWayUnits ? t('tiles.unitsCartons', { n: num(tiles.onTheWayCartons) }) : t('tiles.nothingOnTheWay')} />
-            <KpiTile label={t('tiles.toPayShort')} value={<span className={tiles.toPaySuppliersCents > 0 ? 'warn' : undefined}>{money(tiles.toPaySuppliersCents, true)}</span>} sub={<bdi>{toPaySub}</bdi>} onClick={() => router.push('/purchasing/payables')} />
+            <KpiTile label={t('tiles.toPayShort')} value={<span className={tiles.toPaySuppliersCents > 0 ? 'warn' : undefined}>{money(tiles.toPaySuppliersCents, true)}</span>} sub={<bdi>{toPaySub}</bdi>} onClick={() => router.push('/purchasing/payables')} chevron />
           </div>
         </>
       )}

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { CaretRight, Chips } from '@/components/ui';
+import { CaretRight, Chips, Icon } from '@/components/ui';
 import type { PurchaseList } from '../_lib/types';
 import css from '../purchasing.module.css';
 
@@ -51,5 +51,5 @@ export const chevronColumn = <T,>() => ({
   key: 'go',
   header: <span className="sr-only" />,
   type: 'amount' as const,
-  render: (_: T) => <CaretRight className="an-ic sm subtle" aria-hidden />,
+  render: (_: T) => <Icon as={CaretRight} size="sm" className="subtle" />,
 });

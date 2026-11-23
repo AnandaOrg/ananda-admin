@@ -27,6 +27,8 @@
     "coming": "בדרך",
     "actions": "פעולות",
     "role": "{status} · ברוקר",
+    "newBroker": "{company} · ברוקר חדש",
+    "newBrokerNoCompany": "ברוקר חדש",
     "status": {
       "invited": "הוזמן",
       "company": "בהגדרה",

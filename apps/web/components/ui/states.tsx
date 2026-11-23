@@ -195,14 +195,15 @@ export function StatusBar({ kind, onAction }: { kind: 'offline' | 'update'; onAc
 
 /**
  * Page-level loading/error for a detail page: nothing for the first ~300 ms, then the page skeleton;
- * 404 → Not found, 403 → No access, other errors → "Couldn't load this page" with Try again.
+ * 404 → Not found (also 400: a made-up or mangled id in the address is a broken link, not a failed load),
+ * 403 → No access, other errors → "Couldn't load this page" with Try again.
  * Usage: `if (!q.data) return <PageState query={q} notFound={{ title: t('notFound'), back: {...} }} />`.
  */
 export function PageState({ query, notFound, skeleton }: { query: { isLoading: boolean; error: unknown; refetch: () => unknown }; notFound?: { title?: ReactNode; text?: ReactNode; back?: { label: string; href: string } }; skeleton?: ReactNode }) {
   const late = useDelayed(query.isLoading);
   if (query.isLoading) return late ? <>{skeleton ?? <DefaultPageSkeleton />}</> : null;
   const e = query.error;
-  if (e instanceof ApiError && e.isNotFound) return <NotFound {...notFound} />;
+  if (e instanceof ApiError && (e.isNotFound || e.status === 400)) return <NotFound {...notFound} />;
   if (e instanceof ApiError && e.isForbidden) return <NoAccess />;
   return <PageLoadError error={e} onRetry={() => query.refetch()} />;
 }

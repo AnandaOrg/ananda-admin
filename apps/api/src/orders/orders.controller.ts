@@ -47,8 +47,9 @@ export class OrdersController {
 
   @Access('view', 'sales', 'warehouse')
   @Get(':id')
-  detail(@Auth() auth: AuthContext, @Param('id', uuid) id: string) {
-    return this.orders.detail(auth, id);
+  async detail(@Auth() auth: AuthContext, @Param('id') ref: string) {
+    // A made-up or out-of-date link is "not found", not a bad request; an order number also opens the order.
+    return this.orders.detail(auth, await this.orders.resolveRef(auth, ref));
   }
 
   @Access('edit', 'sales')

@@ -9,7 +9,7 @@ import { ActionError, Banner, Button, Pill, Select, Sheet } from '@/components/u
 import { MemberStatusPill, deviceName, useRoleText, type Member, type RoleSummary } from './shared';
 import css from '../users.module.css';
 
-/** A member: status, two-factor sign-in, last sign-in and devices; change role, suspend or restore access. */
+/** A member: status, two-step sign-in, last sign-in and devices; change role, suspend or restore access. */
 export function MemberSheet({ member, onClose, roles, editable, isSelf }: { member: Member | null; onClose: () => void; roles: RoleSummary[]; editable: boolean; isSelf: boolean }) {
   const t = useTranslations('admin');
   const rt = useRoleText();

@@ -7,6 +7,7 @@
   "daysLate": "{n, plural, one {{n} day} other {{n} days}} late",
   "issuedAll": "{n, plural, one {# invoice sent} other {# invoices sent}}",
   "tiles": {
+    "go": { "whatToDo": "What to do", "collections": "Open Collections", "byMonth": "By month", "dealProfit": "Deal profit" },
     "salesMonth": "Sales this month",
     "confirmed": "confirmed",
     "couldClose": "{amount} could close",
@@ -15,11 +16,9 @@
     "lateOfIt": "{amount} of it late",
     "late": "{amount} late",
     "nothingLate": "Nothing late",
-    "openCollections": "Open Collections",
     "salesYear": "Sales this year",
     "vsLastYear": "{pct}% vs last year",
     "salesYearSub": "{n, plural, one {# paid deal} other {# paid deals}}, excl. VAT",
-    "byMonth": "By month",
     "dealProfit": "Deal profit this year",
     "paidDealsOnly": "Paid deals only",
     "awaiting": "{n} awaiting payment",
@@ -239,6 +238,6 @@
     "alreadyDeclinedBy": "{name} already declined this",
     "alreadyDecided": "Someone already decided this",
     "undone": "Decision undone",
-    "approveFailedFor": "{name} not approved. Try again."
+    "approveFailed": "Not approved"
   }
 }

@@ -199,3 +199,79 @@
 .reasonItem[aria-selected='true'] {
   background: var(--surface-3);
 }
+
+/* Stock movements on the phone: a plain list (not tappable). Reason and units, then date · flavour · who. */
+.moves {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.move {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+}
+
+.moveWhy {
+  font: 500 15px/20px var(--font-sans);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.moveUnits {
+  font: 500 15px/20px var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: end;
+}
+
+.moveSub {
+  grid-column: 1 / -1;
+  font: 400 13px/18px var(--font-sans);
+  color: var(--text-muted);
+}
+
+/* Flavour card head (design): dot, name and the pill side by side, a cart button at the end of a low flavour.
+   When a pill doesn't fit on any card, the page sets data-stack and every pill goes under its name. */
+.cards :global(.an-stock > .k) {
+  height: auto;
+  min-height: var(--space-6);
+  flex-wrap: wrap;
+  row-gap: var(--space-1);
+}
+
+.headBreak {
+  display: none;
+}
+
+.headPill {
+  display: inline-flex;
+  white-space: nowrap;
+}
+
+.headOrder {
+  order: 1;
+  margin-inline-start: auto;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  border: 0;
+  background: transparent;
+}
+
+.cards[data-stack] .headBreak {
+  display: block;
+  flex-basis: 100%;
+  block-size: 0;
+  order: 2;
+}
+
+.cards[data-stack] .headPill {
+  order: 3;
+}

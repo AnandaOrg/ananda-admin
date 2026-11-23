@@ -1,7 +1,8 @@
 'use client';
 
 import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatMoney, parseMoney } from '@ananda/shared';
 import { CaretDown, Icon } from './icon';
 
 interface FieldShell {
@@ -38,25 +39,29 @@ export function TextField({ label, help, error, className, ...rest }: FieldShell
   );
 }
 
-/** Money input in euros; the value is kept in cents. */
-export function MoneyField({ label, help, error, className, cents, onCents, ...rest }: FieldShell & { cents: number | null; onCents: (c: number | null) => void } & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) {
+/** Money input in euros; the value is kept in cents. Written with the shared money formatter
+ *  (EN/HE "€10,382.40", BG "10 382,40 €") and re-written that way when the field is left. */
+export function MoneyField({ label, help, error, className, cents, onCents, placeholder, onBlur, ...rest }: FieldShell & { cents: number | null; onCents: (c: number | null) => void } & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) {
   const id = useId();
+  const locale = useLocale();
   return (
     <Field id={id} label={label} help={help} error={error} className={className}>
-      <span className={`an-input an-money ${error ? 'error' : ''}`}>
-        <span className="muted">€</span>
-        <input
-          id={id}
-          inputMode="decimal"
-          defaultValue={cents == null ? '' : (cents / 100).toFixed(2)}
-          onChange={(e) => {
-            const n = parseFloat(e.target.value.replace(/\s/g, '').replace(',', '.'));
-            onCents(Number.isFinite(n) ? Math.round(n * 100) : null);
-          }}
-          aria-invalid={!!error || undefined}
-          {...rest}
-        />
-      </span>
+      <input
+        id={id}
+        className={`an-input an-money ${error ? 'error' : ''}`}
+        inputMode="decimal"
+        defaultValue={cents == null ? '' : formatMoney(cents, locale)}
+        placeholder={placeholder ?? formatMoney(0, locale)}
+        onChange={(e) => onCents(parseMoney(e.target.value, locale))}
+        onBlur={(e) => {
+          const c = parseMoney(e.target.value, locale);
+          if (c != null) e.target.value = formatMoney(c, locale);
+          onBlur?.(e);
+        }}
+        aria-invalid={!!error || undefined}
+        aria-describedby={help || error ? `${id}-h` : undefined}
+        {...rest}
+      />
     </Field>
   );
 }

@@ -104,7 +104,7 @@ export default function CustomersPage() {
           status(c)
         ),
     },
-    { key: 'go', header: '', width: 40, render: () => <Icon as={CaretRight} size="sm" className="subtle flip" /> },
+    { key: 'go', header: '', width: 40, render: () => <Icon as={CaretRight} size="sm" className="subtle" /> },
   ];
 
   const chipKeys: Filter[] = phone ? ['all', 'needs_approval', 'late', 'free'] : ['all', 'needs_approval', 'late', 'free', 'archived'];
@@ -166,7 +166,7 @@ export default function CustomersPage() {
         }
       />
       {phone && <Search phone value={q} onChange={setQ} placeholder={t('searchPlaceholder')} />}
-      <Chips value={filter} onChange={setFilter} label={tc('filters')} options={chipKeys.map((f) => ({ value: f, label: t(`filters.${f}`), count: counts?.[f] }))} />
+      <Chips fill={false} value={filter} onChange={setFilter} label={tc('filters')} options={chipKeys.map((f) => ({ value: f, label: t(`filters.${f}`), count: counts?.[f] }))} />
       <Card flush className="only-wide">
         <Table columns={columns} rows={rows} rowKey={(c) => c.id} onRow={open} picker={{ id: 'customers', locked: ['customer', 'owes', 'status'], priority: ['broker', 'owns', 'last'] }} loading={list.isLoading} error={list.error} onRetry={() => list.refetch()} errorTitle={t('couldntLoad')} empty={empty} />
         {rows.length > 0 && <div className={s.foot2}>{t('rule', { n: months })}</div>}

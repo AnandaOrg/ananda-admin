@@ -25,6 +25,12 @@
 .sales-phone-tools > :first-child { flex: 1 1 auto; min-width: 0; }
 .sales-head-search { width: 260px; }
 .sales-chev { color: var(--text-subtle); display: inline-flex; }
+/* Phone order card: number · date on one line, the broker's name on its own line below */
+.sales-card-line { display: block; }
+@media (max-width: 767px) {
+  /* the filter row runs to the screen edge while it scrolls (first chip on the page margin) */
+  .sales-chiprow > .chips-wrap > .an-chips.scroll { margin-inline: calc(-1 * var(--page-margin-phone)); padding-inline: var(--page-margin-phone); scroll-padding-inline: var(--page-margin-phone); }
+}
 .sales-picks { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .sales-picks .an-chip { height: var(--control-sm); }
 

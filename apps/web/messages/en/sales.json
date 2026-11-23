@@ -181,8 +181,9 @@
     },
     "declined": "Your last request was declined",
     "holdReleased": "The stock hold was released on {date} because the payment did not arrive. The order stays open.",
-    "notFound": "Order not found",
+    "notFound": "We can't find this order",
     "notFoundText": "It may have been deleted, or it belongs to another broker.",
+    "notFoundTextAll": "It may have been deleted, or the link is out of date.",
     "back": "Back to Sales & orders",
     "cancelledTextHouse": "The customer and the warehouse were told. Reserved stock went back to available.",
     "termsKind": {

@@ -187,7 +187,16 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const invoice = useAction(() => api.post<{ invoice: string }>(`/orders/${id}/invoice`), { success: (r) => t('flow.toast.invoiced', { number: iso(r.invoice) }), errorToast: true });
   const uncancel = useAction(() => api.post(`/orders/${id}/uncancel`), { success: t('order.undone', { number: q.data?.order.number ?? '' }), errorToast: true });
 
-  if (!q.data) return <PageState query={q} notFound={{ title: t('order.notFound'), text: t('order.notFoundText'), back: { label: t('order.back'), href: '/sales' } }} />;
+  // Opened by its number (/sales/S-0026): continue on the order's own address, which every action uses.
+  const realId = q.data?.order.id;
+  useEffect(() => {
+    if (realId && realId !== id) router.replace(`/sales/${realId}${window.location.search}`);
+  }, [realId, id, router]);
+
+  // Admins see every order, so "or it belongs to another broker" is only said to brokers.
+  if (q.data && q.data.order.id !== id) return null;
+  if (!q.data)
+    return <PageState query={q} notFound={{ title: t('order.notFound'), text: t(isBroker ? 'order.notFoundText' : 'order.notFoundTextAll'), back: { label: t('order.back'), href: '/sales' } }} />;
   const d = q.data;
   const o = d.order;
   const can = (a: string) => d.actions.includes(a);

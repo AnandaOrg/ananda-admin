@@ -64,7 +64,10 @@ export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () =>
   const first = r?.broker.name.split(' ')[0] ?? '';
   const today = new Date().toISOString().slice(0, 10);
 
-  const rows: [ReactNode, ReactNode, ('good' | 'bad' | 'warn')?][] = [];
+  /** [label, value, tone, keep the value on one line (before → after amounts)] */
+  const rows: [ReactNode, ReactNode, ('good' | 'bad' | 'warn')?, boolean?][] = [];
+  /** "from → to", or "No change" when nothing moves (like the other unchanged rows). */
+  const change = (from: number, to: number, fmt: (n: number) => string, extra = '') => (from === to ? t('review.noChange') : `${fmt(from)} → ${fmt(to)}${extra}`);
   let sub: ReactNode = null;
   let note: ReactNode = null;
   if (r?.type === 'new_customer' && r.customer) {
@@ -109,9 +112,9 @@ export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () =>
     for (const f of changed) rows.push([f.flavour.toUpperCase(), t('review.cartonsChange', { from: num(f.from), to: num(f.to) }), 'warn']);
     if (changed.length < 4) rows.push([t('review.otherFlavours'), t('review.noChange')]);
     const cartonsNote = r.cartons.to === r.cartons.minimum ? t('review.atMinimum') : r.cartons.tierChanges ? t('review.tierChanges') : '';
-    rows.push([tc('cartons'), `${num(r.cartons.from)} → ${num(r.cartons.to)}${cartonsNote ? ` · ${cartonsNote}` : ''}`]);
-    rows.push([tc('totalInclVat'), `${money(r.totals.fromCents)} → ${money(r.totals.toCents)}`]);
-    rows.push([t('review.commissionOf', { name: first }), `${money(r.commission.fromCents)} → ${money(r.commission.toCents)}`]);
+    rows.push([tc('cartons'), change(r.cartons.from, r.cartons.to, num, cartonsNote ? ` · ${cartonsNote}` : '')]);
+    rows.push([tc('totalInclVat'), change(r.totals.fromCents, r.totals.toCents, (c) => money(c)), undefined, true]);
+    rows.push([t('review.commissionOf', { name: first }), change(r.commission.fromCents, r.commission.toCents, (c) => money(c)), undefined, true]);
     rows.push([
       t('review.stock'),
       r.stockReleasedUnits ? t('review.stockBack', { n: num(r.stockReleasedUnits) }) : r.stockNeededUnits ? t('review.stockNeeded', { n: num(r.stockNeededUnits) }) : t('review.noChange'),
@@ -142,10 +145,10 @@ export function ReviewPanel({ id, onClose }: { id: string | null; onClose: () =>
       ) : (
         <div className={s.rev}>
           <div className={s.rvBox}>
-            {rows.map(([k, v, tone], i) => (
+            {rows.map(([k, v, tone, oneLine], i) => (
               <div key={i} className={s.rvRow}>
                 <span>{k}</span>
-                <span className={tone ?? ''}>{v}</span>
+                <span className={`${tone ?? ''} ${oneLine ? s.nowrap : ''}`}>{v}</span>
               </div>
             ))}
           </div>

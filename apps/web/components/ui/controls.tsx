@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import type { StatusTone } from '@ananda/shared';
 import { useLookingBack } from '@/lib/asof';
+import { useMedia } from '@/lib/media';
 import { CaretDown, Icon, Info, MagnifyingGlass, Minus, Plus } from './icon';
 
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -69,11 +70,15 @@ export interface ChipOption<T extends string> {
 }
 
 /**
- * A chip row fills its container; chips share the width and never wrap. When the options do not
- * fit on one row in the current language, the row becomes a dropdown showing the current choice
- * (design system: chip rows that don't fit become a dropdown).
+ * One row of chips that never wraps. `fill` makes the chips share the row's width (choices inside a
+ * form); filter and tab rows pass `fill={false}` so each pill hugs its text, start-aligned.
+ * When the options do not fit on one row in the current language:
+ * - desktop and tablet: the row becomes a dropdown showing the current choice;
+ * - phone (< 768 px): the row scrolls sideways (no scrollbar), so every chip and its count stays
+ *   visible. A row placed directly in the page runs to the screen edge while it scrolls.
  */
 export function Chips<T extends string>({ options, value, onChange, fill = true, label }: { options: ChipOption<T>[]; value: T; onChange: (v: T) => void; fill?: boolean; label?: string }) {
+  const phone = useMedia('(max-width: 767px)');
   const wrap = useRef<HTMLDivElement>(null);
   const measure = useRef<HTMLDivElement>(null);
   const [fits, setFits] = useState(true);
@@ -86,6 +91,17 @@ export function Chips<T extends string>({ options, value, onChange, fill = true,
     check();
     return () => ro.disconnect();
   }, [options.map((o) => o.label + o.count).join('|')]);
+  // Phone scroll row: keep the chosen chip in view (e.g. a filter picked from a tile or a link).
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = row.current;
+    if (!phone || fits || !el) return;
+    const on = el.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!on) return;
+    const r = on.getBoundingClientRect();
+    const box = el.getBoundingClientRect();
+    if (r.left < box.left || r.right > box.right) el.scrollBy({ left: r.left < box.left ? r.left - box.left - 16 : r.right - box.right + 16 });
+  }, [phone, fits, value]);
   const text = (o: ChipOption<T>) => (o.count != null ? `${o.label} · ${o.count}` : o.label);
   const cur = options.find((o) => o.value === value) ?? options[0];
   return (
@@ -101,8 +117,8 @@ export function Chips<T extends string>({ options, value, onChange, fill = true,
           ))}
         </div>
       </div>
-      {fits ? (
-        <div className={`an-chips ${fill ? 'fill' : ''}`} role="group" aria-label={label}>
+      {fits || phone ? (
+        <div ref={row} className={`an-chips ${fill ? 'fill' : ''} ${fits ? '' : 'scroll'}`} role="group" aria-label={label}>
           {options.map((o) => (
             <button key={o.value} type="button" className="an-chip" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
               {o.label}

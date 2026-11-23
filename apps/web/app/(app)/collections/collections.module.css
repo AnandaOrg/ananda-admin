@@ -10,6 +10,10 @@
 .foot { padding: var(--space-4) var(--card-padding); border-block-start: 1px solid var(--line-soft); }
 .cardGap { gap: var(--space-1); }
 .cardActs { margin-block-start: var(--space-1); }
+/* Call · Reminder: two direct buttons (desktop row end; phone card, half width each) */
+.acts { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
+.actsBlock { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.actsBlock > :global(.an-btn) { min-width: 0; }
 .dd { min-height: var(--control-md); }
 .pickGrid { display: grid; }
 .brkSub { display: none; }

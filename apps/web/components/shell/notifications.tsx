@@ -232,7 +232,7 @@ export function NotificationsBody({
     return part === 'title' ? n.title : (n.body ?? '');
   };
   const markAll = (
-    <button type="button" className="nt-link" onClick={onMarkAll} style={phone ? { marginInlineStart: 'auto' } : undefined}>
+    <button type="button" className="nt-link" onClick={onMarkAll}>
       {t('notifications.markAll')}
     </button>
   );

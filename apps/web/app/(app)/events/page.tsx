@@ -87,6 +87,7 @@ export default function EventsPage() {
         <KpiTile label={t('tiles.stock')} value={num(tiles.stockUnits)} sub={t('tiles.units')} />
         <KpiTile label={t('tiles.salesShort')} value={money(tiles.salesThisYearCents, true)} sub={t('tiles.thisYear')} />
       </div>
+      {deskTiles}
       {items.length === 0 ? (
         <>
           <Card className="only-wide">
@@ -119,7 +120,6 @@ export default function EventsPage() {
           </div>
         </>
       )}
-      {deskTiles}
       {mayEdit && <div className="only-phone">{newButton(true)}</div>}
       <NewEventSheet open={open} onClose={() => setOpen(false)} />
     </div>

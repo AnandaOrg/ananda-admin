@@ -76,9 +76,15 @@ export {
 
 const FLIP = new Set(['CaretLeft', 'CaretRight', 'ArrowUpRight', 'ArrowCounterClockwise', 'SignOut', 'ArrowLeft']);
 
+/**
+ * True for direction icons (forward / back), which mirror in Hebrew. Phosphor names its components
+ * "CaretRightIcon", so the "Icon" suffix is dropped before the lookup.
+ */
+export const isDirectional = (C: PhosphorIcon) => FLIP.has(((C as { displayName?: string }).displayName ?? '').replace(/Icon$/, ''));
+
 /** Sized Phosphor icon in currentColor. Direction icons mirror in Hebrew. */
 export function Icon({ as: C, size = 'md', className = '', label }: { as: PhosphorIcon; size?: 'sm' | 'md' | 'lg'; className?: string; label?: string }) {
-  const flip = FLIP.has((C as { displayName?: string }).displayName ?? '');
+  const flip = isDirectional(C);
   return (
     <C
       className={`an-ic ${size === 'md' ? '' : size} ${flip ? 'flip' : ''} ${className}`.trim()}

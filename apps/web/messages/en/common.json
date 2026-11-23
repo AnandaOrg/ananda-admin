@@ -287,7 +287,7 @@
     "emptyAdmin": "Approvals, uploads, late payments and stock alerts show up here.",
     "emptyBroker": "You'll hear here when a customer is approved, pays or gets their delivery.",
     "caughtUp": "You're all caught up",
-    "caughtUpText": "Nothing unread. Older notifications are under All.",
+    "caughtUpText": "Nothing unread. Older ones are under All.",
     "settings": "Notification settings",
     "unreadCount": "{n, plural, one {# unread} other {# unread}}",
     "allRead": "All read",
@@ -303,7 +303,7 @@
   },
   "me": {
     "admin": "Admin",
-    "twoStep": "Two-factor sign-in",
+    "twoStep": "Two-step sign-in",
     "on": "On",
     "off": "Off",
     "account": "Account"
@@ -327,7 +327,7 @@
       "body": "{order} · {customer}"
     },
     "broker_signed": {
-      "title": "{broker} signed the broker agreement",
+      "title": "{broker} signed the agreement",
       "body": "Company and bank details are in. Countersign to finish their set-up."
     },
     "delivered": {

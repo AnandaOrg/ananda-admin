@@ -6,7 +6,6 @@
 
 .tileGo { position: relative; }
 .go { position: absolute; top: var(--space-4); inset-inline-end: var(--space-4); color: var(--text-muted); display: grid; pointer-events: none; }
-:global([dir='rtl']) .go { transform: scaleX(-1); }
 .warnV :global(.v) { color: var(--warn); }
 .badV :global(.v) { color: var(--bad); }
 
@@ -23,6 +22,8 @@
 .foot { padding: var(--space-4) var(--card-padding); font: 400 13px/18px var(--font-sans); color: var(--text-muted); border-top: 1px solid var(--line-soft); }
 .zero { color: var(--bad); }
 .acts { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); }
+/* a new broker waiting to be countersigned needs action (prototype .x-nbrow) */
+.nbRow td { background: color-mix(in srgb, var(--warn) 6%, transparent); }
 
 /* phone cards */
 .pcard { display: grid; gap: var(--space-2); padding: var(--space-4); border: 1px solid var(--line-soft); border-radius: var(--radius-lg); background: var(--surface-1); }

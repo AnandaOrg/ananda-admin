@@ -181,3 +181,8 @@
     vertical-align: top;
   }
 }
+
+/* Entry panel: labels at the start, values at the end of the row (as the access panel on Users & roles). */
+.kv dd {
+  text-align: end;
+}

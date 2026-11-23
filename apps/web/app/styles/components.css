@@ -116,8 +116,8 @@
 .an-tbl th { font: 400 12px/16px var(--font-sans); color: var(--text-muted); text-align: start; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
 .an-tbl td { font: 400 14px/20px var(--font-sans); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
 .an-tbl tr:last-child td { border-bottom: 0; }
-.an-tbl :is(th, td):first-child { padding-inline-start: var(--card-padding); }
-.an-tbl :is(th, td):last-child { padding-inline-end: var(--card-padding); }
+.an-tbl :is(th, td):first-child { padding-inline-start: var(--space-6); }
+.an-tbl :is(th, td):last-child { padding-inline-end: var(--space-6); }
 .an-tbl .num { text-align: center; }
 .an-tbl .amt { text-align: end; }
 .an-tbl .nm { font-weight: 500; }

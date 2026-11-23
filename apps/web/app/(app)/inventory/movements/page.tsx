@@ -22,9 +22,11 @@ export default function StockMovementsPage() {
         title={t('movements.title')}
         actions={
           editable ? (
-            <Button size="sm" icon={SlidersHorizontal} onClick={() => setAdjusting(true)}>
-              {t('adjust.title')}
-            </Button>
+            <span className="only-wide">
+              <Button size="sm" icon={SlidersHorizontal} onClick={() => setAdjusting(true)}>
+                {t('adjust.title')}
+              </Button>
+            </span>
           ) : undefined
         }
       />

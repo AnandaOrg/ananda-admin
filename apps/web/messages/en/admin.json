@@ -20,7 +20,7 @@
       "name": "Name",
       "role": "Role",
       "sees": "Sees",
-      "twoStep": "Two-factor sign-in",
+      "twoStep": "Two-step sign-in",
       "actions": "Actions",
       "invited": "Invited"
     },
@@ -474,7 +474,7 @@
       "sign_in_link_sent": "Asked for a sign-in link",
       "signed_out_device": "Signed out a device",
       "signed_out_other_devices": "Signed out all other devices",
-      "two_step_enabled": "Turned on two-factor sign-in",
+      "two_step_enabled": "Turned on two-step sign-in",
       "password_changed": "Changed their password",
       "member_invited": "Invited {name} as {role}",
       "invitation_resent": "Sent the invitation to {name} again",

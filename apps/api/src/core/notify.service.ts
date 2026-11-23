@@ -112,7 +112,7 @@ export const NOTIFY_KINDS: { [K in NotifyKind]: { title: (d: NotifyData[K]) => s
   /** Admin: a broker uploaded a document on an order. data: broker, doc (English label), docKind (purchase_order | signed_order | payment_proof | delivery | other), order, customer */
   broker_upload: { title: (d) => `${d.broker} uploaded ${String(d.doc).toLowerCase().startsWith('a') ? 'an' : 'a'} ${String(d.doc).toLowerCase()}`, body: (d) => `${d.order} · ${d.customer}` },
   /** Admin: a new broker signed the broker agreement and waits to be countersigned. data: broker */
-  broker_signed: { title: (d) => `${d.broker} signed the broker agreement`, body: () => 'Company and bank details are in. Countersign to finish their set-up.' },
+  broker_signed: { title: (d) => `${d.broker} signed the agreement`, body: () => 'Company and bank details are in. Countersign to finish their set-up.' },
   /** Admin + broker: delivered with the signed note. data: order */
   delivered: { title: (d) => `${d.order} delivered`, body: () => '' },
   /** Admin + broker: delivered, part came back. data: order, returned (cartons) */

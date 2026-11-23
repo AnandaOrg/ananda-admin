@@ -255,7 +255,7 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
         {filtersBtn(t('filtersBtn'))}
       </div>
       <div className="sales-chiprow">
-        <Chips options={chips} value={filter} onChange={setFilter} label={tc('filters')} />
+        <Chips fill={false} options={chips} value={filter} onChange={setFilter} label={tc('filters')} />
         <span className="only-wide" style={{ marginInlineStart: 'auto' }}>
           {filtersBtn(t('moreFilters'))}
         </span>
@@ -273,8 +273,10 @@ export function SalesList({ newSale = false }: { newSale?: boolean }) {
               amount={money(o.totalCents)}
               sub={
                 <>
-                  <bdi>{o.number}</bdi> · {date(o.createdAt)}
-                  {!isBroker && ` · ${o.houseSale ? t('noBroker') : o.brokerName}`}
+                  <span className="sales-card-line">
+                    <bdi>{o.number}</bdi> · {date(o.createdAt)}
+                  </span>
+                  {!isBroker && <span className="sales-card-line">{o.houseSale ? t('noBroker') : o.brokerName}</span>}
                 </>
               }
               status={<SalesStatus status={o.status} daysLate={o.daysLate} />}

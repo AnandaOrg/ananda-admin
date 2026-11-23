@@ -124,6 +124,8 @@ export class BrokersService {
         nudgedToday: !!lastNudge && new Date(lastNudge) >= today,
       };
     });
+    // A new broker waiting to be countersigned needs action: always the first row (prototype), the rest by name.
+    brokers.sort((a, b) => Number(b.setup === 'countersign') - Number(a.setup === 'countersign'));
     // Brokers still setting up are not expected to sell yet.
     const active = brokers.filter((a) => a.status === 'active' && a.setup === 'done');
     const range = { from: isoDate(since), to: isoDate() };
